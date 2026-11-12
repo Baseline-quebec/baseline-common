@@ -17,14 +17,14 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
    - Ce qui ne vaut que pendant un appel (un drapeau, un curseur, la forme en cours de lecture) est
      un argument ou une variable locale, jamais un attribut.
    - Exemple : `BatchReplacementService(reads, writes, scope, id_field)`, puis `replace(records)`.
-2. **Une classe a toujours une configuration.** Une classe de travail dont le constructeur ne
-   prendrait aucun argument n'a pas lieu d'être (un enregistrement, une énumération, une exception ou
-   une `ABC` n'est pas visé) :
+2. **Pas d'instance d'une classe dont le constructeur ne prend rien.** Une instance existe parce
+   qu'elle garde quelque chose : une configuration, des dépendances, des paramètres ou des valeurs.
+   Une classe qui ne garderait rien ne s'instancie pas :
    - une logique sans état est une fonction du module ;
    - une façon de construire une instance est une méthode de classe de la classe construite
      (`Problem.from_files(path)`) ;
-   - un travail qui a besoin d'un état pendant un appel devient une méthode de la classe configurée
-     qui l'appelle.
+   - un travail qui a besoin d'un état pendant un appel devient une méthode de la classe qui
+     l'appelle.
 3. **Une classe a une seule responsabilité.** Une classe qui en mêle deux (lire des plans et écrire
    des règles, par exemple) est coupée en deux. Une méthode qui n'a rien à faire dans sa classe en
    sort.
