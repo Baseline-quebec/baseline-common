@@ -17,9 +17,9 @@ modules dont il a besoin, les copie, et en possède ensuite le code.
 
 | Document | Contenu |
 |---|---|
-| [`docs/rules.md`](docs/rules.md) | **Les 29 règles de revue du code.** Tout code qui entre ici les respecte. |
+| [`docs/rules.md`](docs/rules.md) | **Les règles de revue du code,** communes à tout le dépôt. Tout code qui entre ici les respecte. |
 | [`docs/architecture-services.md`](docs/architecture-services.md) | Les couches et comment un service, un orchestrateur et un repository se construisent. |
-| [`docs/optimization-engine.md`](docs/optimization-engine.md) | Le moteur d'optimisation : écrire un problème, le résoudre. |
+| [`docs/optimization-engine.md`](docs/optimization-engine.md) | Le moteur d'optimisation : écrire un problème, le résoudre ; ses règles propres (section 8). |
 | [`docs/document-pipeline.md`](docs/document-pipeline.md) | La démarche documentaire : d'une source aux entités qu'un schéma demande. |
 | [`docs/SOURCES.txt`](docs/SOURCES.txt) | La provenance de chaque fichier : dépôt, branche, commit, chemin. |
 

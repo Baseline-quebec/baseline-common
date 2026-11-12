@@ -11,7 +11,8 @@ dans sa fenêtre de temps, et après l'opération précédente de sa commande. U
 opération à la fois. Le modèle d'essai correspondant est `tests/core/optimization/job_shop_model.py`.
 
 L'historique du projet où le moteur est né (décisions, mesures, revues) est dans
-`docs/history/optimization-engine-log.md`. Les règles de revue sont dans `docs/rules.md`.
+`docs/history/optimization-engine-log.md`. Les règles de revue générales sont dans `docs/rules.md` ;
+celles du moteur sont à la section 8.
 
 ## 1. Où vit le code
 
@@ -687,3 +688,36 @@ Les chemins partent de `src/baseline_core/core/optimization/`.
 | `AbstractPlanSampler`, `FeasibleWalk`, `KernelRestarts` | `mining/sampler.py` | des plans de référence tirés du modèle connu |
 | `ConstrainLoop` | `mining/constrain_loop.py` | encoder d'abord le candidat que le modèle respecte le moins comme le planificateur |
 | `ObjectiveTradeoff` | `mining/objective_tradeoff.py` | deux objectifs : dans quel sens les plans ont bougé |
+
+## 8. Règles du moteur
+
+Elles s'ajoutent aux règles générales de `docs/rules.md` et ne valent que pour
+`src/baseline_core/core/optimization/`. Une revue les cite par « moteur » et leur numéro.
+
+1. **Organisation** : le moteur garde ses dossiers (`problem_formulation`, `solver`, `mining`) et le
+   découpage de `solver/` (`binding/`, `kernel/`, `infeasibility/`, `search/`). Pas d'OR-Tools, pas
+   d'encodeur ni de décodeur : `SchemaPath` en tient lieu.
+2. **Aucun problème nommé.** Le catalogue ne garde que des primitives des outils de référence. Un
+   besoin propre à un problème (une pause de midi, un temps de nettoyage entre deux sortes de tâches)
+   passe par une primitive générique déclarée (`model.breaks`, `Transition`). Les modèles propres à
+   un problème ne servent qu'aux essais.
+3. **Pas d'interpréteur.** Le noyau est en Cython « mode Python pur », le même code compilé ou non
+   (`solver/kernel/kernel.py`) ; un interpréteur d'expressions n'y sert donc pas.
+4. **Un seul moteur.** Pas de deuxième recherche, de deuxième chargement du noyau ni de deuxième
+   lecture des durées à côté de ceux du moteur : un échantillonneur de plans appelle `KernelSolver`, il
+   ne refait pas sa boucle.
+5. **Pré-vérification** : trois niveaux, **le délai réglé par l'appelant, sans défaut** ; ce qui n'est
+   pas décidé à temps n'est pas prouvé. Si un cas n'est pas tenu, on le dit : aucun essai ni réglage
+   ajusté pour masquer une lenteur. Non générique pour n'importe quel problème = échec.
+6. **Sûr, sinon refusé.** Une preuve (`PrecheckIssue` prouvé) est vraie, et une variation égale un
+   recompte complet. Ce que le moteur ne sait pas traiter exactement est refusé à la liaison (un
+   élément nommé par des données, `at[partner[e]]`). Une borne qui ne tient pas dans un cas (une pause
+   qui chevauche deux périodes) retombe sur une borne plus faible mais vraie.
+7. **Même résultat, vérifié par script.** Après une optimisation ou une refactorisation, comptes,
+   variations, violations et constats sont comparés à la version d'avant, compilée et en Python pur,
+   sur plusieurs modèles d'essai (atelier, chargement de camions, ressources).
+8. **Les solveurs cités existent.** Une docstring ou un document ne cite une primitive de CP-SAT, CP
+   Optimizer, OR-Tools ou MiniZinc qu'après avoir vérifié qu'elle existe et qu'elle a ce sens.
+   `AddBinPacking` de CP-SAT, qui n'existe pas, a été cité à tort.
+9. **Pas de réglage pour les essais.** Ni `-O0` pour compiler plus vite, ni autre branche : les essais
+   tournent en Python pur par défaut, et en Cython seulement pour comparer les deux.
