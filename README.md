@@ -5,76 +5,65 @@
 baseline-core est la base de connaissances commune des développeurs de Baseline. On y trouve le
 code qui a fait ses preuves dans un projet et qui servira au suivant :
 - des briques génériques (`core/`) ;
-- la façon de construire un service par-dessus (`service/`) ;
+- les enregistrements que les couches s'échangent (`data_schema/`) ;
 - la façon d'enchaîner des services pour un flot (`orchestrator/`) ;
-- les enregistrements que ces couches s'échangent (`data_schema/`).
+- la façon de construire un service par-dessus `core/` (`service/`).
 
 Un projet généré par
 [baseline-app-template](https://github.com/Baseline-quebec/baseline-app-template) choisit les
 modules dont il a besoin, les copie, et en possède ensuite le code.
 
+## Documentation
+
+| Document | Contenu |
+|---|---|
+| [`docs/rules.md`](docs/rules.md) | **Les 29 règles de revue du code.** Tout code qui entre ici les respecte ; ce README les cite par numéro (« règle 5 »). |
+| [`docs/architecture-services.md`](docs/architecture-services.md) | Les couches et comment un service, un orchestrateur et un repository se construisent. |
+| [`docs/optimization-engine.md`](docs/optimization-engine.md) | Le moteur d'optimisation : écrire un problème, le résoudre. |
+| [`docs/document-pipeline.md`](docs/document-pipeline.md) | La démarche documentaire : d'une source aux entités qu'un schéma demande. |
+| [`docs/SOURCES.txt`](docs/SOURCES.txt) | La provenance de chaque fichier : dépôt, branche, commit, chemin. |
+
 ## Arborescence
 
 ```
-iac/                         infrastructure as code (vide pour l'instant)
-docs/                        architecture, règles de revue, moteur d'optimisation,
-                             pipeline documentaire, provenance
+docs/                            la documentation ci-dessus
+iac/                             infrastructure as code (vide pour l'instant)
 src/baseline_core/
-  api/v1/                    squelette FastAPI ; container/ : les providers Dishka
-  orchestrator/              un orchestrateur par flot, qui enchaîne des services et des repositories
-    planning_orchestrator.py PlanningOrchestrator : lire le problème, OptimizationService, écrire
-                             le plan ; replan garde fixées les affectations demandées
-    document_extraction_orchestrator.py
-                             DocumentExtractionOrchestrator : un fichier → DocumentParser,
-                             IndexingService, ClassificationService, ExtractionService
-  data_schema/               les enregistrements partagés par plusieurs services ou couches (vide)
-  service/                   comment un service se construit sur un module de core/
-    optimization/            OptimizationService : lier, pré-vérifier, résoudre, remplir la sortie
-    record_matching/agent/   comment un agent se construit : agent.py (l'agent et son appel),
-                             deps.py (ce qu'un appel lit), output.py (la réponse validée),
-                             prompt.py (ce qu'on lui dit) ; ici, à quel enregistrement connu
-                             correspond un nom écrit dans un document
-    batch_replacement_service.py
-                             BatchReplacementService : réécrire un lot à la place du lot
-                             précédent de même portée (ids réutilisés, surplus inséré, reste
-                             supprimé) ; ses essais le branchent sur Zoho (ZohoCoqlDialect,
-                             ZohoWriteConfig) : l'exemple d'un service sur un gateway
-  core/                      briques génériques, aucun nom de client ni de problème
-    repository/              lire ou écrire des enregistrements, quel que soit le support
-      abstract_repository.py AbstractReadRepository, AbstractWriteRepository
-      in_memory_repository.py
-      gateway/               une API distante : ReadGateway, WriteGateway ;
-                             http_client/ : HttpClient, HttpConfig, ResilientAsyncTransport ; zoho/, fidelio/ : les dialectes
-      nosql/mongo/           MongoReadRepository, MongoWriteRepository (pymongo async ; l'id du
-                             record est le _id de Mongo, toujours indexé)
-      vectorstore/           vector_document.py : VectorDocument, le document indexé, commun aux
-                             fournisseurs
-        weaviate/            WeaviateReadRepository (dont la recherche hybride),
-                             WeaviateWriteRepository, WeaviateCollection
-        qdrant/              QdrantReadRepository (hybride dense + BM25, hiérarchique, facettes),
-                             QdrantWriteRepository, QdrantCollection (index, connexion)
-    llm/                     usage.py (coût d'un appel) ; evalkit/ : évaluer une sortie
-                             (AbstractMetric, AbstractEvalAdapter, AbstractGatedScore, EvalRun ;
-                             tracking/ : MLflow)
-      document_extraction/   extraire d'un document ce qu'un schéma demande :
-                             document_parser.py, layout/, sheet_parser.py : lire un PDF ou un
-                             classeur ; indexing/ : titres détectés (code), plan réconcilié
-                             (agent) ; classification/ : ClassificationService, pertinence et
-                             réparation des frontières ;
-                             extraction/ : ExtractionService[Out], le modèle juge, le code tranche ;
-                             section.py, indexed_document.py, section_entities.py
-    ml/                      données (dont RemoteFolder : un dossier local, az:// ou memory://),
-                             modèles, entraînement, inférence ; huggingface/, job/ ;
-                             graph/ : graphe → HeteroData (PyTorch Geometric), dépend de multidigraph
-    multidigraph/            graphe orienté multiple typé (Pydantic + NetworkX) ;
-                             MultiDiGraphConfig + GraphBuilder : enregistrements → graphe
-    optimization/            moteur de modélisation : formulation, liaison, recherche
-tests/                       même arborescence que src/baseline_core/ ; architecture_test.py
+├── api/v1/                      squelette FastAPI
+├── core/                        briques génériques
+│   ├── llm/
+│   │   ├── document_extraction/ extraire d'un document ce qu'un schéma demande
+│   │   └── evalkit/             évaluer la sortie d'un LLM
+│   ├── ml/                      données, modèles, entraînement, inférence
+│   ├── multidigraph/            graphe orienté multiple typé
+│   ├── optimization/            écrire un problème d'optimisation, le résoudre
+│   └── repository/              lire ou écrire des enregistrements
+│       ├── gateway/             une API HTTP distante (Zoho, Fidelio)
+│       ├── nosql/mongo/         MongoDB
+│       ├── vectorstore/         Qdrant, Weaviate
+│       ├── abstract_repository.py
+│       └── in_memory_repository.py
+├── data_schema/                 enregistrements partagés entre couches (vide)
+├── orchestrator/                un fichier par flot
+│   ├── document_extraction_orchestrator.py
+│   └── planning_orchestrator.py
+└── service/                     un service par entité ou capacité
+    ├── ml/                      détecter des boîtes dans une image
+    ├── optimization/            résoudre un problème d'optimisation
+    ├── record_matching/agent/   comment un agent se construit
+    └── batch_replacement_service.py
+tests/                           même arborescence que src/ ; architecture_test.py
 ```
 
 ## Définitions
 
-- **Module core** : du code générique. Il ne nomme ni un client ni un problème (règle 9).
+Dans l'ordre de l'arborescence.
+
+- **Module core** : du code générique, sous `core/`. Il ne nomme ni un client ni un problème
+  (règle 9).
+- **Repository** : lit **ou** écrit un seul type d'enregistrement, sans règle métier. Il est
+  injecté dans un service, ou dans un orchestrateur quand l'étape n'est qu'une lecture ou une
+  écriture (pas de service qui ne ferait que relayer, règle 7).
 - **data_schema** : les enregistrements Pydantic qu'une application partage entre ses couches
   (`api`, `orchestrator`, `service`) ou entre plusieurs services. C'est le vocabulaire commun de
   l'application, la couche juste au-dessus de `core/`.
@@ -92,19 +81,47 @@ tests/                       même arborescence que src/baseline_core/ ; archite
     copiable seul).
   - **Ici,** il est vide : les enregistrements génériques vivent dans leur module de `core/`. Dans
     un projet, il porte ceux du domaine du client.
-- **Service** : la logique d'une entité ou d'une capacité. Son constructeur reçoit la configuration
-  et les dépendances, ses méthodes reçoivent les données (règle 1). Un service a son dossier
-  `service/<sujet>/` dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config).
 - **Orchestrateur** : enchaîne plusieurs services pour un flot, sans règle métier propre. C'est un
   seul fichier, `orchestrator/<flot>_orchestrator.py`. C'est là que des modules de `core/`, qui
   s'ignorent entre eux, se rencontrent.
-- **Repository** : lit **ou** écrit un seul type d'enregistrement, sans règle métier. Il est
-  injecté dans un service, ou dans un orchestrateur quand l'étape n'est qu'une lecture ou une
-  écriture (pas de service qui ne ferait que relayer, règle 7).
+- **Service** : la logique d'une entité ou d'une capacité. Son constructeur reçoit la configuration
+  et les dépendances, ses méthodes reçoivent les données (règle 1). Un service a son dossier
+  `service/<sujet>/` dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config).
 
-Détails : `docs/architecture-services.md`. Règles de revue du code : `docs/rules.md`. La
-démarche documentaire (d'une source aux entités qu'un schéma demande) :
-`docs/document-pipeline.md`.
+## Contenu
+
+Les classes à connaître, couche par couche.
+
+### core/
+
+| Module | Ce qu'il fait | Classes clés |
+|---|---|---|
+| `llm/document_extraction/` | Lire un PDF ou un classeur, en trouver les sections, garder celles qui comptent, en extraire les entités. | `DocumentParser`, `IndexingService`, `ClassificationService`, `ExtractionService` |
+| `llm/evalkit/` | Mesurer la qualité d'une sortie de LLM sur des cas, suivie dans MLflow. | `AbstractMetric`, `Evaluator`, `EvalRun` |
+| `ml/` | Entraîner un modèle (PyTorch Lightning), le suivre (MLflow), l'exporter et l'exécuter. | `TrainingRun`, `AbstractModelRunner`, `OnnxExporter` |
+| `ml/graph/` | Lire un graphe comme entrée de modèle (PyTorch Geometric). Dépend de `multidigraph`. | `HeteroDataConverter` |
+| `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
+| `optimization/` | Écrire un problème une fois, le lier à des données, le pré-vérifier, le résoudre. | `AbstractModelDefinition`, `ModelCompiler`, `InfeasibilityCheck`, `KernelSolver`, `OutputMapper` |
+| `repository/` | Les contrats de lecture et d'écriture, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `InMemoryRepository` |
+| `repository/gateway/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
+| `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository` |
+| `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository` et leurs pendants d'écriture |
+
+### orchestrator/
+
+| Fichier | Flot |
+|---|---|
+| `document_extraction_orchestrator.py` | Un fichier → `DocumentParser`, `IndexingService`, `ClassificationService`, `ExtractionService`. |
+| `planning_orchestrator.py` | Lire un problème, le résoudre avec `OptimizationService`, écrire le plan. |
+
+### service/
+
+| Service | Ce qu'il montre |
+|---|---|
+| `ml/` | `Detector` : un service sur un modèle exécuté par `core/ml/`. |
+| `optimization/` | `OptimizationService` : lier, pré-vérifier, résoudre, remplir la sortie. |
+| `record_matching/agent/` | Comment un agent se construit : `agent.py`, `deps.py`, `output.py`, `prompt.py`. Ici, à quel enregistrement connu correspond un nom écrit dans un document. |
+| `batch_replacement_service.py` | `BatchReplacementService` : réécrire un lot à la place du précédent de même portée. Ses essais le branchent sur Zoho : l'exemple d'un service sur un gateway. |
 
 ## Ce qui entre ici
 
@@ -131,14 +148,15 @@ Un module entre s'il remplit **toutes** ces conditions.
    - **importée en haut du fichier,** jamais dans une fonction ni dans un `try` : une dépendance
      cachée échoue tard et échappe à mypy et aux essais d'architecture.
 
-### Ce qui n'entre pas (exemples réels)
+### Ce qui n'entre pas
 
-| Retiré | Pourquoi |
-|---|---|
-| `geocoding/` (Geocoder, Geocodio) | Adaptateur mince d'un seul projet ; le gateway montre déjà comment envelopper une API HTTP. |
-| `CsvRepository` | Lire et écrire un fichier entier se réécrit en quelques lignes sur `InMemoryRepository`. |
-| `file_store/` | Une ABC pour une seule implémentation locale (règle 5). |
-| Les services, orchestrateurs, prompts et `data_schema` d'un client | Du contenu métier, pas une connaissance réutilisable. |
+- **Un adaptateur mince autour d'une API tierce,** utilisé par un seul projet : le gateway montre
+  déjà comment envelopper une API HTTP.
+- **Un repository qui se réécrit en quelques lignes** sur un repository existant, comme lire et
+  écrire un fichier entier sur `InMemoryRepository`.
+- **Une ABC pour une seule implémentation** (règle 5).
+- **Le contenu métier d'un client** : ses services, orchestrateurs, prompts et `data_schema`. Ce
+  n'est pas une connaissance réutilisable.
 
 ## Règles d'architecture
 
