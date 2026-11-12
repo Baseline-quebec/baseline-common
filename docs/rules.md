@@ -2,6 +2,8 @@
 
 Ces règles servent de grille à toute revue de code de baseline-core. Une revue cite leur numéro.
 Chaque règle tient dans son titre en gras ; le texte qui suit l'explique et donne un exemple.
+Une règle marquée *(signal)* n'interdit rien : elle pose une question à la revue, et un écart
+justifié est accepté.
 
 Un module qui a des règles propres les porte dans sa documentation : celles du moteur
 d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »).
@@ -15,8 +17,9 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
    - Ce qui ne vaut que pendant un appel (un drapeau, un curseur, la forme en cours de lecture) est
      un argument ou une variable locale, jamais un attribut.
    - Exemple : `BatchReplacementService(reads, writes, scope, id_field)`, puis `replace(records)`.
-2. **Une classe a toujours une configuration.** Une classe dont le constructeur ne prendrait aucun
-   argument n'a pas lieu d'être :
+2. **Une classe a toujours une configuration.** Une classe de travail dont le constructeur ne
+   prendrait aucun argument n'a pas lieu d'être (un enregistrement, une énumération, une exception ou
+   une `ABC` n'est pas visé) :
    - une logique sans état est une fonction du module ;
    - une façon de construire une instance est une méthode de classe de la classe construite
      (`Problem.from_files(path)`) ;
@@ -34,8 +37,8 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
      qu'une construction maison.
 5. **Une valeur se vérifie une fois, quand l'objet est construit.**
    - Par un `model_validator` Pydantic, ou par le constructeur d'une classe simple.
-   - Un enregistrement vérifié est figé (`frozen=True`) ; sinon, une modification pourrait le rendre
-     invalide après coup.
+   - Un enregistrement vérifié est de préférence figé (`frozen=True`). S'il doit changer,
+     `validate_assignment=True` revérifie chaque modification.
    - Une propriété rend une valeur ; elle ne revérifie pas un type à chaque lecture.
 6. **Plutôt refuser que mentir.** Le code ne rend jamais un résultat faux en silence.
    - Ce qu'il ne sait pas traiter exactement est refusé au plus tôt, par une exception claire.
@@ -71,10 +74,13 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
     exécution, vit dans le fichier de la classe qui s'en sert, sous un nom normal (`PrecheckRun`, pas
     `_Run`).
 13. **Le code ne sait pas qu'il est testé.** Rien dans `src/` n'existe pour les essais : ni réglage, ni
-    variable d'environnement, ni branche. Un essai lent se corrige dans `tests/`.
+    variable d'environnement, ni branche. Un essai lent se corrige dans `tests/`. Une dépendance
+    injectée (un transport HTTP, une horloge) n'est pas un réglage d'essai : la production s'en sert
+    aussi.
 14. **Les essais suivent l'arborescence du code.** L'essai de `src/baseline_core/<chemin>/<module>.py`
     est `tests/<chemin>/<module>_test.py`. Les modèles et bancs d'essai d'un paquet vivent dans son
-    dossier d'essais.
+    dossier d'essais. Un essai qui porte sur tout le dépôt (`architecture_test.py`) vit à la racine de
+    `tests/`.
 15. **Un script est un point d'entrée court qui montre ce que les essais ne montrent pas** : une
     mesure, un banc, un usage complet. Ses classes vivent dans le paquet ou dans `tests/`. Un script
     qui ne montre rien de neuf est retiré.
@@ -89,9 +95,10 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
       parenthèses de l'appel montrent alors qu'il y a un travail.
     - Exemple : `task.end` (début + durée) est une propriété ; `schedule.render()` (coûteux) et
       `clock.now()` (change à chaque appel) restent des méthodes.
-17. **Une méthode prend au plus quatre arguments,** `self` non compté, constructeur compris. Au-delà,
-    les arguments qui vont ensemble forment un enregistrement, ou la méthode fait trop de choses et se
-    coupe.
+17. **Plus de quatre arguments : se demander s'il y en a trop.** *(signal)* `self` non compté,
+    constructeur compris. Souvent, des arguments qui vont ensemble forment un enregistrement, ou la
+    méthode fait trop de choses et se coupe. Si chacun est une donnée distincte et nécessaire, ils
+    restent.
 18. **Des listes, pas des tuples.** Un tuple demande une raison : une valeur qui doit être immuable
     ou hachable (une clé de dictionnaire, un membre d'ensemble). Sinon une liste, un dictionnaire ou
     un enregistrement.
@@ -126,8 +133,7 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
     identiques, et les essais le vérifient. Un écart n'est accepté que s'il corrige un défaut, et il
     est alors nommé.
 26. **Rien n'est retiré avant d'avoir vérifié que rien ne s'en sert** : ni un appelant, ni un essai,
-    ni une vérification qu'il serait seul à faire. La raison du retrait est écrite, et le retrait est
-    un commit à part, qu'on peut annuler.
+    ni une vérification qu'il serait seul à faire. La raison du retrait est écrite.
 27. **Une référence à un outil extérieur est vérifiée.** Une docstring ou un document ne cite une API,
     une fonction ou un format d'un outil extérieur qu'après avoir vérifié, dans sa documentation,
     qu'il existe et qu'il a ce sens.
