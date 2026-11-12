@@ -1,0 +1,65 @@
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/repository/ -> src/baseline_core/core/repository/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/repository/ -> tests/core/repository/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/http_client/ -> src/baseline_core/core/repository/gateway/http_client/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/http_client/ -> tests/core/repository/gateway/http_client/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/llm/ -> src/baseline_core/core/llm/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/llm/ -> tests/core/llm/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/evalkit/ -> src/baseline_core/core/llm/evalkit/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/evalkit/ -> tests/core/llm/evalkit/
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/docs/fixes/optimization/ -> src/baseline_core/core/optimization/
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/docs/fixes/tests/ -> tests/core/optimization/
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/docs/fixes/README.md -> docs/optimization-engine.md
+feat/embedding_recommandation@905a8ed | recom-graphml/src/recom_graphml/persistence/vectorstore/ -> src/baseline_core/core/repository/vectorstore/weaviate/ (weaviate_vectorstore.py split into weaviate_read_repository.py, weaviate_write_repository.py, weaviate_collection.py; abstract_vectorstore.py removed)
+feat/poc@8dff23b | benny-order-vision/src/benny_order_vision/core/ml/ -> src/baseline_core/core/ml/
+feat/poc@8dff23b | benny-order-vision/tests/core/ml/ -> tests/core/ml/
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/__init__.py -> src/baseline_core/api/__init__.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/api.py -> src/baseline_core/api/api.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/constants.py -> src/baseline_core/api/api_version.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/settings.py -> src/baseline_core/api/settings.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/__init__.py -> src/baseline_core/api/v1/__init__.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/api.py -> src/baseline_core/api/v1/api.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/lifespan.py -> src/baseline_core/api/v1/lifespan_v1.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/error_handling.py -> src/baseline_core/api/v1/exception_handler_middleware.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/validation_error.py -> src/baseline_core/api/v1/french_validation_error.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/container -> src/baseline_core/api/v1/container (abstract_provider.py removed: no-op setup hooks, one subclass)
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/routers/__init__.py -> src/baseline_core/api/v1/routers/__init__.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/routers/health_router.py -> src/baseline_core/api/v1/routers/health_router.py
+feat/poc@8dff23b | benny-order-vision/src/benny_order_vision/service/detector/ -> src/baseline_core/service/ml/detector.py
+feat/poc@8dff23b | benny-order-vision/tests/service/detector/ -> tests/service/ml/detector_test.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/docs/fixes/tests/optimization_service.py -> src/baseline_core/service/optimization/optimization_service.py
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/vectorstore/qdrant_vectorstore.py -> src/baseline_core/core/repository/vectorstore/qdrant/ (split into qdrant_read_repository.py, qdrant_write_repository.py, qdrant_collection.py)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/interfaces/repository/vectorstore/base_vectorstore.py -> src/baseline_core/core/repository/vectorstore/qdrant/qdrant_read_repository.py (ValueCount, ValuesNotIndexedError, OrderNotIndexedError; rest removed)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/data_models/vectorstore/hierarchical_search_result.py -> src/baseline_core/core/repository/vectorstore/qdrant/qdrant_read_repository.py (HierarchicalSearchResult)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/service/search_service.py -> src/baseline_core/core/repository/vectorstore/qdrant/qdrant_read_repository.py (hierarchical_search only)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infrastructure/qdrant/client_factory.py -> src/baseline_core/core/repository/vectorstore/qdrant/qdrant_collection.py (QdrantConnection)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/vectorstore/{test_qdrant_vectorstore,test_qdrant_corpus_queries,test_schema_indexes}.py -> tests/core/repository/vectorstore/qdrant/
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_configurator.py -> src/baseline_core/core/multidigraph/multidigraph_config.py
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_builder.py -> src/baseline_core/core/multidigraph/graph_builder.py
+feat/hgt@a31a616 | recom-graphml-hgt/tests/core/multidigraph/{graph_configurator_test,graph_builder_test}.py -> tests/core/multidigraph/{multidigraph_config_test,graph_builder_test}.py
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/core/document/ -> src/baseline_core/core/llm/document_extraction/ (engines.py excluded; LayoutDocument.from_bytes removed)
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/core/document/sheet.py -> src/baseline_core/core/llm/document_extraction/sheet_parser.py
+feat/munera-layers@3113269 | project-assembly/tests/core/document/ -> tests/core/llm/document_extraction/
+feat/munera-layers@3113269 | project-assembly/tests/fixtures/ -> tests/fixtures/
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/data_schema/{document,section,entities,project}.py -> src/baseline_core/core/llm/document_extraction/{indexed_document,section,section_entities}.py (rewritten generic; project.py dropped)
+feat/munera-layers@3113269 | project-assembly/tests/data_schema/ -> tests/core/llm/document_extraction/
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/service/indexing/ -> src/baseline_core/core/llm/document_extraction/indexing/
+feat/munera-layers@3113269 | project-assembly/tests/service/indexing/ -> tests/core/llm/document_extraction/indexing/
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/service/classification/{section_relevance,section_repair}/ -> src/baseline_core/core/llm/document_extraction/classification/
+feat/munera-layers@3113269 | project-assembly/tests/service/classification/ -> tests/core/llm/document_extraction/classification/
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/service/extraction/ -> src/baseline_core/core/llm/document_extraction/extraction/
+feat/munera-layers@3113269 | project-assembly/tests/service/extraction/ -> tests/core/llm/document_extraction/extraction/
+feat/munera-layers@3113269 | project-assembly/src/project_assembly/service/orchestrator_pipeline.py -> src/baseline_core/orchestrator/document_extraction_orchestrator.py
+feat/munera-layers@3113269 | project-assembly/tests/service/test_orchestrator_pipeline.py -> tests/orchestrator/document_extraction_orchestrator_test.py
+feat/munera-layers@3113269 | project-assembly/README.md, docs/decisions/0002-0014 -> docs/document-pipeline.md (distilled)
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/ml/graph_converter.py -> src/baseline_core/core/ml/graph/hetero_data_converter.py
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_configurator.py (Feature) -> src/baseline_core/core/ml/graph/graph_feature_config.py
+feat/hgt@a31a616 | recom-graphml-hgt/tests/core/multidigraph/hgt/graph_converter_test.py -> tests/core/ml/graph/hetero_data_converter_test.py
+feat/poc@8dff23b | benny-order-vision/src/benny_order_vision/core/storage/storage.py -> src/baseline_core/core/ml/data/remote_folder.py (AbstractStorage removed: one implementation)
+feat/poc@8dff23b | benny-order-vision/tests/core/storage/test_storage.py -> tests/core/ml/data/remote_folder_test.py
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/service/pharmacy_resolution/disambiguation/pharmacy_matching/ -> src/baseline_core/service/record_matching/agent/ (made generic; config.py dropped, deps.py added)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/nosql/mongo_repository.py -> src/baseline_core/core/repository/nosql/mongo/ (split into mongo_read_repository.py, mongo_write_repository.py; aggregate, get_metadata, create_indexes removed)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/nosql/mongo_repository_content.py -> removed (envelope; record id stored as _id instead)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/no_sql/test_mongo_repository.py -> tests/core/repository/nosql/mongo/
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/helpers/fake_mongo.py -> tests/core/repository/nosql/mongo/conftest.py (AsyncMongomock, over mongomock)
+local | tourisme-monteregie-chatbot/src/tourisme_monteregie_chatbot/persistence/nosql/mongo_repository.py -> mongo_write_repository.py (idea only: record id as _id, ObjectId as a fresh id)
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/service/sales_push/sales_push_service.py -> src/baseline_core/service/batch_replacement_service.py (SalesPushService._replace only, made generic: scope fields and id field configured; product and pharmacy resolution removed)
