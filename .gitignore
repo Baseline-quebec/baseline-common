@@ -4,3 +4,7 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 reports/
+
+# Claude Code (local to each developer)
+CLAUDE.md
+.claude/settings.local.json
