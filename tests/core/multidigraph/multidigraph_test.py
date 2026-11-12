@@ -6,8 +6,8 @@ import networkx as nx
 import pytest
 from pydantic import ValidationError
 
-from baseline_core.core.multidigraph.graph_features import Edge, Expansion, Node, SubgraphQuery
-from baseline_core.core.multidigraph.multidigraph import MultiDiGraph
+from baseline_common.core.multidigraph.graph_features import Edge, Expansion, Node, SubgraphQuery
+from baseline_common.core.multidigraph.multidigraph import MultiDiGraph
 from tests.core.multidigraph.flights import Track, WeightedEdge
 
 

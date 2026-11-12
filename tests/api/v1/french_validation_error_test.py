@@ -7,8 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from baseline_core.api.settings import Settings
-from baseline_core.api.v1.french_validation_error import FrenchValidationError
+from baseline_common.api.settings import Settings
+from baseline_common.api.v1.french_validation_error import FrenchValidationError
 from tests.api.v1.probe_router import ProbeRouter
 
 

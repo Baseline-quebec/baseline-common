@@ -8,8 +8,8 @@ import pytest
 import weaviate.classes as wvc
 from weaviate.classes.config import Configure
 
-from baseline_core.core.repository.vectorstore.vector_document import VectorDocument
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_collection import (
+from baseline_common.core.repository.vectorstore.vector_document import VectorDocument
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_collection import (
     WeaviateCollection,
 )
 from tests.core.repository.vectorstore.weaviate.conftest import Machine, WeaviateDouble

@@ -22,16 +22,16 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.internal import MetadataReturn, Object, QueryReturn
 
-from baseline_core.core.repository.vectorstore.vector_document import (
+from baseline_common.core.repository.vectorstore.vector_document import (
     VectorDocument,
     VectorStoreProperty,
 )
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_read_repository import (
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_read_repository import (
     TenantID,
     WeaviateConfig,
     WeaviateReadRepository,
 )
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_write_repository import (
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_write_repository import (
     WeaviateWriteRepository,
 )
 

@@ -16,17 +16,17 @@ from qdrant_client.models import (
     SearchParams,
 )
 
-from baseline_core.core.repository.vectorstore.qdrant import qdrant_collection
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_collection import (
+from baseline_common.core.repository.vectorstore.qdrant import qdrant_collection
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_collection import (
     QdrantCollection,
     QdrantConnection,
 )
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_read_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_read_repository import (
     QdrantConfig,
     QdrantReadRepository,
     QuantizationType,
 )
-from baseline_core.core.repository.vectorstore.vector_document import (
+from baseline_common.core.repository.vectorstore.vector_document import (
     VectorDocument,
     VectorStoreProperty,
 )

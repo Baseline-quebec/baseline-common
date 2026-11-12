@@ -1,1 +1,1 @@
-"""Tests of the record-matching example."""
+"""Tests of the record-matching example service."""

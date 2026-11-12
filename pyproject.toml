@@ -3,7 +3,7 @@ requires = ["uv_build>=0.9.0,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
-name = "baseline-core"
+name = "baseline-common"
 version = "0.1.0"
 description = "Reusable Baseline modules, vendored into projects by baseline-app-template."
 authors = [{ name = "Francois-Alexandre Tremblay", email = "francois-alexandre.tremblay@baseline.quebec" }]
@@ -14,33 +14,15 @@ dependencies = []
 
 # One extra per module. They let this repository test a module in isolation
 # (`uv sync --all-extras` installs them all for mypy and the full test run);
-# projects never install baseline-core, they receive the module's source and its
+# projects never install baseline-common, they receive the module's source and its
 # dependencies are added to them.
 [project.optional-dependencies]
 graph = ["networkx>=3.6.1", "pydantic>=2.10.0"]
 graph-plot = ["matplotlib>=3.10.0"]
-ml-graph = ["baseline-core[graph]", "torch>=2.5", "torch-geometric>=2.6"]
-# core/llm/document_extraction: read a PDF or a workbook, then the agents index and extract.
-document-extraction = [
-  "cffi>=1.16.0", "loguru>=0.7.3", "openpyxl>=3.1.0", "pillow>=10.0.0", "pydantic>=2.10.0",
-  "pydantic-ai-slim>=1.0", "pypdfium2>=5.0.0", "rapidfuzz>=3.9.0",
-]
 qdrant = ["qdrant-client[fastembed]>=1.12.0,<2", "pydantic-ai-slim>=1.0", "loguru>=0.7.3"]
 weaviate = ["weaviate-client>=4.10.0", "pydantic-ai-slim>=1.0", "loguru>=0.7.3"]
 mongo = ["loguru>=0.7.3", "pydantic>=2.10.0", "pymongo>=4.13"]
 gateway = ["httpx>=0.28.0", "loguru>=0.7.3", "pydantic>=2.10.0"]
-llm = ["loguru>=0.7.3", "mlflow>=3.0", "pydantic>=2.10.0", "pydantic-ai-slim>=1.0"]
-optimization = ["cython>=3.0.0", "numpy>=2.0.0", "pydantic>=2.10.0"]
-ml = [
-  "fsspec>=2024.6.0", "gitpython>=3.1.0", "loguru>=0.7.3", "mlflow>=3.0",
-  "omegaconf>=2.3.0", "onnx>=1.17.0", "onnxruntime>=1.20.0", "onnxscript>=0.2.0",
-  "pandas>=2.2.0", "pillow>=10.0.0", "psutil>=6.0.0", "pycocotools>=2.0.8",
-  "pydantic-settings>=2.7.0", "pytorch-lightning>=2.5.0", "torch>=2.5", "torchmetrics>=1.6.0",
-  "torchvision>=0.20", "transformers>=4.50.0",
-]
-# RemoteFolder on az:// (adlfs, credentials from DefaultAzureCredential).
-ml-azure-storage = ["baseline-core[ml]", "adlfs>=2024.7.0", "azure-identity>=1.19.0"]
-ml-jobs = ["baseline-core[ml]", "azure-ai-ml>=1.26.0", "azure-identity>=1.19.0", "nvidia-ml-py>=12.560.30"]
 api = [
   "dishka>=1.10.1", "fastapi>=0.115.0", "httpx>=0.28.0", "loguru>=0.7.3", "pydantic-settings>=2.7.0",
   "uvicorn>=0.34.0",
@@ -74,24 +56,14 @@ version_provider = "uv"
 [tool.uv]
 default-groups = ["test"]
 
-# torch from the CPU wheels: tests never need CUDA.
-[tool.uv.sources]  # https://docs.astral.sh/uv/guides/integration/pytorch/
-torch = { index = "pytorch-cpu" }
-torchvision = { index = "pytorch-cpu" }
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 [tool.uv.build-backend]
-module-name = "baseline_core"
+module-name = "baseline_common"
 module-root = "src"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes --strict-config --strict-markers --verbosity=2"
 asyncio_mode = "auto"
-markers = ["azure: talks to a real Azure ML workspace; needs AZURE_ML_* in the environment and az login"]
 testpaths = ["tests"]
 xfail_strict = true
 

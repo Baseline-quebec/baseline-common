@@ -6,15 +6,15 @@ import pytest
 from pydantic_ai import Embedder
 from qdrant_client import AsyncQdrantClient
 
-from baseline_core.core.repository.abstract_repository import (
+from baseline_common.core.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
 )
-from baseline_core.core.repository.query_filters import EqualityFilter
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_read_repository import (
+from baseline_common.core.repository.query_filters import EqualityFilter
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_read_repository import (
     QdrantReadRepository,
 )
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_write_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_write_repository import (
     QdrantWriteRepository,
 )
 from tests.core.repository.vectorstore.qdrant.conftest import Machine

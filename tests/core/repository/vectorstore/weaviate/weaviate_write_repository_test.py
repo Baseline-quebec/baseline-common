@@ -5,11 +5,11 @@ import uuid
 import pytest
 from pydantic_ai import Embedder
 
-from baseline_core.core.repository.abstract_repository import RecordNotFoundError
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_read_repository import (
+from baseline_common.core.repository.abstract_repository import RecordNotFoundError
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_read_repository import (
     WeaviateReadRepository,
 )
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_write_repository import (
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_write_repository import (
     WeaviateWriteRepository,
 )
 from tests.core.repository.vectorstore.weaviate.conftest import Machine, WeaviateDouble

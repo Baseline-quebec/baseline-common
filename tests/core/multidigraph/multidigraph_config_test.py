@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from baseline_core.core.multidigraph.graph_features import Node
-from baseline_core.core.multidigraph.multidigraph_config import (
+from baseline_common.core.multidigraph.graph_features import Node
+from baseline_common.core.multidigraph.multidigraph_config import (
     EdgeConfig,
     MultiDiGraphConfig,
     NodeConfig,

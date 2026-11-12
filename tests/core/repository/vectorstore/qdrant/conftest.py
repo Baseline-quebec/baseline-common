@@ -11,15 +11,15 @@ from pydantic_ai import Embedder
 from pydantic_ai.embeddings import TestEmbeddingModel
 from qdrant_client import AsyncQdrantClient
 
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_collection import QdrantCollection
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_read_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_collection import QdrantCollection
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_read_repository import (
     QdrantConfig,
     QdrantReadRepository,
 )
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_write_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_write_repository import (
     QdrantWriteRepository,
 )
-from baseline_core.core.repository.vectorstore.vector_document import (
+from baseline_common.core.repository.vectorstore.vector_document import (
     VectorDocument,
     VectorStoreProperty,
 )

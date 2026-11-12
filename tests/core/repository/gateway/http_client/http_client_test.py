@@ -5,9 +5,9 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from baseline_core.core.repository.gateway.http_client.auth import ApiKeyAuth, BearerAuth
-from baseline_core.core.repository.gateway.http_client.http_client import HttpClient
-from baseline_core.core.repository.gateway.http_client.http_config import HttpConfig
+from baseline_common.core.repository.gateway.http_client.auth import ApiKeyAuth, BearerAuth
+from baseline_common.core.repository.gateway.http_client.http_client import HttpClient
+from baseline_common.core.repository.gateway.http_client.http_config import HttpConfig
 from tests.core.repository.gateway.http_client.conftest import ScriptedServer
 
 

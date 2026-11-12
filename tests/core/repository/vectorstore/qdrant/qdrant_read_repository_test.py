@@ -12,7 +12,7 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.models import FacetResponse, FacetValueHit, FieldCondition, MatchAny, Range
 
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     Filter,
@@ -20,8 +20,8 @@ from baseline_core.core.repository.query_filters import (
     SortOrder,
     TextFilter,
 )
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_collection import QdrantCollection
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_read_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_collection import QdrantCollection
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_read_repository import (
     HierarchicalQuery,
     HierarchicalSearchResult,
     LatestQuery,
@@ -32,10 +32,10 @@ from baseline_core.core.repository.vectorstore.qdrant.qdrant_read_repository imp
     ValueCount,
     ValuesNotIndexedError,
 )
-from baseline_core.core.repository.vectorstore.qdrant.qdrant_write_repository import (
+from baseline_common.core.repository.vectorstore.qdrant.qdrant_write_repository import (
     QdrantWriteRepository,
 )
-from baseline_core.core.repository.vectorstore.vector_document import RetrievedDocument
+from baseline_common.core.repository.vectorstore.vector_document import RetrievedDocument
 from tests.core.repository.vectorstore.qdrant.conftest import Machine, Workshop
 
 

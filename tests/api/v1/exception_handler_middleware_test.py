@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
-from baseline_core.api.v1.exception_handler_middleware import ExceptionHandlerMiddleware
+from baseline_common.api.v1.exception_handler_middleware import ExceptionHandlerMiddleware
 from tests.api.v1.probe_router import ProbeRouter
 
 

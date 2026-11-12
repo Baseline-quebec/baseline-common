@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from baseline_core.core.multidigraph.graph_features import Edge, Node
-from baseline_core.core.multidigraph.multidigraph import MultiDiGraph
-from baseline_core.core.multidigraph.multidigraph_config import (
+from baseline_common.core.multidigraph.graph_features import Edge, Node
+from baseline_common.core.multidigraph.multidigraph import MultiDiGraph
+from baseline_common.core.multidigraph.multidigraph_config import (
     EdgeConfig,
     MultiDiGraphConfig,
     NodeConfig,

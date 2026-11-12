@@ -6,14 +6,14 @@ from pydantic_ai import Embedder
 from weaviate.collections.classes.internal import MetadataReturn, Object, QueryReturn
 from weaviate.exceptions import WeaviateQueryError
 
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     LogicalFilter,
     SortOrder,
     TextFilter,
 )
-from baseline_core.core.repository.vectorstore.weaviate.weaviate_read_repository import (
+from baseline_common.core.repository.vectorstore.weaviate.weaviate_read_repository import (
     TenantID,
     WeaviateConfig,
     WeaviateReadRepository,

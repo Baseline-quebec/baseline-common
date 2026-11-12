@@ -2,7 +2,7 @@ from dishka import AsyncContainer
 from fastapi import FastAPI
 from pytest_mock import MockerFixture
 
-from baseline_core.api.v1.lifespan_v1 import LifespanV1
+from baseline_common.api.v1.lifespan_v1 import LifespanV1
 
 
 class TestLifespanV1:

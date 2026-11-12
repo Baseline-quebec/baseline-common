@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from baseline_core.core.multidigraph.graph_builder import GraphBuilder
-from baseline_core.core.multidigraph.graph_features import Edge, Node
-from baseline_core.core.multidigraph.multidigraph_config import MultiDiGraphConfig
+from baseline_common.core.multidigraph.graph_builder import GraphBuilder
+from baseline_common.core.multidigraph.graph_features import Edge, Node
+from baseline_common.core.multidigraph.multidigraph_config import MultiDiGraphConfig
 from tests.core.multidigraph.store import Customer, Product, Purchased, Supplier, Supplies
 
 
 if TYPE_CHECKING:
-    from baseline_core.core.multidigraph.multidigraph import MultiDiGraph
+    from baseline_common.core.multidigraph.multidigraph import MultiDiGraph
 
 
 class TestGraphBuilder:

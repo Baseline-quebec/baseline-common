@@ -1,7 +1,7 @@
 from dishka import make_async_container
 
-from baseline_core.api.settings import Settings
-from baseline_core.api.v1.container.service_provider import ServiceProvider
+from baseline_common.api.settings import Settings
+from baseline_common.api.v1.container.service_provider import ServiceProvider
 
 
 class TestServiceProvider:

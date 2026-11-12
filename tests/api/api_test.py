@@ -4,9 +4,9 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from baseline_core.api.api import Api
-from baseline_core.api.api_version import ApiVersion
-from baseline_core.api.settings import Settings
+from baseline_common.api.api import Api
+from baseline_common.api.api_version import ApiVersion
+from baseline_common.api.settings import Settings
 
 
 class TestApi:

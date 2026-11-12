@@ -6,8 +6,8 @@ import pytest
 from pydantic import BaseModel
 from pymongo.collection import Collection
 
-from baseline_core.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     Filter,

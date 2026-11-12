@@ -5,7 +5,7 @@ import json
 import httpx
 import pytest
 
-from baseline_core.core.repository.gateway.write_gateway import WriteError
+from baseline_common.core.repository.gateway.write_gateway import WriteError
 from tests.core.repository.gateway.http_client.conftest import ScriptedServer
 from tests.core.repository.gateway.zoho.conftest import WritesOf, ZohoAccount
 
