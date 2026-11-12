@@ -109,6 +109,8 @@ src = ["src", "tests"]
 target-version = "py312"
 
 [tool.ruff.format]
+# The docs' code samples keep their aligned comments.
+exclude = ["*.md"]
 docstring-code-format = true
 skip-magic-trailing-comma = true
 
@@ -156,8 +158,10 @@ directory = "reports/htmlcov"
 output = "reports/coverage.xml"
 
 [tool.codespell]  # https://github.com/codespell-project/codespell
-builtin = "en-GB_to_en-US,clear,code,rare"
+builtin = "clear,code,rare"
 check-filenames = true
+# French words of the docs and comments, and English ones the dictionaries misread.
+ignore-words-list = "algorithmes,aligne,approuve,arange,attribut,attributs,blocs,bloc,bord,branche,candidat,candidats,cas,celle,celles,classe,commun,comparaisons,complet,conflits,copie,correspondant,crate,dont,dur,enveloppe,exemple,exemples,existant,explicite,falsy,fixe,fo,fonction,formes,groupe,groupes,invalide,juge,lient,listent,manipule,mesure,mesures,methode,mis,mot,moteur,objet,objets,persistance,processus,projet,raison,ressource,ressources,reste,servent,somme,sur,valide,vise"
 skip = "./*_cache/,./.venv,./reports,./uv.lock"
 
 [tool.poe]  # https://poethepoet.natn.io/guides/uv_guide.html

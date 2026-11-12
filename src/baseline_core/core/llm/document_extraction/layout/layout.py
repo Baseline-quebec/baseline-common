@@ -206,8 +206,8 @@ class VectorDrawing(BaseModel):
     bbox: BBox
 
 
+# Everything a page paints beside text: sampled pixels, or a cluster of drawn paths.
 PageImage = RasterImage | VectorDrawing
-"""Everything a page paints beside text: sampled pixels, or a cluster of drawn paths."""
 
 
 class LayoutPage(BaseModel):
