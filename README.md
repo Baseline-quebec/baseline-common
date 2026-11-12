@@ -17,7 +17,7 @@ modules dont il a besoin, les copie, et en possède ensuite le code.
 
 | Document | Contenu |
 |---|---|
-| [`docs/rules.md`](docs/rules.md) | **Les 29 règles de revue du code.** Tout code qui entre ici les respecte ; ce README les cite par numéro (« règle 5 »). |
+| [`docs/rules.md`](docs/rules.md) | **Les 29 règles de revue du code.** Tout code qui entre ici les respecte. |
 | [`docs/architecture-services.md`](docs/architecture-services.md) | Les couches et comment un service, un orchestrateur et un repository se construisent. |
 | [`docs/optimization-engine.md`](docs/optimization-engine.md) | Le moteur d'optimisation : écrire un problème, le résoudre. |
 | [`docs/document-pipeline.md`](docs/document-pipeline.md) | La démarche documentaire : d'une source aux entités qu'un schéma demande. |
@@ -59,19 +59,17 @@ tests/                           même arborescence que src/ ; architecture_test
 
 Dans l'ordre de l'arborescence.
 
-- **Module core** : du code générique, sous `core/`. Il ne nomme ni un client ni un problème
-  (règle 9).
+- **Module core** : du code générique, sous `core/`. Il ne nomme ni un client ni un problème.
 - **Repository** : lit **ou** écrit un seul type d'enregistrement, sans règle métier. Il est
   injecté dans un service, ou dans un orchestrateur quand l'étape n'est qu'une lecture ou une
-  écriture (pas de service qui ne ferait que relayer, règle 7).
+  écriture (pas de service qui ne ferait que relayer).
 - **data_schema** : les enregistrements Pydantic qu'une application partage entre ses couches
   (`api`, `orchestrator`, `service`) ou entre plusieurs services. C'est le vocabulaire commun de
   l'application, la couche juste au-dessus de `core/`.
   - **Ce qui y entre :** un enregistrement lu ou produit par plus d'un service ou plus d'une
     couche (une entité du domaine, une requête ou une réponse que l'API expose et qu'un service
-    produit). Un enregistrement qu'une seule classe utilise reste dans le fichier de cette classe
-    (règle 8) : la sortie d'un agent dans son `output.py`, la configuration d'un service à côté de
-    lui.
+    produit). Un enregistrement qu'une seule classe utilise reste dans le fichier de cette classe :
+    la sortie d'un agent dans son `output.py`, la configuration d'un service à côté de lui.
   - **Ce qu'il contient :** des champs, des validateurs d'invariants (un identifiant bien formé,
     une intégrité référentielle) et des propriétés dérivées simples. Aucune entrée-sortie, aucun
     appel de service, aucune règle métier lourde : une transformation de plusieurs centaines de
@@ -85,7 +83,7 @@ Dans l'ordre de l'arborescence.
   seul fichier, `orchestrator/<flot>_orchestrator.py`. C'est là que des modules de `core/`, qui
   s'ignorent entre eux, se rencontrent.
 - **Service** : la logique d'une entité ou d'une capacité. Son constructeur reçoit la configuration
-  et les dépendances, ses méthodes reçoivent les données (règle 1). Un service a son dossier
+  et les dépendances, ses méthodes reçoivent les données. Un service a son dossier
   `service/<sujet>/` dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config).
 
 ## Contenu
@@ -127,7 +125,7 @@ Les classes à connaître, couche par couche.
 
 Un module entre s'il remplit **toutes** ces conditions.
 
-1. **Générique.** Il ne nomme ni un client, ni un problème, ni une entité métier (règle 9). Les
+1. **Générique.** Il ne nomme ni un client, ni un problème, ni une entité métier. Les
    docs et les docstrings s'expliquent avec des exemples que tout le monde comprend : un atelier,
    des tâches, des machines, des ressources. Jamais un cours, une pharmacie ou une facture.
 2. **Éprouvé.** Il vient d'un vrai projet, où il est utilisé et testé. Quand plusieurs copies
@@ -137,7 +135,7 @@ Un module entre s'il remplit **toutes** ces conditions.
    modèle). Un adaptateur mince autour d'une API ou d'un format n'entre pas : il se réécrit sur
    l'abstraction.
 4. **Autonome.** Il ne dépend d'aucun autre module de `core/`. Ce dont il a besoin vit dans son
-   dossier : une classe vit là où elle sert (règle 8), comme `http_client/` dans `gateway/`.
+   dossier : une classe vit là où elle sert, comme `http_client/` dans `gateway/`.
    **Seule exception : une dépendance déclarée,** quand une partie d'un module travaille sur la
    structure d'un autre (`ml/graph/` convertit un `MultiDiGraph`). Elle est :
    - **isolée** dans un sous-dossier ; le reste du module ne l'importe pas et reste copiable seul ;
@@ -154,7 +152,7 @@ Un module entre s'il remplit **toutes** ces conditions.
   déjà comment envelopper une API HTTP.
 - **Un repository qui se réécrit en quelques lignes** sur un repository existant, comme lire et
   écrire un fichier entier sur `InMemoryRepository`.
-- **Une ABC pour une seule implémentation** (règle 5).
+- **Une ABC pour une seule implémentation.**
 - **Le contenu métier d'un client** : ses services, orchestrateurs, prompts et `data_schema`. Ce
   n'est pas une connaissance réutilisable.
 
@@ -202,11 +200,11 @@ code, jamais en affaiblissant l'essai.
    commit, chemin) dans `docs/SOURCES.txt`.
 2. **Ranger** le code dans `core/<sujet>/` et ses essais dans `tests/core/<sujet>/`, en suivant les
    conventions de nommage.
-3. **Relire contre `docs/rules.md`** classe par classe (règle 26). Ce qui ne passe pas est réécrit
+3. **Relire contre `docs/rules.md`** classe par classe. Ce qui ne passe pas est réécrit
    ou retiré, jamais seulement déplacé.
 4. **Retirer le couplage au projet d'origine** : noms de client, exemples métier, imports du
    `data_schema` du client (un enregistrement générique partagé va dans `data_schema/`).
-5. **Faire revoir** par un agent indépendant (`@dev`, règle 13). Les essais, y compris ceux
+5. **Faire revoir** par un agent indépendant (`@dev`). Les essais, y compris ceux
    d'architecture, doivent passer.
 
 Un exemple de service ou d'orchestrateur montre **comment** on construit : la configuration et les
