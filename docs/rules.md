@@ -126,23 +126,3 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
       raison écrite dans son `noqa`.
 24. **On journalise avec `loguru`, jamais avec `print`.** Une erreur est journalisée une seule fois, là
     où elle est traitée (`logger.exception`). Aucun secret ni donnée personnelle dans un journal.
-
-## Changer du code
-
-25. **Une optimisation ou une refactorisation ne change aucun résultat.** Les sorties restent
-    identiques, et les essais le vérifient. Un écart n'est accepté que s'il corrige un défaut, et il
-    est alors nommé.
-26. **Rien n'est retiré avant d'avoir vérifié que rien ne s'en sert** : ni un appelant, ni un essai,
-    ni une vérification qu'il serait seul à faire. La raison du retrait est écrite.
-27. **Une référence à un outil extérieur est vérifiée.** Une docstring ou un document ne cite une API,
-    une fonction ou un format d'un outil extérieur qu'après avoir vérifié, dans sa documentation,
-    qu'il existe et qu'il a ce sens.
-28. **Le code venu d'ailleurs passe ces règles avant d'entrer.** Un paquet livré dans un zip ou par une
-    autre session est relu classe par classe, script par script. Ce qui ne passe pas est réécrit ou
-    retiré, jamais seulement déplacé.
-29. **Le parallélisme n'utilise jamais tous les cœurs** : au plus les cœurs disponibles moins deux, au
-    moins un, et seulement si un gain mesuré le justifie.
-30. **Une revue humaine approuve toute fusion.** Un agent (`@dev`) fait une première revue contre ces
-    règles ; une approbation humaine reste requise. L'auteur et les réviseurs doivent s'accorder,
-    chacun ne cédant que devant un vrai argument. Une meilleure option est bienvenue si elle est
-    justifiée.
