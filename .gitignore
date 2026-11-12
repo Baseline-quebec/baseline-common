@@ -1,6 +1,56 @@
-.venv/
-__pycache__/
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
+# Coverage.py
+htmlcov/
 reports/
+
+# Data (anchored: src/baseline_core/core/ml/data/ is code)
+/data/
+/notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# direnv
+.envrc
+
+# dotenv
+.env
+
+# Hypothesis
+.hypothesis/
+
+# macOS
+.DS_Store
+
+# mypy
+.dmypy.json
+.mypy_cache/
+
+# uv
+.venv/
+dist/
+
+# PyCharm
+.idea/
+
+# pyenv
+.python-version
+
+# pytest
+.pytest_cache/
+
+# Python
+__pycache__/
+*.egg-info/
+*.py[cdo]
+
+# Ruff
+.ruff_cache/
+
+# Terraform
+.terraform/
+
+# Claude Code (local to each developer)
+CLAUDE.md
+.claude/settings.local.json
+
+# VS Code
+.vscode/

@@ -200,13 +200,14 @@ class TestConnection:
     @staticmethod
     def test__a_plain_connection__verifies_as_https_says(created: MagicMock) -> None:
         """No certificate is written; the key is sent in clear to the client."""
-        connection = QdrantConnection(host="qdrant", https=True, api_key=SecretStr("key"))
+        given = SecretStr("key")
+        connection = QdrantConnection(host="qdrant", https=True, api_key=given)
 
         connection.create_client()
 
         arguments = created.call_args.kwargs
         assert arguments["verify"] is True
-        assert arguments["api_key"] == "key"
+        assert arguments["api_key"] == given.get_secret_value()
         assert arguments["host"] == "qdrant"
         assert not os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"]
 

@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+
+    name: Python ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      # Every module's extra: the tests cover all of them.
+      - name: Install the package
+        run: uv sync --all-extras --frozen
+
+      - name: Lint package
+        run: uv run --frozen poe lint
+
+      - name: Test package
+        run: uv run --frozen poe test
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v7
+        with:
+          path: reports/htmlcov/
+          name: coverage-report-${{ matrix.python-version }}
+          retention-days: 7

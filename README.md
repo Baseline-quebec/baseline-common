@@ -214,8 +214,10 @@ d'un client.
 ## État
 
 - **Provenance :** chaque fichier est copié d'un projet ; `docs/SOURCES.txt` en donne l'origine.
-- **Vérifier :** `uv sync --all-extras`, puis `uv run mypy`, `uv run ruff check src tests`,
-  `uv run ruff format --check src tests` et `uv run pytest` passent tous.
+- **Vérifier :** `uv sync --all-extras`, puis `uv run poe lint` (tous les hooks pre-commit : ruff,
+  mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage). La CI
+  (`.github/workflows/test.yml`) lance les deux, en Python 3.12 et 3.14. Une fois par clone :
+  `uv run pre-commit install`.
 - **Pipeline documentaire :** les prompts rendus neutres n'ont pas encore tourné contre un vrai
   modèle ; ils n'ont pas démontré qu'ils reproduisent la qualité mesurée dans le projet d'origine.
 - **Trackers MLflow :** `llm/evalkit/tracking/` (évaluer une sortie de LLM) et `ml/tracking/`

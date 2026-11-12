@@ -49,14 +49,27 @@ api = [
 [dependency-groups]
 test = [
   "archunitpython>=1.8.1",
-  "mypy>=1.14.0",
-  "pytest>=8.3.0",
+  "codespell>=2.4.0",
+  "commitizen>=4.18.0",
+  "coverage[toml]>=7.6.0",
+  "detect-secrets>=1.5.0",
   "mongomock>=4.3.0",
+  "mypy>=1.14.0",
+  "poethepoet>=0.32.0",
+  "pre-commit>=4.0.0",
+  "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",
   "pytest-mock>=3.14.0",
   "respx>=0.22.0",
   "ruff>=0.11.0",
+  "shellcheck-py>=0.10.0.1",
 ]
+
+[tool.commitizen]  # https://commitizen-tools.github.io/commitizen/config/
+bump_message = "bump(release): v$current_version → v$new_version"
+tag_format = "v$version"
+update_changelog_on_bump = true
+version_provider = "uv"
 
 [tool.uv]
 default-groups = ["test"]
@@ -96,6 +109,8 @@ src = ["src", "tests"]
 target-version = "py312"
 
 [tool.ruff.format]
+# The docs' code samples keep their aligned comments.
+exclude = ["*.md"]
 docstring-code-format = true
 skip-magic-trailing-comma = true
 
@@ -124,3 +139,57 @@ convention = "google"
 [tool.ruff.lint.pylint]
 max-args = 6
 max-public-methods = 30
+
+[tool.coverage.report]  # https://coverage.readthedocs.io/en/latest/config.html#report
+precision = 1
+show_missing = true
+skip_covered = true
+
+[tool.coverage.run]  # https://coverage.readthedocs.io/en/latest/config.html#run
+branch = true
+command_line = "--module pytest"
+data_file = "reports/.coverage"
+source = ["src"]
+
+[tool.coverage.html]  # https://coverage.readthedocs.io/en/latest/cmd.html#html-reporting-coverage-html
+directory = "reports/htmlcov"
+
+[tool.coverage.xml]  # https://coverage.readthedocs.io/en/latest/cmd.html#cmd-xml
+output = "reports/coverage.xml"
+
+[tool.codespell]  # https://github.com/codespell-project/codespell
+builtin = "clear,code,rare"
+check-filenames = true
+# French words of the docs and comments, and English ones the dictionaries misread.
+ignore-words-list = "algorithmes,aligne,approuve,arange,attribut,attributs,blocs,bloc,bord,branche,candidat,candidats,cas,celle,celles,classe,commun,comparaisons,complet,conflits,copie,correspondant,crate,dont,dur,enveloppe,exemple,exemples,existant,explicite,falsy,fixe,fo,fonction,formes,groupe,groupes,invalide,juge,lient,listent,manipule,mesure,mesures,methode,mis,mot,moteur,objet,objets,persistance,processus,projet,raison,ressource,ressources,reste,servent,somme,sur,valide,vise"
+skip = "./*_cache/,./.venv,./reports,./uv.lock"
+
+[tool.poe]  # https://poethepoet.natn.io/guides/uv_guide.html
+# Run tasks in the already-activated virtualenv instead of re-resolving through
+# `uv run`, which would trigger an implicit `uv sync` on every task.
+executor.type = "simple"
+
+[tool.poe.tasks]  # https://github.com/nat-n/poethepoet
+
+  [tool.poe.tasks.lint]
+  help = "Lint the package"
+  cmd = """
+    pre-commit run
+      --all-files
+      --color always
+    """
+
+  [tool.poe.tasks.test]
+  help = "Test the package"
+
+    [[tool.poe.tasks.test.sequence]]
+    cmd = "coverage run"
+
+    [[tool.poe.tasks.test.sequence]]
+    cmd = "coverage report"
+
+    [[tool.poe.tasks.test.sequence]]
+    cmd = "coverage html"
+
+    [[tool.poe.tasks.test.sequence]]
+    cmd = "coverage xml"
