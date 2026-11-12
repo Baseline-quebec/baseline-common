@@ -1,1 +1,0 @@
-"""Bridges for the evalkit."""

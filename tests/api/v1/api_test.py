@@ -1,8 +1,8 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from baseline_core.api.settings import Settings
-from baseline_core.api.v1.api import ApiV1
+from baseline_common.api.settings import Settings
+from baseline_common.api.v1.api import ApiV1
 from tests.api.v1.probe_router import ProbeRouter
 
 

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from baseline_core.core.multidigraph.graph_features import Edge, Node, SubgraphQuery
+from baseline_common.core.multidigraph.graph_features import Edge, Node, SubgraphQuery
 from tests.core.multidigraph.flights import AircraftCarrier, Booked, Flight, OperatedBy, User
 
 

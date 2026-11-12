@@ -8,14 +8,14 @@ import httpx
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
-from baseline_core.core.repository.gateway.http_client.http_client import HttpClient
-from baseline_core.core.repository.gateway.http_client.http_config import HttpConfig
-from baseline_core.core.repository.gateway.read_gateway import ReadGateway
-from baseline_core.core.repository.gateway.write_gateway import WriteGateway
-from baseline_core.core.repository.gateway.zoho.coql_dialect import ZohoCoqlDialect
-from baseline_core.core.repository.gateway.zoho.write_config import ZohoWriteConfig
-from baseline_core.core.repository.in_memory_repository import InMemoryRepository
-from baseline_core.service.batch_replacement_service import (
+from baseline_common.core.repository.gateway.http_client.http_client import HttpClient
+from baseline_common.core.repository.gateway.http_client.http_config import HttpConfig
+from baseline_common.core.repository.gateway.read_gateway import ReadGateway
+from baseline_common.core.repository.gateway.write_gateway import WriteGateway
+from baseline_common.core.repository.gateway.zoho.coql_dialect import ZohoCoqlDialect
+from baseline_common.core.repository.gateway.zoho.write_config import ZohoWriteConfig
+from baseline_common.core.repository.in_memory_repository import InMemoryRepository
+from baseline_common.service.batch_replacement_service import (
     BatchReplacement,
     BatchReplacementService,
 )

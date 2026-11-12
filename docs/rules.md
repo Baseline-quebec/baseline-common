@@ -1,12 +1,15 @@
 # Règles de revue
 
-Ces règles servent de grille à toute revue de code de baseline-core. Une revue cite leur numéro.
+Ces règles servent de grille à toute revue de code de baseline-common et des dépôts spécialisés
+(baseline-optimization, baseline-ml, baseline-llm), qui n'en gardent pas de copie. Une revue cite
+leur numéro. Dans un dépôt spécialisé, les dossiers du module, à la racine du paquet, tiennent le
+rôle de `core/`.
 Chaque règle tient dans son titre en gras ; le texte qui suit l'explique et donne un exemple.
 Une règle marquée *(signal)* n'interdit rien : elle pose une question à la revue, et un écart
 justifié est accepté.
 
 Un module qui a des règles propres les porte dans sa documentation : celles du moteur
-d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »).
+d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization (« Règles du moteur »).
 
 ## Conception
 
@@ -121,8 +124,10 @@ d'optimisation sont dans `docs/optimization-engine.md` (« Règles du moteur »)
     code : `api → orchestrator → service → data_schema → core`.
     - Un essai sous `tests/core/` n'importe ni `service/`, ni `orchestrator/`, ni `data_schema/`, ni
       `api/`, ni les essais de ces couches.
-    - Un essai d'un module de `core/` n'importe pas un autre module de `core/`, sauf une dépendance
-      déclarée (`ml/graph/` lit un `MultiDiGraph`).
+    - Un essai d'un module de `core/` n'importe pas un autre module de `core/`.
+    - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `core/` ou `data_schema/` de
+      baseline-common (`graph/` de baseline-ml lit un `MultiDiGraph`) ; baseline-common ne lit jamais
+      un dépôt spécialisé, et deux dépôts spécialisés ne se lisent pas.
 
 ## Erreurs et journaux
 

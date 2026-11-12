@@ -1,6 +1,6 @@
 """A small store: customers purchase products, suppliers supply them."""
 
-from baseline_core.core.multidigraph.graph_features import Edge, Node
+from baseline_common.core.multidigraph.graph_features import Edge, Node
 
 
 class Customer(Node):

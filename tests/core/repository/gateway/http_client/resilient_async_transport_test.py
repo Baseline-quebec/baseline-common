@@ -6,9 +6,9 @@ from typing import ClassVar
 import httpx
 import pytest
 
-from baseline_core.core.repository.gateway.http_client.http_client import HttpClient
-from baseline_core.core.repository.gateway.http_client.http_config import HttpConfig
-from baseline_core.core.repository.gateway.http_client.resilient_async_transport import (
+from baseline_common.core.repository.gateway.http_client.http_client import HttpClient
+from baseline_common.core.repository.gateway.http_client.http_config import HttpConfig
+from baseline_common.core.repository.gateway.http_client.resilient_async_transport import (
     ResilientAsyncTransport,
 )
 from tests.core.repository.gateway.http_client.conftest import ScriptedServer

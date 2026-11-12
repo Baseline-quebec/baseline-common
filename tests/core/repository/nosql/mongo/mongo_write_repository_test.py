@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pymongo.collection import Collection
 
-from baseline_core.core.repository.abstract_repository import (
+from baseline_common.core.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
 )
-from baseline_core.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
-from baseline_core.core.repository.nosql.mongo.mongo_write_repository import MongoWriteRepository
-from baseline_core.core.repository.query_filters import EqualityFilter
+from baseline_common.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
+from baseline_common.core.repository.nosql.mongo.mongo_write_repository import MongoWriteRepository
+from baseline_common.core.repository.query_filters import EqualityFilter
 from tests.core.repository.conftest import Site
 from tests.core.repository.nosql.mongo.conftest import Machine
 

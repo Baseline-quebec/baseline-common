@@ -7,7 +7,7 @@ from urllib.parse import parse_qs
 import httpx
 import pytest
 
-from baseline_core.core.repository.gateway.http_client.auth import (
+from baseline_common.core.repository.gateway.http_client.auth import (
     OAuthRefreshTokenAuth,
     TokenRefreshError,
 )

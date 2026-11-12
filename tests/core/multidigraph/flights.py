@@ -1,6 +1,6 @@
 """Dummy test classes for the multidigraph."""
 
-from baseline_core.core.multidigraph.graph_features import Edge, Node
+from baseline_common.core.multidigraph.graph_features import Edge, Node
 
 
 class User(Node):

@@ -2,12 +2,12 @@
 
 import pytest
 
-from baseline_core.core.repository.abstract_repository import (
+from baseline_common.core.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
 )
-from baseline_core.core.repository.in_memory_repository import InMemoryRepository
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.in_memory_repository import InMemoryRepository
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     LogicalFilter,

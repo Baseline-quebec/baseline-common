@@ -1,1 +1,1 @@
-"""Tests of baseline-core, mirroring src/baseline_core."""
+"""Tests of baseline-common, mirroring src/baseline_common."""

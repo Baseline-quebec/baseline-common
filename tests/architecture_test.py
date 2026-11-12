@@ -25,12 +25,9 @@ def source() -> str:
 
 
 class TestLayers:
-    CORE: ClassVar[str] = "*/baseline_core/core/*"
+    CORE: ClassVar[str] = "*/baseline_common/core/*"
     ORDER: ClassVar[list[str]] = ["core", "data_schema", "service", "orchestrator", "api"]
-    CORE_PACKAGE: ClassVar[str] = "baseline_core.core."
-    # The only imports between core modules: a subfolder that needs another module, which a
-    # project then copies with it. The rest of the depending module never imports that subfolder.
-    DECLARED: ClassVar[dict[str, list[str]]] = {"ml/graph": ["multidigraph"]}
+    CORE_PACKAGE: ClassVar[str] = "baseline_common.core."
 
     @pytest.mark.parametrize("layer", ["core", "data_schema", "service", "orchestrator"])
     def test__a_layer__never_imports_a_layer_above_it(self, source: str, layer: str) -> None:
@@ -39,37 +36,22 @@ class TestLayers:
         rule = project_layers(source)
 
         for name in [layer, *above]:
-            rule = rule.layer(name).defined_by(f"*/baseline_core/{name}/*")
+            rule = rule.layer(name).defined_by(f"*/baseline_common/{name}/*")
 
         assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*above))
 
     @classmethod
-    def imports_only_declared_core_modules(cls, file: FileInfo) -> bool:
-        """Whether a core file imports no other core module, save one its folder declares.
-
-        A declared folder is also out of reach of the rest of its own module, so the module
-        stays copiable without the dependency.
+    def imports_only_its_core_module(cls, file: FileInfo) -> bool:
+        """Whether a core file imports no core module other than its own.
 
         Args:
             file: The file read by ArchUnitPython.
 
         Returns:
-            True when it imports only its module, a declared one, and no foreign declared folder.
+            True when every core import it makes is of its own module.
         """
-        inside = Path(file.path).as_posix().split("/baseline_core/core/", 1)[1]
+        inside = Path(file.path).as_posix().split("/baseline_common/core/", 1)[1]
         own = inside.split("/", 1)[0]
-        allowed = {own} | {
-            module
-            for folder, modules in cls.DECLARED.items()
-            if inside.startswith(f"{folder}/")
-            for module in modules
-        }
-        hidden = {
-            f"{cls.CORE_PACKAGE}{folder.replace('/', '.')}"
-            for folder in cls.DECLARED
-            if not inside.startswith(f"{folder}/")
-        }
-        imported: set[str] = set()
         names: list[str] = []
 
         for node in ast.walk(ast.parse(file.content)):
@@ -80,32 +62,19 @@ class TestLayers:
                 names += [node.module]
 
         imported = {name.split(".")[2] for name in names if name.startswith(cls.CORE_PACKAGE)}
-        reaches_hidden = any(name.startswith(prefix) for name in names for prefix in hidden)
 
-        return imported <= allowed and not reaches_hidden
+        return imported <= {own}
 
     def test__each_core_module__imports_no_other_core_module(self, source: str) -> None:
-        """A project copies one core module alone, so it imports no other, save a declared one."""
+        """A project copies one core module alone, so it imports no other."""
         rule = (
             project_files(source)
             .in_path(self.CORE)
             .should()
-            .adhere_to(
-                self.imports_only_declared_core_modules, "imports an undeclared core module"
-            )
+            .adhere_to(self.imports_only_its_core_module, "imports another core module")
         )
 
         assert_passes(rule)
-
-    def test__a_declared_dependency__is_one_way(self) -> None:
-        """A core module that another depends on never depends back on it."""
-        edges = [
-            [folder.split("/", 1)[0], module]
-            for folder, modules in self.DECLARED.items()
-            for module in modules
-        ]
-
-        assert all([dst, src] not in edges for src, dst in edges)
 
 
 class TestCycles:
@@ -155,15 +124,31 @@ class TestForbiddenImports:
         r"^(ecolopharm_sales|cegep_mv_schedule|project_assembly|recom_graphml"
         r"|benny_order_vision|munera_poc)(\.|$)"
     )
+    # the specialised repositories read baseline-common, never the reverse
+    SPECIALISED_PACKAGES: ClassVar[re.Pattern[str]] = re.compile(
+        r"^baseline_(optimization|ml|llm)(\.|$)"
+    )
 
     def test__no_source_file__imports_a_client_project(self, source: str) -> None:
         """Core and its examples are generic: no file imports a client project's package."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_core/*")
+            .in_path("*/baseline_common/*")
             .should_not()
             .depend_on_external_modules()
             .matching(self.CLIENT_PACKAGES)
+        )
+
+        assert_passes(rule)
+
+    def test__no_source_file__imports_a_specialised_repository(self, source: str) -> None:
+        """Dependencies between repositories point to baseline-common, never from it."""
+        rule = (
+            project_files(source)
+            .in_path("*/baseline_common/*")
+            .should_not()
+            .depend_on_external_modules()
+            .matching(self.SPECIALISED_PACKAGES)
         )
 
         assert_passes(rule)
@@ -210,7 +195,7 @@ class TestNaming:
         """An ``__init__.py`` holds a docstring only: importing a name loads only its own file."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_core/*")
+            .in_path("*/baseline_common/*")
             .with_name("__init__.py")
             .should()
             .adhere_to(self.holds_only_a_docstring, "imports or defines something")
@@ -224,7 +209,7 @@ class TestNaming:
         """A file `abstract_<name>.py` holds the ABC `Abstract…<Name>`."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_core/*")
+            .in_path("*/baseline_common/*")
             .with_name(re.compile(r"^abstract_\w+\.py$"))
             .should()
             .adhere_to(self.defines_its_abstract_class, "defines no class Abstract…<Name>")

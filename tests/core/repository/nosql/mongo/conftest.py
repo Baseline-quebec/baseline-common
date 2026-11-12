@@ -12,8 +12,8 @@ from pymongo.collection import Collection
 from pymongo.cursor import Cursor
 from pymongo.results import DeleteResult, InsertManyResult
 
-from baseline_core.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
-from baseline_core.core.repository.nosql.mongo.mongo_write_repository import MongoWriteRepository
+from baseline_common.core.repository.nosql.mongo.mongo_read_repository import MongoReadRepository
+from baseline_common.core.repository.nosql.mongo.mongo_write_repository import MongoWriteRepository
 from tests.core.repository.conftest import Site
 
 

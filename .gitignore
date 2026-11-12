@@ -2,7 +2,7 @@
 htmlcov/
 reports/
 
-# Data (anchored: src/baseline_core/core/ml/data/ is code)
+# Data (anchored: src/baseline_ml/data/ is code)
 /data/
 /notebooks/
 *.ipynb

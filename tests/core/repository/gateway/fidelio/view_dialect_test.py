@@ -9,11 +9,11 @@ import httpx
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
-from baseline_core.core.repository.gateway.abstract_query_dialect import UnreadableAnswerError
-from baseline_core.core.repository.gateway.fidelio.view_dialect import FidelioViewDialect
-from baseline_core.core.repository.gateway.http_client.http_client import HttpClient
-from baseline_core.core.repository.gateway.read_gateway import ReadGateway
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.gateway.abstract_query_dialect import UnreadableAnswerError
+from baseline_common.core.repository.gateway.fidelio.view_dialect import FidelioViewDialect
+from baseline_common.core.repository.gateway.http_client.http_client import HttpClient
+from baseline_common.core.repository.gateway.read_gateway import ReadGateway
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     LogicalFilter,

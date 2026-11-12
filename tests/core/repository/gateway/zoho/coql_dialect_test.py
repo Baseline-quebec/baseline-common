@@ -5,9 +5,9 @@ import json
 import httpx
 import pytest
 
-from baseline_core.core.repository.gateway.read_gateway import UnmappedFieldError
-from baseline_core.core.repository.gateway.zoho.coql_dialect import ZohoCoqlDialect
-from baseline_core.core.repository.query_filters import (
+from baseline_common.core.repository.gateway.read_gateway import UnmappedFieldError
+from baseline_common.core.repository.gateway.zoho.coql_dialect import ZohoCoqlDialect
+from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
     LogicalFilter,

@@ -30,13 +30,13 @@ jobs:
 
       # Every module's extra: the tests cover all of them.
       - name: Install the package
-        run: uv sync --all-extras --frozen
+        run: uv sync --all-extras --locked
 
       - name: Lint package
-        run: uv run --frozen poe lint
+        run: uv run --locked poe lint
 
       - name: Test package
-        run: uv run --frozen poe test
+        run: uv run --locked poe test
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v7
