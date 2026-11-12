@@ -10,9 +10,7 @@ d'opérations. Chaque opération dure un certain temps, se fait sur une des mach
 dans sa fenêtre de temps, et après l'opération précédente de sa commande. Une machine ne fait qu'une
 opération à la fois. Le modèle d'essai correspondant est `tests/core/optimization/job_shop_model.py`.
 
-L'historique du projet où le moteur est né (décisions, mesures, revues) est dans
-`docs/history/optimization-engine-log.md`. Les règles de revue générales sont dans `docs/rules.md` ;
-celles du moteur sont à la section 8.
+Les règles de revue générales sont dans `docs/rules.md` ; celles du moteur sont à la section 8.
 
 ## 1. Où vit le code
 
