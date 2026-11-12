@@ -10,7 +10,7 @@ Les data models sont uniquement de la donnée. La logique métier vit dans les s
 | **O — Open/Closed** | Ouvert à l'extension (nouvelles implémentations d'interface), fermé à la modification (le code existant ne change pas). |
 | **L — Liskov Substitution** | Toute implémentation d'une interface est interchangeable avec une autre. Pas de surprises. |
 | **I — Interface Segregation** | Interfaces minimales et ciblées par consommateur. Si un consommateur n'utilise que 2 méthodes sur 10, l'interface est trop large — découper. |
-| **D — Dependency Inversion** | Dépendre des abstractions (des ABC ; pas de `Protocol`, règle 5 de `rules.md`), jamais des implémentations concrètes. Injection par constructeur. |
+| **D — Dependency Inversion** | Dépendre des abstractions (des ABC, jamais un `Protocol` : voir `docs/rules.md`), jamais des implémentations concrètes. Injection par constructeur. |
 
 ## Types de classes
 

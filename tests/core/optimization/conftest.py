@@ -11,7 +11,7 @@ from tests.core.optimization.models import WorkshopFactory
 
 @pytest.hookimpl(optionalhook=True)
 def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:  # noqa: ARG001  xdist's hook
-    """The workers ``-n auto`` starts with pytest-xdist: every core but two (rule 21).
+    """The workers ``-n auto`` starts with pytest-xdist: every core but two.
 
     Args:
         config: The pytest configuration.

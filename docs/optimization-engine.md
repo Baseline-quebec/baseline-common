@@ -11,7 +11,8 @@ dans sa fenêtre de temps, et après l'opération précédente de sa commande. U
 opération à la fois. Le modèle d'essai correspondant est `tests/core/optimization/job_shop_model.py`.
 
 L'historique du projet où le moteur est né (décisions, mesures, revues) est dans
-`docs/history/optimization-engine-log.md`. Les règles de revue sont dans `docs/rules.md`.
+`docs/history/optimization-engine-log.md`. Les règles de revue générales sont dans `docs/rules.md` ;
+celles du moteur sont à la section 8.
 
 ## 1. Où vit le code
 
@@ -687,3 +688,46 @@ Les chemins partent de `src/baseline_core/core/optimization/`.
 | `AbstractPlanSampler`, `FeasibleWalk`, `KernelRestarts` | `mining/sampler.py` | des plans de référence tirés du modèle connu |
 | `ConstrainLoop` | `mining/constrain_loop.py` | encoder d'abord le candidat que le modèle respecte le moins comme le planificateur |
 | `ObjectiveTradeoff` | `mining/objective_tradeoff.py` | deux objectifs : dans quel sens les plans ont bougé |
+
+## 8. Règles du moteur
+
+Elles s'ajoutent aux règles générales de `docs/rules.md` et ne valent que pour
+`src/baseline_core/core/optimization/`. Une revue les cite par « moteur » et leur numéro. Chaque
+règle tient dans son titre en gras ; le texte qui suit l'explique.
+
+1. **Le moteur garde son découpage.**
+   - Ses dossiers : `problem_formulation/`, `solver/`, `mining/`.
+   - Le découpage de `solver/` : `binding/`, `kernel/`, `infeasibility/`, `search/`.
+   - Pas d'OR-Tools, pas d'encodeur ni de décodeur : `SchemaPath` lit le schéma du problème.
+2. **Le moteur ne nomme aucun problème.**
+   - Le catalogue ne garde que des primitives que les outils de référence ont aussi.
+   - Un besoin propre à un problème (une pause de midi, un temps de nettoyage entre deux sortes de
+     tâches) passe par une primitive générique (`model.breaks`, `Transition`).
+   - Les modèles propres à un problème ne servent qu'aux essais.
+3. **Il n'y a pas d'interpréteur.** Le noyau (`solver/kernel/kernel.py`) est écrit en Cython « mode
+   Python pur » : le même fichier tourne compilé ou non, donc rien n'a besoin d'interpréter les
+   expressions.
+4. **Il n'y a qu'un moteur.** Pas de deuxième recherche, de deuxième chargement du noyau ni de
+   deuxième lecture des durées à côté de ceux du moteur. Par exemple, un échantillonneur de plans
+   appelle `KernelSolver` ; il ne refait pas sa boucle.
+5. **La pré-vérification ne prouve que ce qu'elle a le temps de décider.**
+   - Trois niveaux : `ELEMENT`, `GROUP`, `COMPONENT` (section 6).
+   - Le délai est fixé par l'appelant ; il n'a pas de valeur par défaut. Ce qui n'est pas décidé dans
+     le délai n'est pas déclaré prouvé.
+   - Elle fonctionne pour tout problème ; un cas propre à un seul problème est un échec.
+   - Un cas trop lent est dit tel quel : aucun essai ni réglage n'est ajusté pour masquer la lenteur.
+6. **Le moteur ne rend jamais un résultat faux.**
+   - Un constat prouvé (`PrecheckIssue`) est vrai.
+   - Une variation calculée pas à pas égale un recompte complet.
+   - Ce que le moteur ne sait pas traiter exactement est refusé à la liaison, par exemple un élément
+     choisi par les données (`at[partner[e]]`).
+   - Une borne qui ne tient pas dans un cas (une pause qui chevauche deux périodes) est remplacée par
+     une borne plus faible, mais vraie.
+7. **Une optimisation ou une refactorisation du moteur est vérifiée par script.** Comptes,
+   variations, violations et constats sont comparés à la version d'avant, compilée et en Python pur,
+   sur plusieurs modèles d'essai (atelier, chargement de camions, ressources).
+8. **Un solveur cité a vraiment la primitive citée.** Une docstring ou un document ne cite une
+   primitive de CP-SAT, CP Optimizer, OR-Tools ou MiniZinc qu'après avoir vérifié qu'elle existe et
+   qu'elle a ce sens. Par exemple, `AddBinPacking` a été cité pour CP-SAT, qui ne l'a pas.
+9. **Les essais ne règlent pas la compilation.** Pas de `-O0` pour compiler plus vite, ni d'autre
+   branche : les essais tournent en Python pur, et en Cython seulement pour comparer les deux.
