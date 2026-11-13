@@ -1,1 +1,1 @@
-"""Repositories: a read and a write contract, backed in memory or by an HTTP API."""
+"""Repositories: a read contract, a write contract and one of both, over several backends."""

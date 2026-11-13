@@ -99,11 +99,11 @@ Les classes à connaître, couche par couche.
 | Module | Ce qu'il fait | Classes clés |
 |---|---|---|
 | `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
-| `repository/` | Les contrats de lecture et d'écriture, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `InMemoryRepository` |
+| `repository/` | Les contrats de lecture, d'écriture et des deux réunis, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `AbstractRepository`, `InMemoryRepository` |
 | `repository/gateway/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
-| `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository` |
-| `repository/sql/postgres/` | PostgreSQL, sur des tables SQLModel et la session de l'appelant ; chaque écriture dans son point de sauvegarde, un refus de la base levé en `RecordRejectedError`. | `PostgresReadRepository`, `PostgresWriteRepository` |
-| `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository` et leurs pendants d'écriture |
+| `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository`, `MongoRepository` |
+| `repository/sql/postgres/` | PostgreSQL, sur des tables SQLModel et la session de l'appelant ; chaque écriture dans son point de sauvegarde, un refus de la base levé en `RecordRejectedError`. | `PostgresReadRepository`, `PostgresWriteRepository`, `PostgresRepository` |
+| `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository`, leurs pendants d'écriture, et `QdrantRepository`, `WeaviateRepository`, qui font les deux |
 
 ### service/
 
@@ -152,16 +152,18 @@ code, jamais en affaiblissant l'essai.
 - Aucun cycle d'import.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).
 - Un fichier `abstract_<nom>.py` définit la classe `Abstract…<Nom>`.
-- **La lecture et l'écriture ne se mélangent pas.** Une abstraction lit
-  (`AbstractReadRepository`) ou écrit (`AbstractWriteRepository`), jamais les deux.
-  - Chaque support fournit une classe de lecture et une classe d'écriture : `ReadGateway` et
-    `WriteGateway`, `WeaviateReadRepository` et `WeaviateWriteRepository`, `QdrantReadRepository`
-    et `QdrantWriteRepository`, `MongoReadRepository` et `MongoWriteRepository`,
-    `PostgresReadRepository` et `PostgresWriteRepository`.
+- **Un repository lit, écrit, ou les deux.** Trois contrats : `AbstractReadRepository` lit,
+  `AbstractWriteRepository` écrit, `AbstractRepository` hérite des deux.
+  - Chaque support de repository fournit trois classes : une de lecture, une d'écriture, et une
+    qui fait les deux en héritant des deux premières. `MongoRepository` hérite de
+    `MongoWriteRepository` et de `MongoReadRepository`, et de même pour `PostgresRepository`,
+    `QdrantRepository` et `WeaviateRepository`. `InMemoryRepository` implémente directement
+    `AbstractRepository`.
+  - Un appelant qui lit et écrit construit un seul objet : `MongoRepository(Machine, collection)`.
+    Les classes de lecture et d'écriture restent pour celui qui ne fait que l'un des deux.
+  - Le gateway garde deux classes, `ReadGateway` et `WriteGateway`.
   - Une capacité propre au support va du côté où elle sert : `hybrid_search` est une lecture.
   - L'administration du support a sa propre classe (`WeaviateCollection`, `QdrantCollection`).
-  - Seul `InMemoryRepository`, le substitut des essais, implémente les deux contrats dans une
-    classe, parce qu'il n'a qu'un état.
 
 ## Conventions de nommage
 

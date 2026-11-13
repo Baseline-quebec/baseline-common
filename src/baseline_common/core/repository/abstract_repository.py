@@ -1,4 +1,4 @@
-"""The repository contracts every backend of a record type fulfills: reading, and writing."""
+"""The repository contracts every backend of a record type fulfills: reading, writing, or both."""
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -155,3 +155,7 @@ class AbstractWriteRepository[T: BaseModel](ABC):
         Returns:
             The ids deleted, in order.
         """
+
+
+class AbstractRepository[T: BaseModel](AbstractReadRepository[T], AbstractWriteRepository[T]):
+    """Reads and writes the records of one type, whatever backend holds them."""
