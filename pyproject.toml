@@ -23,6 +23,7 @@ qdrant = ["qdrant-client[fastembed]>=1.12.0,<2", "pydantic-ai-slim>=1.0", "logur
 weaviate = ["weaviate-client>=4.10.0", "pydantic-ai-slim>=1.0", "loguru>=0.7.3"]
 mongo = ["loguru>=0.7.3", "pydantic>=2.10.0", "pymongo>=4.13"]
 gateway = ["httpx>=0.28.0", "loguru>=0.7.3", "pydantic>=2.10.0"]
+postgres = ["asyncpg>=0.30.0", "sqlalchemy[asyncio]>=2.0.36", "sqlmodel>=0.0.49"]
 api = [
   "dishka>=1.10.1", "fastapi>=0.115.0", "httpx>=0.28.0", "loguru>=0.7.3", "pydantic-settings>=2.7.0",
   "uvicorn>=0.34.0",
@@ -45,6 +46,7 @@ test = [
   "respx>=0.22.0",
   "ruff>=0.11.0",
   "shellcheck-py>=0.10.0.1",
+  "testcontainers[postgres]>=4.9",
 ]
 
 [tool.commitizen]  # https://commitizen-tools.github.io/commitizen/config/

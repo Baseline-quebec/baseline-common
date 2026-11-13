@@ -47,6 +47,7 @@ src/baseline_common/
 │   └── repository/              lire ou écrire des enregistrements
 │       ├── gateway/             une API HTTP distante (Zoho, Fidelio)
 │       ├── nosql/mongo/         MongoDB
+│       ├── sql/postgres/        PostgreSQL (SQLModel, SQLAlchemy async)
 │       ├── vectorstore/         Qdrant, Weaviate
 │       ├── abstract_repository.py
 │       └── in_memory_repository.py
@@ -101,6 +102,7 @@ Les classes à connaître, couche par couche.
 | `repository/` | Les contrats de lecture et d'écriture, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `InMemoryRepository` |
 | `repository/gateway/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
 | `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository` |
+| `repository/sql/postgres/` | PostgreSQL, sur des tables SQLModel et la session de l'appelant ; chaque écriture dans son point de sauvegarde, un refus de la base levé en `RecordRejectedError`. | `PostgresReadRepository`, `PostgresWriteRepository` |
 | `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository` et leurs pendants d'écriture |
 
 ### service/
@@ -154,7 +156,8 @@ code, jamais en affaiblissant l'essai.
   (`AbstractReadRepository`) ou écrit (`AbstractWriteRepository`), jamais les deux.
   - Chaque support fournit une classe de lecture et une classe d'écriture : `ReadGateway` et
     `WriteGateway`, `WeaviateReadRepository` et `WeaviateWriteRepository`, `QdrantReadRepository`
-    et `QdrantWriteRepository`, `MongoReadRepository` et `MongoWriteRepository`.
+    et `QdrantWriteRepository`, `MongoReadRepository` et `MongoWriteRepository`,
+    `PostgresReadRepository` et `PostgresWriteRepository`.
   - Une capacité propre au support va du côté où elle sert : `hybrid_search` est une lecture.
   - L'administration du support a sa propre classe (`WeaviateCollection`, `QdrantCollection`).
   - Seul `InMemoryRepository`, le substitut des essais, implémente les deux contrats dans une
