@@ -3,6 +3,7 @@
 import pytest
 
 from baseline_common.core.repository.abstract_repository import (
+    AbstractRepository,
     DuplicateRecordError,
     RecordNotFoundError,
 )
@@ -111,6 +112,12 @@ class TestGetById:
 
 class TestWrites:
     """Records inserted, replaced and deleted by their id."""
+
+    def test__the_repository__fulfills_both_contracts(self, press: Equipment) -> None:
+        """It is taken wherever a repository that reads and writes is."""
+        repository = InMemoryRepository(Equipment, [press], primary_key="id_")
+
+        assert isinstance(repository, AbstractRepository)
 
     async def test__an_inserted_record__is_found(self, press: Equipment, lathe: Equipment) -> None:
         """Insert returns the id the record is then found by."""
