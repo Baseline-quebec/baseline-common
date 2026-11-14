@@ -23,6 +23,10 @@ qdrant = ["qdrant-client[fastembed]>=1.12.0,<2", "pydantic-ai-slim>=1.0", "logur
 weaviate = ["weaviate-client>=4.10.0", "pydantic-ai-slim>=1.0", "loguru>=0.7.3"]
 mongo = ["loguru>=0.7.3", "pydantic>=2.10.0", "pymongo>=4.13"]
 gateway = ["httpx>=0.28.0", "loguru>=0.7.3", "pydantic>=2.10.0"]
+# The SQL repository runs on any SQLAlchemy dialect; a driver extra installs it with its driver.
+sql = ["sqlalchemy[asyncio]>=2.0.36", "sqlmodel>=0.0.49"]
+postgres = ["baseline-common[sql]", "asyncpg>=0.30.0"]
+sqlserver = ["baseline-common[sql]", "aioodbc>=0.5.0"]
 api = [
   "dishka>=1.10.1", "fastapi>=0.115.0", "httpx>=0.28.0", "loguru>=0.7.3", "pydantic-settings>=2.7.0",
   "uvicorn>=0.34.0",
@@ -45,6 +49,8 @@ test = [
   "respx>=0.22.0",
   "ruff>=0.11.0",
   "shellcheck-py>=0.10.0.1",
+  # SQL Server needs no extra: its container is ready once sqlcmd answers inside it.
+  "testcontainers[postgres]>=4.9",
 ]
 
 [tool.commitizen]  # https://commitizen-tools.github.io/commitizen/config/
@@ -165,3 +171,14 @@ executor.type = "simple"
 
     [[tool.poe.tasks.test.sequence]]
     cmd = "coverage xml"
+
+  [tool.poe.tasks.test-sqlserver]
+  help = "Test the SQL repository on PostgreSQL and SQL Server, in an image with the ODBC driver"
+  shell = '''
+    docker build --quiet --tag baseline-common-sqlserver-tests \
+      --file docker/sqlserver-tests.Dockerfile docker &&
+    docker run --rm --network host --volume /var/run/docker.sock:/var/run/docker.sock \
+      --volume "$PWD":/repo --volume baseline-common-uv-cache:/root/.cache/uv \
+      --env TESTCONTAINERS_HOST_OVERRIDE=localhost baseline-common-sqlserver-tests \
+      uv run --locked --all-extras --quiet pytest -p no:cacheprovider tests/core/repository/sql
+    '''

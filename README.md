@@ -39,6 +39,7 @@ Ils dépendent de baseline-common, jamais l'inverse. Les règles de revue géné
 
 ```
 docs/                            la documentation ci-dessus
+docker/                          l'image des essais sur SQL Server (pilote ODBC de Microsoft)
 iac/                             infrastructure as code (vide pour l'instant)
 src/baseline_common/
 ├── api/v1/                      squelette FastAPI
@@ -47,6 +48,7 @@ src/baseline_common/
 │   └── repository/              lire ou écrire des enregistrements
 │       ├── gateway/             une API HTTP distante (Zoho, Fidelio)
 │       ├── nosql/mongo/         MongoDB
+│       ├── sql/                 tout dialecte SQLAlchemy async : PostgreSQL, SQL Server…
 │       ├── vectorstore/         Qdrant, Weaviate
 │       ├── abstract_repository.py
 │       └── in_memory_repository.py
@@ -98,10 +100,11 @@ Les classes à connaître, couche par couche.
 | Module | Ce qu'il fait | Classes clés |
 |---|---|---|
 | `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
-| `repository/` | Les contrats de lecture et d'écriture, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `InMemoryRepository` |
+| `repository/` | Les contrats de lecture, d'écriture et des deux réunis, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `AbstractRepository`, `InMemoryRepository` |
 | `repository/gateway/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
-| `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository` |
-| `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository` et leurs pendants d'écriture |
+| `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository`, `MongoRepository` |
+| `repository/sql/` | Une base SQL, quel que soit le dialecte SQLAlchemy, sur des tables SQLModel et la session de l'appelant ; chaque écriture dans son point de sauvegarde, un refus de la base levé en `RecordRejectedError`, lu par le traducteur du dialecte (PostgreSQL, SQL Server, générique ailleurs). Extras : `sql`, plus le pilote, `postgres` (asyncpg) ou `sqlserver` (aioodbc). | `SqlReadRepository`, `SqlWriteRepository`, `SqlRepository`, `AbstractRejectionTranslator` |
+| `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository`, leurs pendants d'écriture, et `QdrantRepository`, `WeaviateRepository`, qui font les deux |
 
 ### service/
 
@@ -150,15 +153,18 @@ code, jamais en affaiblissant l'essai.
 - Aucun cycle d'import.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).
 - Un fichier `abstract_<nom>.py` définit la classe `Abstract…<Nom>`.
-- **La lecture et l'écriture ne se mélangent pas.** Une abstraction lit
-  (`AbstractReadRepository`) ou écrit (`AbstractWriteRepository`), jamais les deux.
-  - Chaque support fournit une classe de lecture et une classe d'écriture : `ReadGateway` et
-    `WriteGateway`, `WeaviateReadRepository` et `WeaviateWriteRepository`, `QdrantReadRepository`
-    et `QdrantWriteRepository`, `MongoReadRepository` et `MongoWriteRepository`.
+- **Un repository lit, écrit, ou les deux.** Trois contrats : `AbstractReadRepository` lit,
+  `AbstractWriteRepository` écrit, `AbstractRepository` hérite des deux.
+  - Chaque support de repository fournit trois classes : une de lecture, une d'écriture, et une
+    qui fait les deux en héritant des deux premières. `MongoRepository` hérite de
+    `MongoWriteRepository` et de `MongoReadRepository`, et de même pour `SqlRepository`,
+    `QdrantRepository` et `WeaviateRepository`. `InMemoryRepository` implémente directement
+    `AbstractRepository`.
+  - Un appelant qui lit et écrit construit un seul objet : `MongoRepository(Machine, collection)`.
+    Les classes de lecture et d'écriture restent pour celui qui ne fait que l'un des deux.
+  - Le gateway garde deux classes, `ReadGateway` et `WriteGateway`.
   - Une capacité propre au support va du côté où elle sert : `hybrid_search` est une lecture.
   - L'administration du support a sa propre classe (`WeaviateCollection`, `QdrantCollection`).
-  - Seul `InMemoryRepository`, le substitut des essais, implémente les deux contrats dans une
-    classe, parce qu'il n'a qu'un état.
 
 ## Conventions de nommage
 
@@ -200,5 +206,23 @@ d'un client.
   mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage). La CI
   (`.github/workflows/test.yml`) lance les deux, en Python 3.12 et 3.14. Une fois par clone :
   `uv run pre-commit install`.
+- **SQL Server :** les essais de `repository/sql/` tournent sur PostgreSQL et sur SQL Server. Sans
+  le pilote « ODBC Driver 18 for SQL Server », ceux de SQL Server sont sautés ; la CI l'a et les
+  exige. En local (Linux), `uv run poe test-sqlserver` les lance dans l'image de
+  `docker/sqlserver-tests.Dockerfile`, qui a le pilote :
+
+  ```bash
+  docker build --tag baseline-common-sqlserver-tests --file docker/sqlserver-tests.Dockerfile docker
+  docker run --rm --network host --volume /var/run/docker.sock:/var/run/docker.sock \
+    --volume "$PWD":/repo --volume baseline-common-uv-cache:/root/.cache/uv \
+    --env TESTCONTAINERS_HOST_OVERRIDE=localhost baseline-common-sqlserver-tests \
+    uv run --locked --all-extras --quiet pytest -p no:cacheprovider tests/core/repository/sql
+  ```
+- **Une application sur SQL Server :** une colonne texte unique ou indexée a une longueur
+  (`max_length`) ; `ondelete="RESTRICT"` n'existe pas (le défaut, `NO ACTION`, refuse de même) ;
+  une contrainte ou un index unique n'admet qu'un seul `NULL` ; un texte hors Latin-1 demande
+  `NVARCHAR` (`sa_type=Unicode`). Les contraintes portent un nom (`naming_convention`) : le
+  traducteur en tire les colonnes, que SQL Server ne nomme pas. Les valeurs d'une référence
+  brisée restent inconnues sur SQL Server.
 - **Pipeline documentaire :** les prompts rendus neutres n'ont pas encore tourné contre un vrai
   modèle ; ils n'ont pas démontré qu'ils reproduisent la qualité mesurée dans le projet d'origine.

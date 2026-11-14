@@ -19,7 +19,7 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      un argument de cette méthode.
    - Ce qui ne vaut que pendant un appel (un drapeau, un curseur, la forme en cours de lecture) est
      un argument ou une variable locale, jamais un attribut.
-   - Exemple : `BatchReplacementService(reads, writes, scope, id_field)`, puis `replace(records)`.
+   - Exemple : `SqlRepository(session, Machine, scope=scope)`, puis `insert_many(records)`.
 2. **On instancie une classe pour la configurer.** Les arguments du constructeur (réglages,
    dépendances, paramètres) sont ce qui configure l'objet. Une classe dont le constructeur ne
    prendrait aucun argument n'a rien à configurer, donc ne s'instancie pas :

@@ -7,15 +7,14 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from baseline_common.core.repository.abstract_repository import (
-    AbstractReadRepository,
-    AbstractWriteRepository,
+    AbstractRepository,
     DuplicateRecordError,
     RecordNotFoundError,
 )
 from baseline_common.core.repository.query_filters import Filter, SortOrder
 
 
-class InMemoryRepository[T: BaseModel](AbstractReadRepository[T], AbstractWriteRepository[T]):
+class InMemoryRepository[T: BaseModel](AbstractRepository[T]):
     """Reads and writes records held in memory, for loaded files and tests."""
 
     def __init__(
