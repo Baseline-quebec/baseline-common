@@ -1,5 +1,7 @@
 """Unit tests for the SQL reader: the read contract, within a scope."""
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from baseline_common.core.repository.query_filters import (
     ComparisonFilter,
     EqualityFilter,
@@ -9,7 +11,7 @@ from baseline_common.core.repository.query_filters import (
 )
 from baseline_common.core.repository.sql.sql_read_repository import SqlReadRepository
 from baseline_common.core.repository.sql.sql_write_repository import SqlWriteRepository
-from tests.core.repository.sql.workshop_tables import Machine
+from tests.core.repository.sql.workshop_tables import Machine, Shift
 
 
 class TestGetById:
@@ -83,7 +85,7 @@ class TestGetByFilters:
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
     ) -> None:
-        """Three pages of one row hold the three rows, each once: they come in id order."""
+        """Three pages of one row hold the three rows, each once: they come in primary key order."""
         await machine_writes.insert_many(fleet)
 
         pages = [await machine_reads.get_by_filters(limit=1, offset=page) for page in range(3)]
@@ -93,3 +95,29 @@ class TestGetByFilters:
             "S-2",
             "S-3",
         ]
+
+    @staticmethod
+    async def test__a_read_without_a_limit__returns_every_row(
+        machine_reads: SqlReadRepository[Machine],
+        machine_writes: SqlWriteRepository[Machine],
+        fleet: list[Machine],
+    ) -> None:
+        """Neither ordered nor offset: SQL Server takes it too."""
+        await machine_writes.insert_many(fleet)
+
+        found = await machine_reads.get_by_filters(limit=None)
+
+        assert sorted(machine.serial for machine in found) == ["S-1", "S-2", "S-3"]
+
+    @staticmethod
+    async def test__a_table_without_an_id_column__pages_in_primary_key_order(
+        session: AsyncSession,
+    ) -> None:
+        """The shifts of a machine, keyed by machine and rank, read a page at a time."""
+        session.add_all([Shift(machine_serial="S-1", rank=rank) for rank in [2, 1, 3]])
+        await session.flush()
+        shifts = SqlReadRepository(session, Shift)
+
+        pages = [await shifts.get_by_filters(limit=1, offset=page) for page in range(3)]
+
+        assert [shift.rank for page in pages for shift in page] == [1, 2, 3]

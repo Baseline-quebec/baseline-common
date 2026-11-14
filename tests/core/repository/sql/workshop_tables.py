@@ -52,3 +52,10 @@ class Tool(WorkshopTable, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(index=True, unique=True, max_length=20)
+
+
+class Shift(WorkshopTable, table=True):
+    """A machine's shift, keyed by the machine and the shift's rank rather than an id."""
+
+    machine_serial: str = Field(primary_key=True, max_length=20)
+    rank: int = Field(primary_key=True)

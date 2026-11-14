@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 from sqlalchemy import ColumnElement, String, TypeDecorator, and_, func, or_, true
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.types import TypeEngine
@@ -66,7 +67,7 @@ class SqlReadRepository[T: SQLModel](AbstractReadRepository[T]):
 
         Args:
             filters: The conditions, all of which must hold; none returns every row.
-            sort_by: The column to sort on; without one, rows come in id order.
+            sort_by: The column to sort on; without one, a page follows the primary key.
             sort_order: The order to sort in.
             limit: The most rows returned; None returns them all.
             offset: How many matching rows to skip.
@@ -78,10 +79,19 @@ class SqlReadRepository[T: SQLModel](AbstractReadRepository[T]):
             self.in_scope(), *(self.condition(filter_) for filter_ in filters)
         )
 
-        # A page needs an order: SQL Server refuses an offset without one.
-        column = self.column(sort_by or self.id_field)
-        statement = statement.order_by(column.desc() if sort_order is SortOrder.DESC else column)
-        statement = statement.offset(offset).limit(limit)
+        # Pages need one order, and SQL Server refuses an offset without one: the primary key.
+        # A whole read has neither order nor offset.
+        if sort_by is not None or limit is not None or offset:
+            columns = (
+                [self.column(sort_by)]
+                if sort_by
+                else list(sa_inspect(self.content_type).primary_key)
+            )
+            statement = statement.order_by(
+                *(column.desc() if sort_order is SortOrder.DESC else column for column in columns)
+            )
+
+        statement = statement.offset(offset or None).limit(limit)
         return list((await self.session.execute(statement)).scalars().all())
 
     def column(self, name: str) -> InstrumentedAttribute[Any]:
