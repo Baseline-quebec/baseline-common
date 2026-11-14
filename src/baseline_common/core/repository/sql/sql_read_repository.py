@@ -1,4 +1,4 @@
-"""PostgresReadRepository — reads one table of SQLModel records, through the caller's session."""
+"""SqlReadRepository — reads one table of SQLModel records, through the caller's session."""
 
 from collections.abc import Sequence
 from typing import Any, cast
@@ -19,7 +19,7 @@ from baseline_common.core.repository.query_filters import (
 )
 
 
-class PostgresReadRepository[T: SQLModel](AbstractReadRepository[T]):
+class SqlReadRepository[T: SQLModel](AbstractReadRepository[T]):
     """Reads the rows of one table, within a fixed scope such as one term."""
 
     def __init__(
@@ -66,7 +66,7 @@ class PostgresReadRepository[T: SQLModel](AbstractReadRepository[T]):
 
         Args:
             filters: The conditions, all of which must hold; none returns every row.
-            sort_by: The column to sort on.
+            sort_by: The column to sort on; without one, rows come in id order.
             sort_order: The order to sort in.
             limit: The most rows returned; None returns them all.
             offset: How many matching rows to skip.
@@ -78,12 +78,9 @@ class PostgresReadRepository[T: SQLModel](AbstractReadRepository[T]):
             self.in_scope(), *(self.condition(filter_) for filter_ in filters)
         )
 
-        if sort_by is not None:
-            column = self.column(sort_by)
-            statement = statement.order_by(
-                column.desc() if sort_order is SortOrder.DESC else column
-            )
-
+        # A page needs an order: SQL Server refuses an offset without one.
+        column = self.column(sort_by or self.id_field)
+        statement = statement.order_by(column.desc() if sort_order is SortOrder.DESC else column)
         statement = statement.offset(offset).limit(limit)
         return list((await self.session.execute(statement)).scalars().all())
 

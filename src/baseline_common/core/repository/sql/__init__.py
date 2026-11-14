@@ -1,1 +1,1 @@
-"""Relational backends of the repository contracts, through SQLAlchemy async and SQLModel."""
+"""SQL backend of the repository contracts: SQLModel tables, on any SQLAlchemy async dialect."""

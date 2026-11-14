@@ -35,6 +35,12 @@ jobs:
       - name: Lint package
         run: uv run --locked poe lint
 
+      # The SQL Server tests skip without Microsoft's ODBC driver; here they must run.
+      - name: Check the ODBC driver of SQL Server
+        run: >-
+          uv run --locked python -c "import pyodbc, sys;
+          sys.exit('ODBC Driver 18 for SQL Server' not in pyodbc.drivers())"
+
       - name: Test package
         run: uv run --locked poe test
 

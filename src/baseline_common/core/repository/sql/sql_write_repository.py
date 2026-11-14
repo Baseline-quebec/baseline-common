@@ -1,12 +1,11 @@
-"""PostgresWriteRepository — writes one table; each call in its savepoint, the caller commits."""
+"""SqlWriteRepository — writes one table; each call in its savepoint, the caller commits."""
 
-import re
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, cast
 
-from sqlalchemy import delete, select
+from sqlalchemy import Table, delete, select
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import DBAPIError
 from sqlmodel import SQLModel
@@ -16,110 +15,61 @@ from baseline_common.core.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
 )
-from baseline_common.core.repository.sql.postgres.postgres_read_repository import (
-    PostgresReadRepository,
+from baseline_common.core.repository.sql.abstract_rejection_translator import (
+    AbstractRejectionTranslator,
+    RejectionReason,
+)
+from baseline_common.core.repository.sql.generic_rejection_translator import (
+    GenericRejectionTranslator,
+)
+from baseline_common.core.repository.sql.postgres_rejection_translator import (
+    PostgresRejectionTranslator,
+)
+from baseline_common.core.repository.sql.sql_read_repository import SqlReadRepository
+from baseline_common.core.repository.sql.sqlserver_rejection_translator import (
+    SqlServerRejectionTranslator,
 )
 
 
-class RejectionReason(StrEnum):
-    """Which kind of constraint refused the write."""
+class SqlDialect(StrEnum):
+    """The SQLAlchemy dialects whose refusals a translator reads; any other dialect is ``OTHER``."""
 
-    UNIQUE = "unique"
-    UNKNOWN_REFERENCE = "unknown_reference"
-    STILL_REFERENCED = "still_referenced"
-    CHECK = "check"
-    REQUIRED = "required"
-    INVALID_VALUE = "invalid_value"
-
-
-class RecordRejectedError(ValueError):
-    """A write the database refused, with the constraint, columns and values it named."""
-
-    SQLSTATE_REASONS: ClassVar[dict[str, RejectionReason]] = {
-        "23505": RejectionReason.UNIQUE,
-        "23514": RejectionReason.CHECK,
-        "23502": RejectionReason.REQUIRED,
-    }
-    KEY_DETAIL: ClassVar[re.Pattern[str]] = re.compile(
-        r"Key \((?P<columns>[^)]*)\)=\((?P<values>.*)\)"
-    )
-    TABLE_DETAIL: ClassVar[re.Pattern[str]] = re.compile(r'table "(?P<table>\w+)"')
-
-    def __init__(
-        self,
-        reason: RejectionReason,
-        table: str | None,
-        constraint: str | None,
-        columns: list[str],
-        values: list[str],
-        other_table: str | None,
-    ) -> None:
-        """Bind what the database said about the refusal.
-
-        Args:
-            reason: The kind of constraint.
-            table: The table written to.
-            constraint: The constraint's name.
-            columns: The columns the constraint names, or the column a value was missing in.
-            values: The values of those columns, when the database gave them.
-            other_table: The table a foreign key points to, or is pointed at from.
-        """
-        super().__init__(f"{reason} on {table}: {constraint}")
-        self.reason = reason
-        self.table = table
-        self.constraint = constraint
-        self.columns = columns
-        self.values = values
-        self.other_table = other_table
+    POSTGRESQL = "postgresql"
+    MSSQL = "mssql"
+    OTHER = "other"
 
     @classmethod
-    def from_database(cls, error: DBAPIError) -> Self:
-        """Read the refusal from the asyncpg error SQLAlchemy wraps.
+    def _missing_(cls, value: object) -> Self:  # noqa: ARG003
+        """Take a dialect no member names as ``OTHER``.
 
         Args:
-            error: The error raised at flush.
+            value: The dialect's name.
 
         Returns:
-            The refusal.
+            ``OTHER``.
         """
-        cause = getattr(error.orig, "__cause__", None)
-        sqlstate = str(getattr(cause, "sqlstate", "") or "")
-        detail = str(getattr(cause, "detail", "") or "")
-        key = cls.KEY_DETAIL.search(detail)
-        other = cls.TABLE_DETAIL.search(detail)
-        column = getattr(cause, "column_name", None)
-        columns = [name.strip() for name in key["columns"].split(",")] if key else []
-
-        if sqlstate == "23503":
-            referenced = "still referenced" in detail
-            reason = (
-                RejectionReason.STILL_REFERENCED
-                if referenced
-                else RejectionReason.UNKNOWN_REFERENCE
-            )
-        else:
-            reason = cls.SQLSTATE_REASONS.get(sqlstate, RejectionReason.INVALID_VALUE)
-
-        return cls(
-            reason=reason,
-            table=getattr(cause, "table_name", None),
-            constraint=getattr(cause, "constraint_name", None),
-            columns=columns or ([column] if column else []),
-            values=key["values"].split(", ") if key else [],
-            other_table=other["table"] if other else None,
-        )
+        return cls.OTHER
 
 
-class PostgresWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
+class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
     """Writes one table; a call the database refuses raises ``RecordRejectedError`` and undoes."""
 
-    def __init__(self, reads: PostgresReadRepository[T]) -> None:
-        """Bind the reader of the same table; its session, id column and scope are used.
+    TRANSLATORS: ClassVar[dict[SqlDialect, type[AbstractRejectionTranslator]]] = {
+        SqlDialect.POSTGRESQL: PostgresRejectionTranslator,
+        SqlDialect.MSSQL: SqlServerRejectionTranslator,
+        SqlDialect.OTHER: GenericRejectionTranslator,
+    }
+
+    def __init__(self, reads: SqlReadRepository[T]) -> None:
+        """Bind the reader of the same table, and the translator of its session's dialect.
 
         Args:
-            reads: Reads what a write checks.
+            reads: Reads what a write checks; its session, id column and scope are used.
         """
         self._reads = reads
+        dialect = SqlDialect(reads.session.get_bind().dialect.name)
+        table = cast("Table", sa_inspect(reads.content_type).local_table)
+        self._translator = self.TRANSLATORS[dialect](table)
 
     async def insert_many(self, records: Sequence[T]) -> list[str]:
         """Insert rows, put in the scope.
@@ -202,7 +152,7 @@ class PostgresWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
                 await session.flush()
 
         except DBAPIError as error:
-            rejection = RecordRejectedError.from_database(error)
+            rejection = self._translator.translate(error)
             primary_key = [
                 column.name for column in sa_inspect(self._reads.content_type).primary_key
             ]

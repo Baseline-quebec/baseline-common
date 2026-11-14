@@ -1,4 +1,4 @@
-"""PostgresRepository — reads and writes the rows of one table, through one object."""
+"""SqlRepository — reads and writes the rows of one table, through one object."""
 
 from typing import Any
 
@@ -6,16 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
 from baseline_common.core.repository.abstract_repository import AbstractRepository
-from baseline_common.core.repository.sql.postgres.postgres_read_repository import (
-    PostgresReadRepository,
-)
-from baseline_common.core.repository.sql.postgres.postgres_write_repository import (
-    PostgresWriteRepository,
-)
+from baseline_common.core.repository.sql.sql_read_repository import SqlReadRepository
+from baseline_common.core.repository.sql.sql_write_repository import SqlWriteRepository
 
 
-class PostgresRepository[T: SQLModel](
-    PostgresWriteRepository[T], PostgresReadRepository[T], AbstractRepository[T]
+class SqlRepository[T: SQLModel](
+    SqlWriteRepository[T], SqlReadRepository[T], AbstractRepository[T]
 ):
     """Reads and writes the rows of one table, within a fixed scope such as one term."""
 
@@ -34,5 +30,5 @@ class PostgresRepository[T: SQLModel](
             id_field: The column a row's id is read from.
             scope: Column values every row read or written has, e.g. ``{"term_id": term_id}``.
         """
-        PostgresReadRepository.__init__(self, session, content_type, id_field, scope)
-        PostgresWriteRepository.__init__(self, self)
+        SqlReadRepository.__init__(self, session, content_type, id_field, scope)
+        SqlWriteRepository.__init__(self, self)
