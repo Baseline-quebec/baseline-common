@@ -1,6 +1,6 @@
 """Unit tests for the generic translator: the refusal of a dialect no translator reads."""
 
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError
 
 from baseline_common.core.repository.sql.abstract_rejection_translator import RejectionReason
 from baseline_common.core.repository.sql.generic_rejection_translator import (
@@ -27,3 +27,13 @@ class TestTranslate:
 
         assert rejection.reason is RejectionReason.INVALID_VALUE
         assert (rejection.table, rejection.constraint) == ("machine", None)
+
+    @staticmethod
+    def test__only_integrity_and_data_errors__are_refusals() -> None:
+        """The driver's class decides; a lost connection is no refusal."""
+        refused = [
+            GenericRejectionTranslator.is_refusal(error_type("INSERT", {}, Exception()))
+            for error_type in [IntegrityError, DataError, OperationalError, DBAPIError]
+        ]
+
+        assert refused == [True, True, False, False]

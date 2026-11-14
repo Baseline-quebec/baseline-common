@@ -4,12 +4,15 @@ import uuid
 from typing import cast
 
 import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from baseline_common.core.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
 )
+from baseline_common.core.repository.query_filters import EqualityFilter
 from baseline_common.core.repository.sql.abstract_rejection_translator import (
     RecordRejectedError,
     RejectionReason,
@@ -165,6 +168,42 @@ class TestRejection:
             await machine_writes.insert_many([Machine(serial="S-2"), Machine(serial="S-1")])
 
         assert [machine.serial for machine in await machine_reads.get_by_filters()] == ["S-1"]
+
+
+class TestManyRows:
+    """More ids than a statement takes: SQL Server allows 2100 parameters in one."""
+
+    @staticmethod
+    async def test__thousands_of_rows__are_inserted_updated_and_deleted(
+        machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
+    ) -> None:
+        """2200 machines, each call whole."""
+        fleet = [Machine(serial=f"S-{number}") for number in range(2200)]
+
+        ids = await machine_writes.insert_many(fleet)
+        await machine_writes.update_many([
+            Machine(id=machine.id, serial=machine.serial, name="mill") for machine in fleet
+        ])
+        renamed = await machine_reads.get_by_filters(
+            [EqualityFilter(field="name", value="mill")], limit=None
+        )
+        deleted = await machine_writes.delete_many(ids)
+
+        assert (len(renamed), deleted) == (2200, ids)
+        assert await machine_reads.get_by_filters(limit=None) == []
+
+
+class TestOtherErrors:
+    """Only a refused row becomes ``RecordRejectedError``; any other database error stays itself."""
+
+    @staticmethod
+    async def test__a_missing_table__is_no_refusal(session: AsyncSession) -> None:
+        """The tools' table dropped: the insert fails as SQLAlchemy raised it."""
+        tool_writes = SqlWriteRepository(SqlReadRepository(session, Tool))
+        await session.execute(text("DROP TABLE tool"))
+
+        with pytest.raises(ProgrammingError):
+            await tool_writes.insert_one(Tool(code="T-1"))
 
 
 class TestUpdateAndUpsert:

@@ -2,7 +2,7 @@
 
 import re
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, override
 
 from sqlalchemy.exc import DBAPIError
 
@@ -35,6 +35,26 @@ class PostgresState(StrEnum):
         return cls.OTHER
 
 
+class SqlStateClass(StrEnum):
+    """The SQLSTATE classes of a refused row; any other class is ``OTHER``."""
+
+    DATA_EXCEPTION = "22"
+    INTEGRITY_CONSTRAINT_VIOLATION = "23"
+    OTHER = "other"
+
+    @classmethod
+    def _missing_(cls, value: object) -> Self:  # noqa: ARG003
+        """Take a class no member has as ``OTHER``.
+
+        Args:
+            value: The class, the SQLSTATE's first two characters.
+
+        Returns:
+            ``OTHER``.
+        """
+        return cls.OTHER
+
+
 class PostgresRejectionTranslator(AbstractRejectionTranslator):
     """Reads the SQLSTATE and the detail asyncpg gives, which name the table and the columns."""
 
@@ -49,6 +69,20 @@ class PostgresRejectionTranslator(AbstractRejectionTranslator):
     )
     TABLE_DETAIL: ClassVar[re.Pattern[str]] = re.compile(r'table "(?P<table>\w+)"')
     STILL_REFERENCED_DETAIL: ClassVar[re.Pattern[str]] = re.compile(r"still referenced")
+
+    @classmethod
+    @override
+    def is_refusal(cls, error: DBAPIError) -> bool:
+        """Tell a refused row by its SQLSTATE: SQLAlchemy raises asyncpg's data errors as any error.
+
+        Args:
+            error: The error raised at flush.
+
+        Returns:
+            Whether its SQLSTATE is a data exception or an integrity constraint violation.
+        """
+        sqlstate = str(getattr(getattr(error.orig, "__cause__", None), "sqlstate", "") or "")
+        return SqlStateClass(sqlstate[:2]) is not SqlStateClass.OTHER
 
     def translate(self, error: DBAPIError) -> RecordRejectedError:
         """Read the refusal from the asyncpg error SQLAlchemy wraps.

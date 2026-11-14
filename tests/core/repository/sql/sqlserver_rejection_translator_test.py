@@ -1,7 +1,7 @@
 """Unit tests for the SQL Server translator: what its messages name when the metadata does not."""
 
 import pytest
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, OperationalError
 
 from baseline_common.core.repository.sql.abstract_rejection_translator import RejectionReason
 from baseline_common.core.repository.sql.sqlserver_rejection_translator import (
@@ -81,3 +81,29 @@ class TestTranslate:
 
         assert rejection.reason is RejectionReason.INVALID_VALUE
         assert (rejection.table, rejection.constraint) == (None, None)
+
+
+class TestIsRefusal:
+    """The error's number, or its driver class, tells a refused row from a failure."""
+
+    @staticmethod
+    def test__a_truncation__is_refused_though_raised_as_a_syntax_error() -> None:
+        """SQLSTATE 42000, error 2628."""
+        error = TestTranslate.refusal(
+            "String or binary data would be truncated in table 'tempdb.dbo.machine', column"
+            " 'serial'. (2628) (SQLExecDirectW)"
+        )
+
+        assert SqlServerRejectionTranslator.is_refusal(error)
+
+    @staticmethod
+    def test__a_deadlock__is_no_refusal() -> None:
+        """Error 1205: the whole transaction is gone, the caller must know."""
+        message = (
+            "[40001] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process"
+            " ID 52) was deadlocked on lock resources with another process and has been chosen"
+            " as the deadlock victim. Rerun the transaction. (1205) (SQLExecDirectW)"
+        )
+        error = OperationalError("INSERT", {}, Exception("40001", message))
+
+        assert not SqlServerRejectionTranslator.is_refusal(error)

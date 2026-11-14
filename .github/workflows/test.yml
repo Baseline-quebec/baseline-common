@@ -35,6 +35,16 @@ jobs:
       - name: Lint package
         run: uv run --locked poe lint
 
+      # GitHub's Ubuntu runner lacks Microsoft's ODBC driver; its package names the repository.
+      - name: Install the ODBC driver of SQL Server
+        run: |
+          . /etc/os-release
+          curl --fail --silent --show-error --location --output /tmp/packages-microsoft-prod.deb \
+            "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb"
+          sudo dpkg --install /tmp/packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install --yes --no-install-recommends msodbcsql18 unixodbc
+
       # The SQL Server tests skip without Microsoft's ODBC driver; here they must run.
       - name: Check the ODBC driver of SQL Server
         run: >-

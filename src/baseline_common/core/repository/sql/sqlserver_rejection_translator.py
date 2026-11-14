@@ -2,7 +2,7 @@
 
 import re
 from enum import IntEnum, StrEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, override
 
 from sqlalchemy import ForeignKeyConstraint, Index, Table
 from sqlalchemy.exc import DBAPIError
@@ -23,6 +23,8 @@ class SqlServerError(IntEnum):
     DUPLICATE_INDEX_KEY = 2601
     CONFLICT = 547
     NULL_VALUE = 515
+    TRUNCATED = 2628
+    TRUNCATED_UNNAMED = 8152
 
     @classmethod
     def _missing_(cls, value: object) -> Self:  # noqa: ARG003
@@ -71,6 +73,32 @@ class SqlServerRejectionTranslator(AbstractRejectionTranslator):
         SqlServerConflict.CHECK: RejectionReason.CHECK,
     }
 
+    @classmethod
+    def error_number(cls, error: DBAPIError) -> SqlServerError:
+        """The native number of the error's first message.
+
+        Args:
+            error: The error raised at flush.
+
+        Returns:
+            The number; ``OTHER`` for a number no member has, or none.
+        """
+        number = cls.NUMBER.search(str(error.orig))
+        return SqlServerError(int(number["number"]) if number else 0)
+
+    @classmethod
+    @override
+    def is_refusal(cls, error: DBAPIError) -> bool:
+        """Tell a refused row by its number too: SQL Server raises a truncation as a syntax error.
+
+        Args:
+            error: The error raised at flush.
+
+        Returns:
+            Whether its number is a refusal, or the driver raised it as an integrity or data error.
+        """
+        return cls.error_number(error) is not SqlServerError.OTHER or super().is_refusal(error)
+
     def translate(self, error: DBAPIError) -> RecordRejectedError:
         """Read the refusal from the first message of the pyodbc error SQLAlchemy wraps.
 
@@ -84,7 +112,7 @@ class SqlServerRejectionTranslator(AbstractRejectionTranslator):
         number = self.NUMBER.search(message)
         first_message = message[: number.start()] if number else message
 
-        match SqlServerError(int(number["number"]) if number else 0):
+        match self.error_number(error):
             case SqlServerError.DUPLICATE_KEY | SqlServerError.DUPLICATE_INDEX_KEY:
                 return self.duplicate(first_message)
 
@@ -94,7 +122,9 @@ class SqlServerRejectionTranslator(AbstractRejectionTranslator):
             case SqlServerError.NULL_VALUE:
                 return self.null_value(first_message)
 
-            case SqlServerError.OTHER:
+            case (
+                SqlServerError.TRUNCATED | SqlServerError.TRUNCATED_UNNAMED | SqlServerError.OTHER
+            ):
                 return RecordRejectedError(
                     reason=RejectionReason.INVALID_VALUE,
                     table=None,

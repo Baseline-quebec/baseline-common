@@ -3,6 +3,7 @@
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager
 from enum import StrEnum
+from itertools import batched
 from typing import ClassVar, Self, cast
 
 from sqlalchemy import Table, delete, select
@@ -53,6 +54,9 @@ class SqlDialect(StrEnum):
 
 class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
     """Writes one table; a call the database refuses raises ``RecordRejectedError`` and undoes."""
+
+    # SQL Server takes at most 2100 parameters in a statement.
+    KEYS_PER_STATEMENT: ClassVar[int] = 1000
 
     TRANSLATORS: ClassVar[dict[SqlDialect, type[AbstractRejectionTranslator]]] = {
         SqlDialect.POSTGRESQL: PostgresRejectionTranslator,
@@ -132,12 +136,13 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
             The ids deleted, in order.
         """
         await self._held(ids)
-        statement = delete(self._reads.content_type).where(
-            self._reads.key_condition(ids), self._reads.in_scope()
-        )
 
         async with self._atomically():
-            await self._reads.session.execute(statement)
+            for batch in batched(ids, self.KEYS_PER_STATEMENT):
+                statement = delete(self._reads.content_type).where(
+                    self._reads.key_condition(batch), self._reads.in_scope()
+                )
+                await self._reads.session.execute(statement)
 
         return ids
 
@@ -152,6 +157,10 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
                 await session.flush()
 
         except DBAPIError as error:
+            # A deadlock or a lost connection is no refusal: it stays itself.
+            if not self._translator.is_refusal(error):
+                raise
+
             rejection = self._translator.translate(error)
             primary_key = [
                 column.name for column in sa_inspect(self._reads.content_type).primary_key
@@ -171,12 +180,14 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
     async def _held_ids(self, ids: list[str]) -> set[str]:
         """The ids among these that the table holds, in any scope: a key is unique table-wide."""
-        if not ids:
-            return set()
-
         column = self._reads.column(self._reads.id_field)
-        statement = select(column).where(self._reads.key_condition(ids))
-        return {str(id_) for id_ in (await self._reads.session.execute(statement)).scalars()}
+        held: set[str] = set()
+
+        for batch in batched(ids, self.KEYS_PER_STATEMENT):
+            statement = select(column).where(self._reads.key_condition(batch))
+            held |= {str(id_) for id_ in (await self._reads.session.execute(statement)).scalars()}
+
+        return held
 
     def _leave_to_the_database(self, record: SQLModel) -> None:
         """Unset the empty columns the database fills, here and in owned children, so merge keeps them."""

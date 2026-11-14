@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 
 from sqlalchemy import Table
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 
 
 class RejectionReason(StrEnum):
@@ -59,6 +59,18 @@ class AbstractRejectionTranslator(ABC):
             table: The table the repository writes.
         """
         self.table = table
+
+    @classmethod
+    def is_refusal(cls, error: DBAPIError) -> bool:
+        """Tell a refused row from a failure of the database, e.g. a deadlock or a lost connection.
+
+        Args:
+            error: The error raised at flush.
+
+        Returns:
+            Whether the driver raised it as an integrity or data error.
+        """
+        return isinstance(error, IntegrityError | DataError)
 
     @abstractmethod
     def translate(self, error: DBAPIError) -> RecordRejectedError:
