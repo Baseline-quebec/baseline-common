@@ -9,7 +9,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from baseline_common.api.api_version import ApiVersion
-from baseline_common.api.settings import get_api_settings
+from baseline_common.api.settings import get_settings
 from baseline_common.api.v1.api import app as app_v1
 from baseline_common.api.v1.lifespan import lifespan as lifespan_v1
 
@@ -36,13 +36,13 @@ async def root_lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         Once the mounted version is started up: a mounted sub-app never runs its own lifespan.
     """
     logger.remove()
-    logger.add(sys.stderr, level=get_api_settings().log_level)
+    logger.add(sys.stderr, level=get_settings().log_level)
 
     async with lifespan_v1(app_v1):
         yield
 
 
-app = FastAPI(title=get_api_settings().app_name, version=ApiVersion.APP, lifespan=root_lifespan)
+app = FastAPI(title=get_settings().app_name, version=ApiVersion.APP, lifespan=root_lifespan)
 
 app.mount("/" + ApiVersion.SCHEMA, app_v1, name=ApiVersion.SCHEMA)
 
@@ -54,12 +54,10 @@ def health() -> HealthResponse:
     Returns:
         ``ok``, the app's name and its release.
     """
-    return HealthResponse(name=get_api_settings().app_name, version=ApiVersion.APP)
+    return HealthResponse(name=get_settings().app_name, version=ApiVersion.APP)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(
-        app, host=get_api_settings().api_host, port=get_api_settings().api_port, log_level="info"
-    )
+    uvicorn.run(app, host=get_settings().api_host, port=get_settings().api_port, log_level="info")

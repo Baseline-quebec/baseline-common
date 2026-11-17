@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from baseline_common.api.api import app
 from baseline_common.api.api_version import ApiVersion
-from baseline_common.api.settings import get_api_settings
+from baseline_common.api.settings import get_settings
 
 
 class TestRootApp:
@@ -15,7 +15,7 @@ class TestRootApp:
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "status": "ok",
-            "name": get_api_settings().app_name,
+            "name": get_settings().app_name,
             "version": ApiVersion.APP,
         }
 

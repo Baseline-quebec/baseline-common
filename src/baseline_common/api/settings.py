@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_api_settings() -> Settings:
+def get_settings() -> Settings:
     """Return the cached application settings.
 
     Returns:
