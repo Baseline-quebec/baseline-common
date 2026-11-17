@@ -339,5 +339,3 @@ d'un client.
   `NVARCHAR` (`sa_type=Unicode`). Les contraintes portent un nom (`naming_convention`) : le
   traducteur en tire les colonnes, que SQL Server ne nomme pas. Les valeurs d'une référence
   brisée restent inconnues sur SQL Server.
-- **Pipeline documentaire :** les prompts rendus neutres n'ont pas encore tourné contre un vrai
-  modèle ; ils n'ont pas démontré qu'ils reproduisent la qualité mesurée dans le projet d'origine.
