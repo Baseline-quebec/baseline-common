@@ -119,6 +119,7 @@ max-args = 6
 max-public-methods = 30
 
 [tool.coverage.report]  # https://coverage.readthedocs.io/en/latest/config.html#report
+fail_under = 95
 precision = 1
 show_missing = true
 skip_covered = true
@@ -156,6 +157,10 @@ executor.type = "simple"
       --all-files
       --color always
     """
+
+  [tool.poe.tasks."test:cli"]
+  help = "Run the tests quickly, without coverage, before each commit"
+  cmd = "pytest --quiet"
 
   [tool.poe.tasks.test]
   help = "Test the package"
