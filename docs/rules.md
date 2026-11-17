@@ -9,6 +9,11 @@ Chaque règle tient dans son titre en gras ; le texte qui suit l'explique et don
 Une règle marquée *(signal)* n'interdit rien : elle pose une question à la revue, et un écart
 justifié est accepté.
 
+La revue vérifie ces règles ; ruff en vérifie une partie, là où le texte nomme son code (BLE001).
+Les règles de structure (couches, points d'entrée, assembly, imports entre dépôts, nommage des
+fichiers) sont dans le `README.md`, sous « Définitions », « Règles d'architecture » et
+« Conventions de nommage » ; « Règles d'architecture » dit ce que l'essai d'architecture vérifie.
+
 Un module qui a des règles propres les porte dans sa documentation : celles du moteur
 d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization (« Règles du moteur »).
 
@@ -21,14 +26,29 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
    - Ce qui ne vaut que pendant un appel (un drapeau, un curseur, la forme en cours de lecture) est
      un argument ou une variable locale, jamais un attribut.
    - Exemple : `SqlRepository(session, Machine, scope=scope)`, puis `insert_many(records)`.
+   - Ce qui entre dans une méthode d'un service est un objet du domaine, un `BaseModel` de
+     `models/` : `RecordMatchingService.match(request)` reçoit un `MatchRequest`. Un `int` ou un
+     `str` isolé n'entre que pour une valeur qui se suffit à elle-même (un identifiant, un nom à
+     normaliser, la période qu'une route lit dans son chemin) ; des valeurs qui décrivent ensemble
+     une même chose forment un enregistrement de `models/`.
+   - Une donnée de la requête, un paramètre de chemin compris, est une donnée : la route la passe
+     à la méthode. Un provider ne lit jamais la requête pour la donner à un constructeur.
+   - Un agent pydantic-ai suit la même règle : le constructeur le configure (modèle, instructions),
+     sa méthode reçoit les données dans un objet requête. Son `deps` ne porte que ce dont ses
+     outils ont besoin pendant l'exécution ; sans outil, c'est `None` (`Agent[None, MatchDecision]`).
 2. **On instancie une classe pour la configurer.** Les arguments du constructeur (réglages,
    dépendances, paramètres) sont ce qui configure l'objet. Une classe dont le constructeur ne
-   prendrait aucun argument n'a rien à configurer, donc ne s'instancie pas :
-   - une logique sans état est une fonction du module ;
-   - une façon de construire une instance est une méthode de classe de la classe construite
-     (`Problem.from_files(path)`) ;
-   - un travail qui a besoin d'un état pendant un appel devient une méthode de la classe qui
+   prendrait aucun argument n'a rien à configurer, donc ne s'instancie pas.
+   - Une logique sans état est une méthode statique d'une classe qu'on n'instancie jamais ; cette
+     classe porte aussi les constantes de cette logique. On l'appelle sur la classe :
+     `Imports.names(code)` dans l'essai d'architecture, jamais `Imports().names(code)`.
+   - Une façon de construire une instance est une méthode de classe de la classe construite
+     (`Problem.from_files(path)`).
+   - Un travail qui a besoin d'un état pendant un appel devient une méthode de la classe qui
      l'appelle.
+   - Jamais de fonction de module. Seules exceptions : ce qu'un point d'entrée FastAPI déclare au
+     niveau du module, comme le veut FastAPI (ses routes, `init_container()`, `init_app(container)`,
+     `get_settings()`, ses lifespans), et les fixtures pytest.
 3. **Une classe a une seule responsabilité.** Une classe qui en mêle deux (lire des plans et écrire
    des règles, par exemple) est coupée en deux. Une méthode qui n'a rien à faire dans sa classe en
    sort.
@@ -37,7 +57,12 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      l'instanciation.
    - Une `ABC` a **plusieurs vraies sous-classes** et une raison de les réunir (un comportement
      commun, un appelant qui les prend toutes). Un faux d'essai ne compte pas comme sous-classe.
-   - Une seule implémentation : pas d'abstraction.
+   - Une seule implémentation : pas d'abstraction. Seule exception : un point d'extension où
+     d'autres implémentations sont raisonnablement attendues (un autre backbone) ; la docstring de
+     l'`ABC` écrit cette attente. Sans elle, l'`ABC` est retirée et l'appelant reçoit la classe
+     concrète.
+   - Le nom et le fichier d'une `ABC` (`abstract_<nom>.py`, ou le nom nu d'une famille définie dans
+     un seul fichier) suivent les « Conventions de nommage » du `README.md`.
    - Un `Protocol` demande une raison forte : décrire un objet qu'on ne peut pas faire hériter, comme
      une classe d'une bibliothèque tierce. Nos propres classes héritent toujours d'une `ABC`.
    - Les patrons connus s'appliquent sous leur nom (Repository, Gateway, Strategy, Adapter) plutôt
@@ -72,6 +97,17 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      expression.
    - Seule exception : une lambda qui choisit un champ du schéma dans une déclaration
      (`model.param(lambda op: op.duration, operations)`), pour que l'IDE vérifie le chemin.
+   - Un alias de type au niveau du module est permis quand il est justifié, et seulement alors :
+     il nomme un type composé de plusieurs types (une union, la signature d'un `Callable`) qui sert
+     à plusieurs endroits, ou c'est un `NewType` qu'un conteneur injecte par son type. Un
+     commentaire au-dessus de lui dit pourquoi ; pas de docstring sous lui, le hook
+     `check-docstring-first` la refuse. Un alias qui renomme une seule classe, même paramétrée
+     (`Object[dict[str, Any], None]`), ou qui ne sert qu'une fois, est retiré :
+
+     ```python
+     # A type of its own, so a tenant can be injected by type.
+     TenantID = NewType("TenantID", str)
+     ```
 
 ## Organisation
 
@@ -132,21 +168,25 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     - Une fixture rend une valeur neuve à chaque essai. Une portée plus large (`module`, `session`)
       demande un coût mesuré, et une valeur qu'aucun essai ne modifie.
 19. **Les `conftest.py` forment une hiérarchie.** Une fixture vit au plus près des essais qui s'en
-    servent : dans le fichier d'essai si un seul s'en sert, sinon dans le `conftest.py` du plus petit
-    dossier qui les contient tous. `tests/conftest.py` ne garde que ce qui sert partout. Une fixture
-    ne remonte pas « au cas où ».
+    servent. `tests/conftest.py` ne garde que ce qui sert partout. Une fixture ne remonte pas « au
+    cas où ».
+    - Plusieurs fichiers s'en servent : le `conftest.py` du plus petit dossier qui les contient tous.
+    - Un seul fichier s'en sert : ce fichier.
+    - Une seule classe d'essais s'en sert : ce fichier, ou cette classe ; les deux sont permis.
 20. **Un essai respecte les couches du code qu'il teste.** Ses imports suivent le même sens que le
     code : `api, cli → assembly → orchestrators → services → models → framework`.
     - Un essai sous `tests/framework/` n'importe ni `models/`, ni `services/`, ni `orchestrators/`,
       ni `assembly/`, ni `api/`, ni les essais de ces couches.
     - Un essai d'un module de `framework/` n'importe pas un autre module de `framework/`.
-    - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `framework/` ou `models/` de
-      baseline-common (`framework/ml/graph/` de baseline-ml lit `framework/multidigraph/`) ;
-      baseline-common ne lit jamais un dépôt spécialisé, et deux dépôts spécialisés ne se lisent
-      pas.
+    - Entre dépôts, le sens est celui des « Règles d'architecture » du `README.md` : un dépôt
+      spécialisé lit `framework/` ou `models/` de baseline-common, son `framework/` seulement
+      `framework/` (`framework/ml/graph/` de baseline-ml lit `framework/multidigraph/`).
 21. **Un essai se nomme `test__<sujet>__<résultat>`.**
     - Le sujet dit ce que l'essai met en place, le résultat ce qu'il vérifie :
-      `test__a_blank_name__is_refused`. Une classe `Test<Classe>` regroupe les essais d'une classe.
+      `test__a_blank_name__is_refused`.
+    - Une classe d'essais se nomme `Test<Classe>` quand elle regroupe les essais d'une classe
+      (`TestRecordMatchingService`), ou `Test<Thème>` quand elle regroupe ceux d'un thème
+      (`TestLayers` dans l'essai d'architecture). Les deux sont permis.
     - Ce format prime sur `test__when_<condition>__<result>` du guide du développeur.
     - Pas d'essai BDD (pytest-bdd, Gherkin) dans baseline-common : un framework n'a pas de user
       story. Un projet client qui en a les écrit dans ses `tests/features/`.
@@ -155,11 +195,27 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
 
 22. **Une exception remonte jusqu'au code qui sait la traiter.**
     - Le code lève une exception précise. Il ne l'attrape que pour s'en remettre ou pour la traduire.
-    - Pas de `except` qui avale l'erreur, pas de `try` qui journalise puis relance.
+    - Une traduction lève une exception précise dont le message dit la raison, et garde la cause
+      par `from` (ruff, EM101 et EM102, veut le message dans une variable) :
+
+      ```python
+      except ValidationError as error:
+          msg = f"{source}: unreadable row, {field}: {detail}"
+          raise UnreadableAnswerError(msg) from error
+      ```
+    - Un `except` qui ne relance pas s'en remet : il attrape une exception précise
+      (`except ValueError: body = None`). Seule une frontière finale (une requête, un processus
+      enfant) attrape `Exception` pour l'avaler ; elle porte `# noqa: BLE001 - <raison>`.
+    - Ailleurs qu'à une frontière finale, `except Exception` n'apparaît pas, même pour traduire : on
+      attrape l'exception précise que le code appelé lève.
+    - Ce que ruff signale : BLE001 marque tout `except Exception` qui ne relance pas, même s'il
+      journalise avec loguru (`logger.exception`) : ruff ne reconnaît que le module `logging`. Un
+      `except` qui relance (`raise`, `raise … from err`) n'est pas marqué, et un `noqa: BLE001` posé
+      sur lui est signalé inutile (RUF100) : sa raison est le message de l'exception levée.
+    - Pas de `try` qui journalise puis relance. Un nettoyage va dans `finally`, jamais dans un
+      `except` qui relance.
     - La traduction en réponse HTTP se fait une seule fois, dans `ExceptionHandlerMiddleware`
       (`RecordNotFoundError` en 404, `DuplicateRecordError` en 409). Un service ou un repository ne
       connaît pas HTTP.
-    - Un `except Exception` n'existe qu'à une frontière finale (une requête, un processus enfant), sa
-      raison écrite dans son `noqa`.
 23. **On journalise avec `loguru`, jamais avec `print`.** Une erreur est journalisée une seule fois, là
     où elle est traitée (`logger.exception`). Aucun secret ni donnée personnelle dans un journal.

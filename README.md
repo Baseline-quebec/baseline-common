@@ -74,7 +74,8 @@ tests/                           même arborescence que src/ ; architecture_test
 
 ## Définitions
 
-Dans l'ordre de l'arborescence.
+Dans l'ordre de l'arborescence. La revue les vérifie ; ce que l'essai d'architecture en vérifie
+est sous « Règles d'architecture ».
 
 - **Module du framework** : du code générique, sous `framework/`. Il ne nomme ni un client ni un
   problème. Le framework est une librairie par tranche : chaque module s'utilise et se copie seul,
@@ -102,7 +103,8 @@ Dans l'ordre de l'arborescence.
     du service, que l'API expose. Dans un projet, il porte ceux du domaine du client.
 - **Service** : les opérations de base d'une entité ou d'une capacité, dont la conversion des
   données externes en données du domaine. Son constructeur reçoit la configuration et les
-  dépendances, ses méthodes reçoivent les données. Un service a son dossier `services/<sujet>/`
+  dépendances, ses méthodes reçoivent les données, des objets du domaine (règle 1 de
+  `docs/rules.md`). Un service a son dossier `services/<sujet>/`
   dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config, adapters).
 - **Adapter** : lit un enregistrement dans la forme d'un système externe et rend celui du domaine.
   Il est propre à sa source, donc vit dans le dossier du service qui s'en sert,
@@ -151,12 +153,28 @@ Dans l'ordre de l'arborescence.
   eux, se rencontrent.
 - **Assembly** : la composition. Les providers Dishka qui disent comment construire les services
   et les orchestrateurs. Elle construit, elle ne décide rien : aucune logique métier, aucun
-  réglage de l'API. Elle ne construit pas de conteneur : chaque point d'entrée qui utilise Dishka
-  construit le sien à partir de ces providers (`init_container()` dans `api/v1/api.py`).
+  réglage de l'API. Elle ne lit pas la requête (`fastapi.Request`) : une donnée de la requête, un
+  paramètre de chemin compris, passe par la route à la méthode du service. Elle ne construit pas
+  de conteneur. Aucun provider n'existe ailleurs.
+  - **La configuration d'un service vit à côté de lui,** dans son dossier, et son provider la
+    construit. Une configuration qu'aucun service ne possède (celle de la base de données) vit
+    avec son provider dans `assembly/`. Un réglage n'a qu'une source.
 - **Points d'entrée** (`api/`, `cli/`) : ils reçoivent une requête ou une commande, résolvent
   l'orchestrateur, le service ou, pour une lecture, le repository par leur conteneur, et
   délèguent. Ici, seule l'API existe ; un projet qui a une ligne de commande l'ajoute à côté, dans
   `cli/`, sur les mêmes providers.
+  - **Ils sont au même rang et ne s'importent pas entre eux.** Seule exception : un point d'entrée
+    nomme la fonction qu'il lance dans un processus enfant, et rien d'autre de son module
+    (`from <paquet>.worker.main import run`) ; l'essai d'architecture la déclare dans
+    `SPAWN_TARGETS`.
+  - **Chaque point d'entrée qui utilise Dishka construit son conteneur** dans un
+    `init_container()` sans argument, qui liste ses providers et appelle
+    `make_async_container(...)` (`api/v1/api.py`). Aucun paramètre ne sert qu'aux essais : un
+    essai construit son propre conteneur et le passe à `init_app(container)`.
+  - **Seule l'API connaît HTTP côté serveur** : chemins, méthodes, droits par routeur (une
+    dépendance FastAPI sur le routeur). Un orchestrateur ou un service ne connaît ni route ni
+    méthode HTTP ; une erreur devient une réponse HTTP dans `ExceptionHandlerMiddleware`
+    (règle 22). Un gateway, client d'une API distante, n'est pas concerné.
   - **L'API suit la structure d'ecolopharm-sales :** `api.py` (l'app racine : elle monte la
     version et répond à `/health`), `settings.py` (`Settings` et `get_settings()`, les réglages de l'API seulement ; chaque usage
     appelle `get_settings()`, jamais une variable `settings` du module),
@@ -241,7 +259,8 @@ Un module entre s'il remplit **toutes** ces conditions.
   déjà comment envelopper une API HTTP.
 - **Un repository qui se réécrit en quelques lignes** sur un repository existant, comme lire et
   écrire un fichier entier sur `InMemoryRepository`.
-- **Une ABC pour une seule implémentation.**
+- **Une ABC pour une seule implémentation,** hors du point d'extension de la règle 4 de
+  `docs/rules.md`.
 - **Le contenu métier d'un client** : ses services, adapters, orchestrateurs, prompts et `models`. Ce
   n'est pas une connaissance réutilisable.
 
@@ -262,12 +281,25 @@ l'essai ne change que ce bloc.
   - Les points d'entrée (`api`, `cli`) sont au même rang : aucun n'importe l'autre.
   - Un projet ajoute les siens à ce rang, dans `ENTRY_POINTS` de `ThisRepository` (un `worker` à
     côté de `api` et de `cli`).
+  - Seule exception : la fonction qu'un point d'entrée lance dans un processus enfant, déclarée
+    dans `SPAWN_TARGETS` de `ThisRepository` (`{"api": ["worker.main.run"]}`). Le point d'entrée
+    l'importe par son nom ; importer son module, ou un autre nom, fait échouer l'essai.
+- Aucun provider Dishka hors de `assembly/` : ni sous-classe ni instance de `Provider`, ni rien
+  que Dishka déclare (`provide`, `alias`…).
+- Seul un point d'entrée construit un conteneur (`make_async_container`), dans un
+  `init_container()` sans argument.
+- Seule l'API importe FastAPI ou Starlette : aucun fichier hors de `api/`, `cli/` compris, ne le
+  fait ; `assembly/` ne lit donc pas la requête.
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
   <module>` compris.
 - Aucun import d'un paquet entier, le sien ou un autre de Baseline (`from baseline_common import
   api`, `import baseline_common`) : il cacherait la couche atteinte. On importe le module par son
   chemin.
-- Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`).
+- Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`) ; un
+  dépôt spécialisé n'importe pas les autres.
+- Un dépôt spécialisé ne lit d'un autre dépôt Baseline que `framework/` et `models/`, et son
+  `framework/` n'en lit que `framework/` : `from baseline_common.models.organization import
+  Organization` passe dans `services/`, échoue dans `framework/ml/`.
 - Aucun cycle d'import.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).
 - Un fichier `abstract_<nom>.py` définit la classe `Abstract…<Nom>`.
@@ -284,6 +316,9 @@ l'essai ne change que ce bloc.
   - L'administration du support a sa propre classe (`WeaviateCollection`, `QdrantCollection`).
 
 ## Conventions de nommage
+
+L'essai d'architecture vérifie les fichiers `abstract_<nom>.py` et les `__init__.py` ; la revue, le
+reste.
 
 - Une ABC qui a de vraies implémentations dans d'autres fichiers vit dans `abstract_<nom>.py` et
   s'appelle `Abstract<Nom>` : `AbstractReadRepository`, `AbstractQueryDialect`. Une famille définie
