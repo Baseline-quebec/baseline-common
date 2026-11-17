@@ -18,6 +18,7 @@ class TestRetries:
     """Idempotent requests are retried on a transient failure; anything else is sent once."""
 
     BASE_URL: ClassVar[str] = "https://erp.test"
+    """The server every request of these tests goes to."""
 
     async def test__a_busy_server__is_asked_again_until_it_answers(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig

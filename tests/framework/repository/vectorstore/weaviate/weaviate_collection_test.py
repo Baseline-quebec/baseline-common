@@ -52,8 +52,10 @@ class TestProperties:
 
         class Gauge(VectorDocument):
             __collection_name__: ClassVar[str] = "gauges"
+            """The collection the gauges live in."""
 
             readings: dict[str, float]
+            """Readings by name: a type Weaviate cannot store."""
 
         with pytest.raises(ValueError, match="not supported"):
             _ = WeaviateCollection(Gauge, weaviate_double.client).properties

@@ -11,6 +11,7 @@ class CrmOrganization(Organization):
     """An organization read from a CRM account: its id a number, its name nested, its address in parts."""
 
     model_config = ConfigDict(coerce_numbers_to_str=True)
+    """The CRM's numeric id read as text."""
 
     ADDRESS_LINE: ClassVar[list[str]] = ["Street", "Unit"]
     """The address parts written before the comma, in order."""
@@ -19,8 +20,11 @@ class CrmOrganization(Organization):
     """The address parts written after the comma, in order."""
 
     id_: str = Field(validation_alias="id")
+    """The account's id, under ``id``."""
     name: str = Field(validation_alias=AliasPath("Account", "Legal_Name"))
+    """The legal name, under ``Account.Legal_Name``."""
     address: str | None = Field(None, validation_alias="Billing_Address")
+    """The billing address, in parts under ``Billing_Address``."""
 
     @field_validator("address", mode="before")
     @classmethod

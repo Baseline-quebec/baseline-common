@@ -10,12 +10,14 @@ class NodeConfig(Node):
     """One node type of the schema: the class of its nodes (e.g. ``Customer``)."""
 
     node_class: type[Node]
+    """The class of the nodes this type describes."""
 
 
 class EdgeConfig(Edge[NodeConfig]):
     """One relation of the schema, from one node type to another (e.g. ``purchased``)."""
 
     relation: str
+    """The relation's name, e.g. ``purchased``."""
 
 
 class MultiDiGraphConfig(MultiDiGraph[NodeConfig, EdgeConfig]):

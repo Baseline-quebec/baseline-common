@@ -10,6 +10,7 @@ class BaseGraphFeature(BaseModel):
     """Base class for graph features."""
 
     model_config = ConfigDict(extra="allow", frozen=True)
+    """A feature keeps the attributes it is given beyond its fields, and never changes."""
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -22,13 +23,16 @@ class Node(BaseGraphFeature):
     """A node (or vertex) of a graph."""
 
     id_: str
+    """The node's id, unique in its graph."""
 
 
 class Edge[EndT: Node](BaseGraphFeature):
     """A directed edge between two nodes, typed by the node type it joins."""
 
     src_node: EndT
+    """The node the edge leaves."""
     dst_node: EndT
+    """The node the edge enters."""
 
 
 class Expansion(StrEnum):
@@ -51,6 +55,7 @@ class SubgraphQuery(BaseModel):
     # a set of alternatives a list, and a negative field beats its positive counterpart.
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a query never changes once built."""
 
     node_ids: list[str] = Field(
         default_factory=list, description="Exact node ids to match; any of them."

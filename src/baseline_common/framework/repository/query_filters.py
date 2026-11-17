@@ -14,15 +14,19 @@ class SortOrder(StrEnum):
     """The order a query's results are sorted in."""
 
     ASC = "asc"
+    """Smallest first."""
     DESC = "desc"
+    """Largest first."""
 
 
 class Filter(BaseModel, ABC):
     """A condition on the records a query returns, on a field named by its model path."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a filter never changes once built."""
 
     operator: Literal["==", "!=", ">", "<", ">=", "<=", "&", "|", "in"]
+    """What the filter checks; each subclass narrows it."""
 
     @abstractmethod
     def matches(self, record: BaseModel) -> bool:
@@ -73,7 +77,9 @@ class LogicalFilter(Filter):
     """Every operand holds (``&``), or any one of them does (``|``)."""
 
     operator: Literal["&", "|"]
+    """``&`` when every operand must hold, ``|`` when one is enough."""
     operands: Sequence[Filter]
+    """The conditions combined."""
 
     def matches(self, record: BaseModel) -> bool:
         """Tell whether every operand, or any one of them, holds for a record.
@@ -99,10 +105,14 @@ class ComparisonFilter(Filter):
         ">=": operator.ge,
         "<=": operator.le,
     }
+    """Each operator as the function that compares two values."""
 
     operator: Literal["==", "!=", ">", "<", ">=", "<="]
+    """How the field compares with the value."""
     field: str
+    """The field compared, by its model path."""
     value: str | float | int | bool
+    """The value the field is compared with."""
 
     def matches(self, record: BaseModel) -> bool:
         """Compare the record's field with the value; a missing field only differs.
@@ -126,14 +136,18 @@ class EqualityFilter(ComparisonFilter):
     """A field equal to a value."""
 
     operator: Literal["=="] = "=="
+    """Always equality."""
 
 
 class TextFilter(Filter):
     """A text field containing a value, regardless of case."""
 
     operator: Literal["in"] = "in"
+    """Always containment."""
     field: str
+    """The text field searched, by its model path."""
     value: str
+    """The text the field must contain."""
 
     def matches(self, record: BaseModel) -> bool:
         """Tell whether the record's text field contains the value.

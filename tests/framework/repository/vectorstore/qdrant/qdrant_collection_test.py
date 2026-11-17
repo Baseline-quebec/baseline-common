@@ -37,11 +37,16 @@ class Gauge(VectorDocument):
     """A gauge, with optional and boolean fields."""
 
     __collection_name__: ClassVar[str] = "gauges"
+    """The collection the gauges live in."""
 
     calibrated: Annotated[bool, VectorStoreProperty(filterable=True)] = False
+    """Whether the gauge is calibrated."""
     cycles: Annotated[int | None, VectorStoreProperty(filterable=True)] = None
+    """Cycles it has run; None when unknown."""
     reading: Annotated[float | None, VectorStoreProperty(filterable=True)] = None
+    """Its last reading; None when unknown."""
     label: str = ""
+    """Its label, not indexed."""
 
 
 class TestPayloadIndexes:
@@ -85,8 +90,10 @@ class TestPayloadIndexes:
 
         class Stamp(VectorDocument):
             __collection_name__: ClassVar[str] = "stamps"
+            """The collection the stamps live in."""
 
             at: Annotated[datetime | None, VectorStoreProperty(filterable=True)] = None
+            """When it was stamped; None when unknown."""
 
         assert QdrantCollection(Stamp, absent, config).payload_indexes == {
             "id_": PayloadSchemaType.KEYWORD,

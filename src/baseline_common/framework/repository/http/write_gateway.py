@@ -18,29 +18,30 @@ class WriteGatewayConfig(BaseModel):
     """Where an API takes a record type's writes, and how its requests and answers are shaped."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a gateway keeps the shape it was built with."""
 
     path: str = Field(min_length=1, description="The collection's path, e.g. ``Accounts``.")
     upsert_path: str = Field(
         min_length=1,
         description="The path taking records to insert, or to update when they carry an id.",
     )
-    upsert_body: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Keys sent beside the records of an upsert, e.g. the fields it matches on.",
-    )
+    upsert_body: dict[str, Any] = Field(default_factory=dict)
+    """Keys sent beside the records of an upsert, e.g. the fields it matches on."""
     batch_size: int = Field(gt=0, description="Records sent per call, at most.")
-    envelope: str = Field(description="The key wrapping the records, sent and answered.")
-    primary_key: str = Field(description="The API field holding a record's primary key.")
+    envelope: str
+    """The key wrapping the records, sent and answered."""
+    primary_key: str
+    """The API field holding a record's primary key."""
     delete_ids_param: str = Field(
         min_length=1, description="The query parameter a delete takes its ids in, comma-separated."
     )
     outcome_id: list[str] = Field(
         min_length=1, description="Where, in a record's outcome, the API gives its id."
     )
-    outcome_status: str | None = Field(
-        None, description="The outcome's status field; None when the API gives none."
-    )
-    outcome_success: str | None = Field(None, description="The status of a record written.")
+    outcome_status: str | None = None
+    """The outcome's status field; None when the API gives none."""
+    outcome_success: str | None = None
+    """The status of a record written."""
 
 
 class WriteGateway[T: BaseModel](AbstractWriteRepository[T]):

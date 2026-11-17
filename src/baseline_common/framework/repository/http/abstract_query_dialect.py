@@ -19,11 +19,16 @@ class PageRequest(BaseModel):
     """The HTTP request fetching one page."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a request never changes once built."""
 
     method: HTTPMethod
+    """The HTTP method."""
     path: str
+    """The path, relative to the client's base URL."""
     params: dict[str, Any] | None = None
+    """The query parameters; None when there are none."""
     json_body: dict[str, Any] | None = None
+    """The JSON body; None when there is none."""
 
 
 class AbstractQueryDialect(ABC):

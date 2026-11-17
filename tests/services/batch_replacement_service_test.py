@@ -25,12 +25,18 @@ class WorkOrder(BaseModel):
     """A machine's task of a week, as a custom Zoho module holds it: each alias a Zoho field."""
 
     model_config = ConfigDict(frozen=True, validate_by_name=True, validate_by_alias=True)
+    """Frozen, and built by field name as well as by Zoho field."""
 
     zoho_id: str | None = Field(None, alias="id")
+    """Zoho's id; None before the order is written."""
     machine: str = Field(alias="Machine")
+    """The machine the task is for."""
     week: date = Field(alias="Week")
+    """The week of the task."""
     task: str = Field(alias="Name")
+    """The task."""
     hours: float = Field(alias="Hours")
+    """Hours the task takes."""
 
 
 @pytest.fixture

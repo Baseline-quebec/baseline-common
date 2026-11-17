@@ -11,11 +11,17 @@ class RejectionReason(StrEnum):
     """Which kind of constraint refused the write."""
 
     UNIQUE = "unique"
+    """Another row already holds the value."""
     UNKNOWN_REFERENCE = "unknown_reference"
+    """A reference names a row that does not exist."""
     STILL_REFERENCED = "still_referenced"
+    """Other rows still reference the row."""
     CHECK = "check"
+    """A check constraint refused the value."""
     REQUIRED = "required"
+    """A column that needs a value got none."""
     INVALID_VALUE = "invalid_value"
+    """A value the column cannot hold, or a refusal the server does not name."""
 
 
 class RecordRejectedError(ValueError):

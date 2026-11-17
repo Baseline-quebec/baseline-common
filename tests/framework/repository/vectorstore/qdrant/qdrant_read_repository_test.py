@@ -46,16 +46,21 @@ class MachineName(BaseModel):
     """A projection that keeps the id and the kind."""
 
     model_config = ConfigDict(extra="allow")
+    """Keeps the payload's other fields."""
 
     id_: str
+    """The machine's id."""
     kind: str
+    """Its kind."""
 
 
 class Serviced(BaseModel):
     """When the latest machine of a workshop was serviced."""
 
     workshop_id: str
+    """The workshop."""
     serviced: datetime
+    """When its latest machine was serviced."""
 
 
 class TestFilters:
@@ -293,6 +298,7 @@ class TestScroll:
 
         class Numbered(BaseModel):
             id_: int
+            """A number, where the payload holds text."""
 
         with pytest.raises(ValidationError):
             await stocked.scroll(Numbered)
@@ -305,7 +311,9 @@ class TestScroll:
 
         class Aliased(BaseModel):
             id_: str
+            """The machine's id."""
             kind: str = Field(alias="type")
+            """Its kind, under an alias the payload does not use."""
 
         page = await stocked.scroll(Aliased, [EqualityFilter(field="id_", value="m-3")])
 

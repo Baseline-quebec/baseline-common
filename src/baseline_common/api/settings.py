@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     """Top-level configuration of the API."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
+    """Read from the environment and ``.env``; unknown variables ignored, frozen once read."""
 
     app_name: str = "api"
     """The app's name: the title of its schema, and what its health check answers."""

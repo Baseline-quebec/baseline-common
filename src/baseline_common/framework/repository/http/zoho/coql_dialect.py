@@ -24,8 +24,11 @@ class ZohoCoqlDialect(AbstractQueryDialect):
     """Queries a Zoho CRM module with COQL, every pair of terms in brackets."""
 
     QUERY_PATH: ClassVar[str] = "coql"
+    """The path of the COQL endpoint."""
     MAX_PAGE_SIZE: ClassVar[int] = 2000
+    """The most records Zoho returns per query."""
     COMPARISONS: ClassVar[dict[str, str]] = {"==": "="}
+    """Operators COQL writes differently; the others are written as they are."""
 
     def __init__(self, module: str, page_size: int = MAX_PAGE_SIZE) -> None:
         """Bind the module.

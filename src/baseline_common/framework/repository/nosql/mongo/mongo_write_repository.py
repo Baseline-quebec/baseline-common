@@ -25,6 +25,7 @@ class MongoWriteRepository[T: BaseModel](AbstractWriteRepository[T]):
     """Writes one record type to its MongoDB collection, created on the first write."""
 
     DUPLICATE_KEY: ClassVar[int] = 11000
+    """MongoDB's error code for a duplicate key."""
 
     def __init__(self, reads: MongoReadRepository[T]) -> None:
         """Bind the reader of the same record type.

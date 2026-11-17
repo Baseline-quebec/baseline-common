@@ -33,6 +33,7 @@ class WeaviateConfig(BaseModel):
     """How a Weaviate collection is searched, and for which tenant."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     top_k: int
     """The number of results to return."""
@@ -58,6 +59,7 @@ class WeaviateReadRepository[T: VectorDocument](AbstractReadRepository[T]):
         ">=": "greater_or_equal",
         "<=": "less_or_equal",
     }
+    """Each comparison as the name of a Weaviate filter method."""
 
     def __init__(
         self,

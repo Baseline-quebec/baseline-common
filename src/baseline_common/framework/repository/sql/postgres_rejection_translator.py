@@ -17,10 +17,15 @@ class PostgresState(StrEnum):
     """The SQLSTATE codes of the refusals PostgreSQL names; any other code is ``OTHER``."""
 
     UNIQUE_VIOLATION = "23505"
+    """A unique constraint refused the row."""
     FOREIGN_KEY_VIOLATION = "23503"
+    """A foreign key refused the row: an unknown reference, or a row still referenced."""
     CHECK_VIOLATION = "23514"
+    """A check constraint refused the row."""
     NOT_NULL_VIOLATION = "23502"
+    """A column that needs a value got none."""
     OTHER = "other"
+    """Any other code."""
 
     @classmethod
     def _missing_(cls, value: object) -> Self:  # noqa: ARG003
@@ -39,8 +44,11 @@ class SqlStateClass(StrEnum):
     """The SQLSTATE classes of a refused row; any other class is ``OTHER``."""
 
     DATA_EXCEPTION = "22"
+    """A value the column cannot hold."""
     INTEGRITY_CONSTRAINT_VIOLATION = "23"
+    """A constraint refused the row."""
     OTHER = "other"
+    """Any other class: not a refused row."""
 
     @classmethod
     def _missing_(cls, value: object) -> Self:  # noqa: ARG003
@@ -64,11 +72,15 @@ class PostgresRejectionTranslator(AbstractRejectionTranslator):
         PostgresState.CHECK_VIOLATION: RejectionReason.CHECK,
         PostgresState.NOT_NULL_VIOLATION: RejectionReason.REQUIRED,
     }
+    """The reason each named SQLSTATE gives; any other is an invalid value."""
     KEY_DETAIL: ClassVar[re.Pattern[str]] = re.compile(
         r"Key \((?P<columns>[^)]*)\)=\((?P<values>.*)\)"
     )
+    """The columns and values of the key, in the detail."""
     TABLE_DETAIL: ClassVar[re.Pattern[str]] = re.compile(r'table "(?P<table>\w+)"')
+    """The table, in the detail."""
     STILL_REFERENCED_DETAIL: ClassVar[re.Pattern[str]] = re.compile(r"still referenced")
+    """What tells a row still referenced from a reference to an unknown row."""
 
     @classmethod
     @override

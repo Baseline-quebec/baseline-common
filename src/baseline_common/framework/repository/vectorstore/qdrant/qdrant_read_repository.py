@@ -46,14 +46,18 @@ class QuantizationType(StrEnum):
     """How dense vectors are compressed: not at all, to bytes (~4x), or to bits (~32x)."""
 
     NONE = "none"
+    """Full-precision vectors."""
     SCALAR = "scalar"
+    """One byte per dimension."""
     BINARY = "binary"
+    """One bit per dimension."""
 
 
 class QdrantConfig(BaseModel):
     """How a Qdrant collection is built and searched."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     top_k: int
     """The number of results a search returns by default."""
@@ -99,13 +103,16 @@ class ValueCount(BaseModel):
     """How many documents hold one value of a field."""
 
     value: str
+    """The value."""
     count: int
+    """How many documents hold it."""
 
 
 class ScrollPage[P: BaseModel](BaseModel):
     """One page of a scroll, and the cursor to the next."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     rows: list[P]
     """The documents of the page, read as the projection."""
@@ -118,6 +125,7 @@ class LatestQuery(BaseModel):
     """Which documents a latest-per-value read groups, and what decides the latest."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     group_by: str
     """The field whose values form the groups."""
@@ -136,6 +144,7 @@ class HierarchicalQuery(BaseModel):
     """A search of parents, such as workshops, then of their children, such as machines."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     semantic_content: str
     """The text searched by meaning."""
@@ -163,7 +172,9 @@ class HierarchicalSearchResult(BaseModel):
     """The parents a search found, and the children found within them."""
 
     parents: list[RetrievedDocument] = []
+    """The parents found, best first."""
     children: list[RetrievedDocument] = []
+    """The children found within those parents, best first."""
 
     @property
     def has_results(self) -> bool:
@@ -194,8 +205,11 @@ class QdrantReadRepository[T: VectorDocument](AbstractReadRepository[T]):
     """Reads one document type from its Qdrant collection, by filters or by meaning."""
 
     DENSE: ClassVar[str] = "dense"
+    """The name of the dense vector in a point."""
     SPARSE: ClassVar[str] = "sparse"
+    """The name of the sparse vector in a point."""
     BOUNDS: ClassVar[dict[str, str]] = {">": "gt", "<": "lt", ">=": "gte", "<=": "lte"}
+    """Each comparison as a bound of a Qdrant range."""
 
     def __init__(
         self,

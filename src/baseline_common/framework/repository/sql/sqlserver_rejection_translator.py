@@ -19,12 +19,19 @@ class SqlServerError(IntEnum):
     """The native error numbers of the refusals SQL Server names; any other number is ``OTHER``."""
 
     OTHER = 0
+    """Any other number, or none."""
     DUPLICATE_KEY = 2627
+    """A primary key or unique constraint refused the row."""
     DUPLICATE_INDEX_KEY = 2601
+    """A unique index refused the row."""
     CONFLICT = 547
+    """A foreign key or check constraint refused the row."""
     NULL_VALUE = 515
+    """A column that needs a value got none."""
     TRUNCATED = 2628
+    """A value too long for its column, the column named."""
     TRUNCATED_UNNAMED = 8152
+    """A value too long for its column, the column not named."""
 
     @classmethod
     def _missing_(cls, value: object) -> Self:  # noqa: ARG003
@@ -43,35 +50,47 @@ class SqlServerConflict(StrEnum):
     """The kind of constraint error 547 names, worded as in its message."""
 
     FOREIGN_KEY = "FOREIGN KEY"
+    """A reference names a row that does not exist."""
     REFERENCE = "REFERENCE"
+    """Other rows still reference the row."""
     CHECK = "CHECK"
+    """A check constraint refused the value."""
 
 
 class SqlServerRejectionTranslator(AbstractRejectionTranslator):
     """Reads the error number and message; the columns come from the constraint in the metadata."""
 
     NUMBER: ClassVar[re.Pattern[str]] = re.compile(r"\((?P<number>\d+)\) \(SQL\w+\)")
+    """The native error number, in the message."""
     KEY_NAME: ClassVar[re.Pattern[str]] = re.compile(
         r"(?:constraint|index) '(?P<constraint>[^']+)'"
     )
+    """The constraint or index a duplicate breaks."""
     PRIMARY_KEY: ClassVar[re.Pattern[str]] = re.compile(r"PRIMARY KEY constraint '")
+    """What tells a duplicate primary key."""
     KEY_OBJECT: ClassVar[re.Pattern[str]] = re.compile(r"in object '(?P<table>[^']+)'")
+    """The table a duplicate is in."""
     KEY_VALUES: ClassVar[re.Pattern[str]] = re.compile(
         r"The duplicate key value is \((?P<values>.*)\)\."
     )
+    """The duplicate values."""
     CONFLICT: ClassVar[re.Pattern[str]] = re.compile(
         r"conflicted with the (?:SAME TABLE )?(?P<kind>FOREIGN KEY|REFERENCE|CHECK)"
         r'(?: SAME TABLE)? constraint "(?P<constraint>[^"]+)"'
     )
+    """The kind and name of the constraint a conflict breaks."""
     CONFLICT_TABLE: ClassVar[re.Pattern[str]] = re.compile(r'table "(?P<table>[^"]+)"')
+    """The table a conflict names."""
     NULL_COLUMN: ClassVar[re.Pattern[str]] = re.compile(
         r"column '(?P<column>[^']+)', table '(?P<table>[^']+)'"
     )
+    """The column and table a missing value is in."""
     CONFLICT_REASONS: ClassVar[dict[SqlServerConflict, RejectionReason]] = {
         SqlServerConflict.FOREIGN_KEY: RejectionReason.UNKNOWN_REFERENCE,
         SqlServerConflict.REFERENCE: RejectionReason.STILL_REFERENCED,
         SqlServerConflict.CHECK: RejectionReason.CHECK,
     }
+    """The reason each kind of conflict gives."""
 
     @classmethod
     def error_number(cls, error: DBAPIError) -> SqlServerError:

@@ -7,6 +7,7 @@ class Organization(BaseModel):
     """A known organization of the reference system."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: an organization never changes once read."""
 
     id_: str
     """Its id in the reference system."""

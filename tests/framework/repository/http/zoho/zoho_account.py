@@ -13,12 +13,18 @@ class ZohoAccount(BaseModel):
     """A customer account as Zoho's Accounts module holds it: each alias is a Zoho field."""
 
     model_config = ConfigDict(frozen=True, validate_by_name=True, validate_by_alias=True)
+    """Frozen, and built by field name as well as by Zoho field."""
 
     zoho_id: str | None = Field(None, alias="id")
+    """Zoho's id; None before the account is written."""
     name: str = Field(alias="Account_Name")
+    """The account's name."""
     industry: str | None = Field(None, alias="Industry")
+    """Its industry; None when unknown."""
     status: str = Field("Actif", alias="Status")
+    """Its status."""
     postal_code: str | None = Field(None, alias="Billing_Code")
+    """Its billing postal code; None when unknown."""
 
 
 # The signature of the `reads_of` fixture, which it and every test using it annotate.

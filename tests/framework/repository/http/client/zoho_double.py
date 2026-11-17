@@ -30,10 +30,15 @@ class ZohoDouble:
     """A Zoho double: an accounts server granting tokens, and a CRM checking them."""
 
     TOKEN_URL: ClassVar[str] = "https://accounts.test/oauth/v2/token"  # noqa: S105 - a URL
+    """Where the double grants tokens."""
     CLIENT_SECRET: ClassVar[str] = "fake-client-secret"  # noqa: S105 - fake: tests follow it
+    """The client secret the double accepts."""
     REFRESH_TOKEN: ClassVar[str] = "fake-refresh-token"  # noqa: S105 - fake: tests follow it
+    """The refresh token the double accepts."""
     API_URL: ClassVar[str] = "https://crm.test/crm/v8"
+    """Where the double's CRM answers."""
     SCHEME: ClassVar[str] = "Zoho-oauthtoken"
+    """The scheme Zoho puts before a token in ``Authorization``."""
 
     def __init__(self, config: HttpConfig, *grants: httpx.Response) -> None:
         """Script the grants, and accept every request signed with a token not marked rejected.

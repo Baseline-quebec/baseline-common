@@ -38,6 +38,7 @@ class QdrantConnection(BaseModel):
     """Where a Qdrant server listens, and how a client reaches it."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+    """Each field's docstring is its description."""
 
     host: str = "localhost"
     """The server's host."""

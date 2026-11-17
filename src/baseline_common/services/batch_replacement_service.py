@@ -11,6 +11,7 @@ class BatchReplacement(BaseModel):
     """The ids a replacement updated, inserted and deleted."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a report never changes once made."""
 
     updated: list[str]
     """The ids reused: records rewritten in place of the ones held."""

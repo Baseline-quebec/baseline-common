@@ -36,8 +36,11 @@ class SqlDialect(StrEnum):
     """The SQLAlchemy dialects whose refusals a translator reads; any other dialect is ``OTHER``."""
 
     POSTGRESQL = "postgresql"
+    """PostgreSQL."""
     MSSQL = "mssql"
+    """SQL Server."""
     OTHER = "other"
+    """Any other dialect."""
 
     @classmethod
     def _missing_(cls, value: object) -> Self:  # noqa: ARG003
@@ -63,6 +66,7 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
         SqlDialect.MSSQL: SqlServerRejectionTranslator,
         SqlDialect.OTHER: GenericRejectionTranslator,
     }
+    """The translator that reads each dialect's refusals."""
 
     def __init__(self, reads: SqlReadRepository[T]) -> None:
         """Bind the reader of the same table, and the translator of its session's dialect.

@@ -29,6 +29,7 @@ class MongoReadRepository[T: BaseModel](AbstractReadRepository[T]):
         ">=": "$gte",
         "<=": "$lte",
     }
+    """Each comparison as a MongoDB query operator."""
 
     def __init__(
         self,

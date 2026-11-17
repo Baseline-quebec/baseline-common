@@ -50,15 +50,20 @@ class VectorDocument(BaseModel):
     """A document a vector store indexes: its id, its vector, the text it embeds and prompts."""
 
     model_config = ConfigDict(from_attributes=True)
+    """Readable from any object with the same attributes, such as a store's own record."""
 
     id_: Annotated[str, VectorStoreProperty(filterable=True)]
     """The document's id."""
 
     vector: Annotated[list[float] | None, VectorStoreProperty(is_vector=True)] = None
+    """The document's embedding; None until it is computed."""
 
     __collection_name__: ClassVar[str]
+    """The collection the documents of this type live in."""
     __vector_field_name__: ClassVar[str | None] = None
+    """The field marked as the vector, found when the subclass is defined."""
     __embedding_prefix__: ClassVar[str] = ""
+    """The text put before the content to embed, as some models want."""
 
     @classmethod
     def __init_subclass__(cls, **kwargs: Any) -> None:  # noqa: ANN401
@@ -139,8 +144,11 @@ class RetrievedDocument(BaseModel):
     """A document a search retrieved, with its relevance score and its rank."""
 
     content: VectorDocument
+    """The document."""
     score: float
+    """Its relevance, as the search scores it."""
     rank: int
+    """Its place in the results, from 1."""
 
     @property
     def prompt(self) -> str:

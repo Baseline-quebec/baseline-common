@@ -25,11 +25,16 @@ class InvoicedTotal(BaseModel):
     """What a view sums as invoiced to one client on one date; each alias is a column."""
 
     model_config = ConfigDict(frozen=True, validate_by_name=True, validate_by_alias=True)
+    """Frozen, and built by field name as well as by column."""
 
     invoiced_on: date = Field(alias="date")
+    """The date invoiced, column ``date``."""
     client_number: str = Field(alias="code_client", min_length=1)
+    """The client's number, column ``code_client``."""
     quantity: Decimal = Field(alias="quantite", allow_inf_nan=False)
+    """The quantity invoiced, column ``quantite``."""
     net_amount: Decimal = Field(alias="montant_net", allow_inf_nan=False)
+    """The net amount invoiced, column ``montant_net``."""
 
 
 # How the scripted Fidelio server answers; `ViewOf` and the gateway it builds take one.

@@ -12,6 +12,7 @@ class MatchRequest(BaseModel):
     """A name as a document wrote it, and the known organizations it may be."""
 
     model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+    """Frozen, its text stripped of surrounding blanks."""
 
     NAME_MAX_LENGTH: ClassVar[int] = 300
     """The longest name a document writes; anything longer is not a name."""
@@ -39,6 +40,7 @@ class MatchDecision(BaseModel):
     """The verdict, and the candidates that have the written name."""
 
     model_config = ConfigDict(frozen=True)
+    """Frozen: a decision never changes once made."""
 
     verdict: MatchVerdict
     """Whether one, none or several candidates have the name."""

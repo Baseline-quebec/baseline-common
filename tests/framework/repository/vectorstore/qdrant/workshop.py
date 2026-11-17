@@ -12,6 +12,7 @@ class Workshop(VectorDocument):
     """A workshop, the parent of the machines it houses."""
 
     __collection_name__: ClassVar[str] = "workshops"
+    """The collection the workshops live in."""
 
     name: Annotated[
         str,
@@ -19,3 +20,4 @@ class Workshop(VectorDocument):
             filterable=True, embedding_template="{value}", prompt_template="Workshop: {value}"
         ),
     ]
+    """The workshop's name, embedded and prompted."""

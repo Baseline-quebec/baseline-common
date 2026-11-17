@@ -24,6 +24,7 @@ class FidelioViewDialect(AbstractQueryDialect):
     """Reads one analysis view with ``GetView``: every matching row at once, no sort, no offset."""
 
     PATH: ClassVar[str] = "GetView"
+    """The path of the endpoint that reads a view."""
     ROWS: ClassVar[str] = "changes"
     """The key the rows come under."""
 

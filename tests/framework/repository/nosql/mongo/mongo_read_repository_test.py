@@ -25,8 +25,11 @@ class Prefix(Filter):
     """A condition MongoDB is not taught: a field starting with a value."""
 
     operator: Literal["in"] = "in"
+    """Always containment, so the filter is a valid ``Filter``."""
     field: str
+    """The field read."""
     value: str
+    """The value the field starts with."""
 
     def matches(self, record: BaseModel) -> bool:
         """Tell whether the field starts with the value.
@@ -44,6 +47,7 @@ class Counted(BaseModel):
     """A record whose id is a number, which a read by text id would never find."""
 
     id: int
+    """A numeric id."""
 
 
 class TestConstruction:

@@ -47,9 +47,12 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
     edges: list[EdgeT] = Field(default_factory=list)
     """The edges; changed through ``add_*``/``remove_*`` only, so the indexes stay in step."""
     directed: bool = True
+    """Whether an edge goes one way only."""
 
     _node_index: dict[str, dict[Any, list[NodeT]]] = PrivateAttr(default_factory=dict)
+    """Per attribute, the nodes by value; a list or a dict value is left out."""
     _edge_index: dict[str, list[EdgeT]] = PrivateAttr(default_factory=dict)
+    """Per node id, the edges that touch it."""
 
     @field_validator("nodes")
     @classmethod
