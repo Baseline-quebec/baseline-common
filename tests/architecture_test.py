@@ -87,15 +87,74 @@ class Imports:
             if isinstance(node, ast.Import):
                 names += [alias.name for alias in node.names]
 
-            elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
                 # `from <package>.framework import <module>` names the module in the alias only.
                 names += [f"{node.module}.{alias.name}" for alias in node.names]
 
         return names
 
     @staticmethod
+    def bindings(tree: ast.Module) -> dict[str, str]:
+        """The full name each name a file imports stands for, under its alias if it has one.
+
+        Args:
+            tree: The file's syntax tree.
+
+        Returns:
+            Each local name with the dotted name it was imported as: `import dishka as di` binds
+            `di` to `dishka`, `from dishka import Provider as Base` binds `Base`.
+        """
+        bound: dict[str, str] = {}
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    # `import a.b` binds `a` only; `import a.b as c` binds `c` to `a.b`.
+                    local = alias.asname or alias.name.split(".")[0]
+                    bound[local] = alias.name if alias.asname else local
+
+            elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
+                for alias in node.names:
+                    bound[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+
+        return bound
+
+    @staticmethod
+    def resolve(node: ast.expr, bound: dict[str, str]) -> str | None:
+        """The full name a name or an attribute chain stands for, through the file's imports.
+
+        Args:
+            node: The expression, `di.Provider` say.
+            bound: The file's imported names, from `bindings`.
+
+        Returns:
+            Its dotted name (`dishka.Provider`), or None when it starts from no import.
+        """
+        if isinstance(node, ast.Name):
+            return bound.get(node.id)
+
+        if isinstance(node, ast.Attribute):
+            owner = Imports.resolve(node.value, bound)
+            return None if owner is None else f"{owner}.{node.attr}"
+
+        return None
+
+    @staticmethod
+    def is_from_dishka(name: str | None, names: set[str]) -> bool:
+        """Whether a full name is one of the names, taken from Dishka or one of its modules.
+
+        Args:
+            name: The full name, from `resolve`.
+            names: The names Dishka exports that are looked for.
+
+        Returns:
+            True when it is.
+        """
+        return name is not None and name.split(".")[0] == "dishka" and name.split(".")[-1] in names
+
+    @staticmethod
     def takes_from_dishka(file: FileInfo, names: set[str]) -> bool:
-        """Whether a file imports one of the names from Dishka, or reads it as `dishka.<name>`.
+        """Whether a file imports or uses one of the names from Dishka, under any alias.
 
         Args:
             file: The file read by ArchUnitPython.
@@ -104,16 +163,15 @@ class Imports:
         Returns:
             True when it does.
         """
-        taken: list[str] = []
+        tree = ast.parse(file.content)
+        bound = Imports.bindings(tree)
+        used = [
+            Imports.resolve(node, bound)
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name | ast.Attribute)
+        ]
 
-        for node in ast.walk(ast.parse(file.content)):
-            if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "dishka":
-                taken += [alias.name for alias in node.names]
-
-            elif isinstance(node, ast.Attribute) and ast.unparse(node).startswith("dishka."):
-                taken += [node.attr]
-
-        return not names.isdisjoint(taken)
+        return any(Imports.is_from_dishka(name, names) for name in [*bound.values(), *used])
 
 
 class TestLayers:
@@ -244,35 +302,45 @@ class TestLayers:
         assert_passes(rule)
 
     @classmethod
-    def declares_a_provider(cls, file: FileInfo) -> bool:
+    def declares_a_provider(cls, file: FileInfo, package: str) -> bool:
         """Whether a file declares a Dishka provider, as a class or as an instance.
 
         Args:
             file: The file read by ArchUnitPython.
+            package: The package these rules check.
 
         Returns:
-            True when a class is based on a `…Provider`, or the file takes `Provider`, `provide`
-            or another of `DECLARING` from Dishka.
+            True when a class is based on one of Dishka's providers or on a provider of the
+            assembly, or the file takes `Provider`, `provide` or another of `DECLARING` from
+            Dishka. A class merely named `…Provider` (`WindmillSecretsProvider`) is none.
         """
-        based = any(
-            ast.unparse(base).endswith("Provider")
-            for node in ast.walk(ast.parse(file.content))
+        tree = ast.parse(file.content)
+        bound = Imports.bindings(tree)
+        bases = [
+            Imports.resolve(base, bound) or ""
+            for node in ast.walk(tree)
             if isinstance(node, ast.ClassDef)
             for base in node.bases
+        ]
+        based = any(
+            (base.startswith("dishka.") and base.endswith("Provider"))
+            or base.startswith(f"{package}.assembly.")
+            for base in bases
         )
 
         return based or Imports.takes_from_dishka(file, cls.DECLARING)
 
     @pytest.mark.parametrize("layer", [layer for layer in LAYERS if layer != "assembly"])
     def test__a_layer_but_the_assembly__declares_no_provider(
-        self, source: str, root: str, layer: str
+        self, source: str, package: str, root: str, layer: str
     ) -> None:
         """Providers live in `assembly/`; an entry point builds its container from them."""
+        condition = partial(self.declares_a_provider, package=package)
         rule = (
             project_files(source)
             .in_path(re.compile(f"{root}{layer}/"))
             .should_not()
-            .adhere_to(self.declares_a_provider, "declares a Dishka provider")
+            .adhere_to(condition, "declares a Dishka provider")
         )
 
         assert_passes(rule)
@@ -318,6 +386,68 @@ class TestLayers:
             for function in functions
         )
 
+    @classmethod
+    def builds_containers_in_init_container(
+        cls, node: ast.AST, function: ast.AST | None, bound: dict[str, str]
+    ) -> bool:
+        """Whether every container built under a node is built in a `def init_container()`.
+
+        Args:
+            node: The node read, its children included.
+            function: The innermost function the node sits in, None at module level.
+            bound: The file's imported names, from `Imports.bindings`.
+
+        Returns:
+            True when each use of `CONTAINERS`, under any alias, sits directly in a function
+            named `init_container`: neither at module level nor in a `build(*overrides)`.
+        """
+        if isinstance(node, ast.Name | ast.Attribute) and Imports.is_from_dishka(
+            Imports.resolve(node, bound), cls.CONTAINERS
+        ):
+            return (
+                isinstance(function, ast.FunctionDef | ast.AsyncFunctionDef)
+                and function.name == "init_container"
+            )
+
+        functions = ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+        inner = node if isinstance(node, functions) else function
+
+        return all(
+            cls.builds_containers_in_init_container(child, inner, bound)
+            for child in ast.iter_child_nodes(node)
+        )
+
+    @classmethod
+    def builds_its_container_in_init_container(cls, file: FileInfo) -> bool:
+        """Whether a file builds containers only in its `init_container()`.
+
+        Args:
+            file: The file read by ArchUnitPython.
+
+        Returns:
+            True when it does, or builds none.
+        """
+        tree = ast.parse(file.content)
+
+        return cls.builds_containers_in_init_container(tree, None, Imports.bindings(tree))
+
+    @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
+    def test__an_entry_point__builds_a_container_only_in_init_container(
+        self, source: str, root: str, entry_point: str
+    ) -> None:
+        """One function builds the container, the one the app and a test both know."""
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}{entry_point}/"))
+            .should()
+            .adhere_to(
+                self.builds_its_container_in_init_container,
+                "builds a container outside init_container",
+            )
+        )
+
+        assert_passes(rule)
+
     @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
     def test__an_entry_point__builds_its_container_without_argument(
         self, source: str, root: str, entry_point: str
@@ -337,42 +467,66 @@ class TestLayers:
 
 class TestCycles:
     @staticmethod
-    def describe(edge: ProjectedEdge, source: str) -> str:
-        """One import of a cycle, its typing-only imports marked.
+    def marker(edge: ProjectedEdge) -> str:
+        """The mark of an import made for typing only.
 
         Args:
-            edge: The import, from one file of the cycle to another.
-            source: The `src` folder, cut from the paths.
+            edge: The import, from one file to another.
 
         Returns:
-            The import as `importer -> imported`.
+            ` (TYPE_CHECKING)` when every import along it is a typing one, else nothing.
         """
         kinds = {kind for raw in edge.cumulated_edges for kind in raw.import_kinds}
-        marker = " (TYPE_CHECKING)" if kinds == {ImportKind.TYPE_IMPORT} else ""
-        importer = Path(edge.source_label).relative_to(source)
-        imported = Path(edge.target_label).relative_to(source)
 
-        return f"{importer} -> {imported}{marker}"
+        return " (TYPE_CHECKING)" if kinds == {ImportKind.TYPE_IMPORT} else ""
+
+    @staticmethod
+    def module_edges(source: str) -> set[tuple[str, str]]:
+        """The imports between files that name a module, `from <package>.<sub> import <module>`.
+
+        ArchUnitPython draws that import to `<sub>/__init__.py`: the module, and a cycle through
+        it, would be lost.
+
+        Args:
+            source: The `src` folder.
+
+        Returns:
+            Each import as `(importer, imported)`, their paths written as ArchUnitPython does.
+        """
+        edges: set[tuple[str, str]] = set()
+
+        for path in Path(source).rglob("*.py"):
+            for name in Imports.names(path.read_text(encoding="utf-8")):
+                module = Path(source, *name.split("."))
+
+                for target in [module.with_name(f"{module.name}.py"), module / "__init__.py"]:
+                    if target.is_file():
+                        edges.add((path.as_posix(), target.as_posix()))
+
+        return edges
 
     def test__the_package__has_no_import_cycle(self, source: str) -> None:
         """No file reaches itself again through its imports, `TYPE_CHECKING` ones included."""
-        edges = project_edges(extract_graph(source), per_internal_edge())
-        labels = sorted(
-            {edge.source_label for edge in edges} | {edge.target_label for edge in edges}
-        )
+        markers = {
+            (edge.source_label, edge.target_label): self.marker(edge)
+            for edge in project_edges(extract_graph(source), per_internal_edge())
+        }
+        edges = sorted({*markers, *self.module_edges(source)})
+        labels = sorted({label for edge in edges for label in edge})
         numbers = {label: number for number, label in enumerate(labels)}
 
         # have_no_cycles recurses forever on some components (archunitpython 1.8.1); a strongly
         # connected component of more than one file is a cycle, so Tarjan alone decides.
         components = TarjanSCC().find_strongly_connected_components([
-            NumberEdge(numbers[edge.source_label], numbers[edge.target_label]) for edge in edges
+            NumberEdge(numbers[importer], numbers[imported]) for importer, imported in edges
         ])
         looping = {(labels[e.from_node], labels[e.to_node]) for scc in components for e in scc}
-        cycles = sorted(
-            self.describe(edge, source)
-            for edge in edges
-            if (edge.source_label, edge.target_label) in looping
-        )
+        cycles = [
+            f"{Path(importer).relative_to(source)} -> {Path(imported).relative_to(source)}"
+            f"{markers.get((importer, imported), '')}"
+            for importer, imported in edges
+            if (importer, imported) in looping
+        ]
 
         assert cycles == [], "\n".join(cycles)
 
@@ -382,6 +536,7 @@ class TestForbiddenImports:
         r"^(ecolopharm_sales|cegep_mv_schedule|project_assembly|recom_graphml"
         r"|benny_order_vision|munera_poc)(\.|$)"
     )
+    """The client projects' packages, which no file imports."""
     HTTP_SERVERS: ClassVar[re.Pattern[str]] = re.compile(r"^(fastapi|starlette)(\.|$)")
     """The packages that serve HTTP: only the API imports them."""
     BASELINE_PACKAGES: ClassVar[list[str]] = [
