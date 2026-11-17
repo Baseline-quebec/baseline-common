@@ -140,6 +140,50 @@ class TestLayers:
 
         assert_passes(rule)
 
+    PROVIDING: ClassVar[set[str]] = {"provide", "provide_all", "from_context", "alias", "decorate"}
+    """Dishka's ways to declare a factory, on a provider instance or as decorators."""
+
+    @classmethod
+    def declares_no_provider(cls, file: FileInfo) -> bool:
+        """Whether a file declares no Dishka provider, as a class or as an instance.
+
+        Args:
+            file: The file read by ArchUnitPython.
+
+        Returns:
+            True when it subclasses no `…Provider`, builds no `Provider()` and calls no `provide`.
+        """
+        for node in ast.walk(ast.parse(file.content)):
+            if isinstance(node, ast.ClassDef) and any(
+                ast.unparse(base).endswith("Provider") for base in node.bases
+            ):
+                return False
+
+            called = node.func if isinstance(node, ast.Call) else node
+            name = called.attr if isinstance(called, ast.Attribute) else ast.unparse(called)
+
+            if isinstance(node, ast.Call) and name == "Provider":
+                return False
+
+            if isinstance(node, (ast.Call, ast.Name, ast.Attribute)) and name in cls.PROVIDING:
+                return False
+
+        return True
+
+    @pytest.mark.parametrize("entry_point", ORDER[-1])
+    def test__an_entry_point__declares_no_provider(
+        self, source: str, root: str, entry_point: str
+    ) -> None:
+        """An entry point builds its container from the assembly's providers and declares none."""
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}{entry_point}/"))
+            .should()
+            .adhere_to(self.declares_no_provider, "declares a Dishka provider")
+        )
+
+        assert_passes(rule)
+
 
 class TestCycles:
     @staticmethod
