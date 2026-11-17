@@ -14,16 +14,16 @@ Les data models portent la donnée et ses invariants. La logique métier vit dan
 
 ## Types de classes
 
-- **Data Models** — les enregistrements Pydantic du domaine : des champs, des validateurs d'invariants et des propriétés dérivées simples, sans entrée-sortie ni règle métier. Ceux que plusieurs services ou couches partagent vivent dans `models/` ; celui qu'une seule classe utilise reste dans son fichier (définition complète dans le `README.md`).
+- **Data Models** — les enregistrements Pydantic du domaine : des champs, des validateurs d'invariants et des propriétés dérivées simples, sans entrée-sortie ni règle métier lourde. Ceux que plusieurs services ou couches partagent vivent dans `models/` ; celui qu'une seule classe utilise reste dans son fichier (définition complète dans le `README.md`).
 - **Services** — portent la logique métier d'**une entité ou d'une capacité** (ex : `UserService` gère les `User` ; `RecordMatchingService` rapproche un nom écrit d'une organisation connue). Le constructeur reçoit la configuration et les dépendances, les méthodes reçoivent les données (règle 1 de `docs/rules.md`).
-- **Orchestrateurs** — le pipeline d'un processus : ils enchaînent plusieurs services quand un flot en demande plusieurs. Un orchestrateur par flot métier (ex : `OnboardingOrchestrator` appelle `UserService`, `TeamService`, `NotificationService`). Une ou deux méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API).
+- **Orchestrateurs** — le pipeline d'un processus : ils enchaînent ses étapes, des services, et un repository quand l'étape n'est qu'une lecture ou une écriture. Un orchestrateur par flot métier (ex : `OnboardingOrchestrator` appelle `UserService`, `TeamService`, `NotificationService` ; `RecordMatchingOrchestrator` lit les organisations par un repository, puis appelle `RecordMatchingService`). Une ou deux méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API).
 - **Repositories** — lisent ou écrivent les data models, sans règle métier. Un repository par entité, sur les contrats de `framework/repository/`.
 - **Adapters** — lisent un enregistrement dans la forme d'un système externe et rendent celui du domaine. Ils vivent dans le dossier du service, `services/<sujet>/<source>_adapter.py`, et sont optionnels : dans 90 à 95 % des cas, un schéma de source à `AliasPath` suffit (définition complète dans le `README.md`).
-- **Assembly** — la composition : les providers Dishka qui disent comment construire les services. Chaque point d'entrée (`api/`, `cli/`) construit son conteneur à partir d'eux. Elle ne contient aucune logique.
+- **Assembly** — la composition : les providers Dishka qui disent comment construire les services et les orchestrateurs. Chaque point d'entrée (`api/`, `cli/`) construit son conteneur à partir d'eux. Elle construit et ne décide rien (définition complète dans le `README.md`).
 
 ## Noyau d'un module
 
-Le noyau contient les **data models** (la donnée et ses invariants), les **services** (logique métier) et les **orchestrateurs** (coordination de flots). Les data models ne portent aucune règle métier — les services les manipulent.
+Le noyau contient les **data models** (la donnée et ses invariants), les **services** (logique métier) et les **orchestrateurs** (coordination de flots). Les data models ne portent aucune règle métier lourde — les services les manipulent.
 
 ```
 ┌──────────────────────────────────────┐
@@ -92,7 +92,7 @@ Ne lister que les patterns **effectivement utilisés** avec leur justification. 
 - **Repository** — lecture ou écriture d'un type d'enregistrement, sur les contrats de `framework/repository/`
 - **Gateway** — une API HTTP distante derrière les mêmes contrats (`framework/repository/http/`)
 - **Service Layer** — logique métier par entité ou capacité, point d'entrée pour les cas d'utilisation
-- **Orchestrator** — coordination de plusieurs services pour un processus
+- **Orchestrator** — coordination des étapes d'un processus : des services, un repository pour une simple lecture ou écriture
 - **Adapter** — lecture d'un enregistrement dans la forme d'un système externe, rendu en enregistrement du domaine
 - **Dependency Injection** — câblage des services et des repositories dans les endpoints, déclaré dans `assembly/`
 - **Strategy** — plusieurs algorithmes interchangeables pour un même comportement (un dialecte de requête, un traducteur de refus)
@@ -101,7 +101,7 @@ Ne lister que les patterns **effectivement utilisés** avec leur justification. 
 
 - **God service** — un service qui gère plusieurs entités ou capacités → un service par entité ou capacité
 - **God orchestrateur** — un orchestrateur qui gère tous les flots → un orchestrateur par flot
-- **Règle métier dans les data models** — un data model valide ses invariants et dérive des propriétés simples ; une règle métier, une entrée-sortie ou un appel de service va dans un service
+- **Règle métier lourde dans les data models** — un data model valide ses invariants et dérive des propriétés simples ; une règle métier lourde (une transformation de plusieurs centaines de lignes), une entrée-sortie ou un appel de service va dans un service
 - **Logique dans les endpoints** — les endpoints injectent et délèguent, ils ne contiennent pas de logique métier
 - **Dépendances circulaires** — A → B → A → extraire la partie commune
 - **Service relais** — un service qui ne fait que transmettre une lecture au repository : la route ou l'orchestrateur reçoit le repository directement

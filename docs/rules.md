@@ -26,11 +26,16 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
    - Ce qui ne vaut que pendant un appel (un drapeau, un curseur, la forme en cours de lecture) est
      un argument ou une variable locale, jamais un attribut.
    - Exemple : `SqlRepository(session, Machine, scope=scope)`, puis `insert_many(records)`.
-   - Ce qui entre dans une méthode d'un service est un objet du domaine, un `BaseModel` de
-     `models/` : `RecordMatchingService.match(request)` reçoit un `MatchRequest`. Un `int` ou un
-     `str` isolé n'entre que pour une valeur qui se suffit à elle-même (un identifiant, un nom à
-     normaliser, la période qu'une route lit dans son chemin) ; des valeurs qui décrivent ensemble
-     une même chose forment un enregistrement de `models/`.
+   - Ce qui entre dans une méthode d'un service est l'une de ces quatre choses, et rien d'autre :
+     - un enregistrement de `models/` : `RecordMatchingService.match(request)` reçoit un
+       `MatchRequest` ;
+     - un enregistrement d'un module de `framework/` (une affectation que rend le moteur) ;
+     - une donnée brute, prise telle quelle : des octets, une image, un tableau ;
+     - une valeur qui se suffit à elle-même : un identifiant, un nom à normaliser, un membre d'une
+       énumération, un drapeau, la période qu'une route lit dans son chemin.
+
+     Des valeurs qui décrivent ensemble une même chose forment un enregistrement de `models/`,
+     jamais une suite d'arguments `int` ou `str`.
    - Une donnée de la requête, un paramètre de chemin compris, est une donnée : la route la passe
      à la méthode. Un provider ne lit jamais la requête pour la donner à un constructeur.
    - Un agent pydantic-ai suit la même règle : le constructeur le configure (modèle, instructions),
@@ -46,9 +51,19 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      (`Problem.from_files(path)`).
    - Un travail qui a besoin d'un état pendant un appel devient une méthode de la classe qui
      l'appelle.
-   - Jamais de fonction de module. Seules exceptions : ce qu'un point d'entrée FastAPI déclare au
-     niveau du module, comme le veut FastAPI (ses routes, `init_container()`, `init_app(container)`,
-     `get_settings()`, ses lifespans), et les fixtures pytest.
+   - Une famille d'`ABC` se décide en entier, d'après ses implémentations :
+     - aucune ne reçoit de réglage : rien ne s'instancie. Les méthodes abstraites sont
+       `@classmethod` et `@abstractmethod`, et l'appelant reçoit la classe
+       (`codec: type[AbstractCodec]`, puis `codec.encode(boxes)`) ;
+     - au moins une reçoit des réglages : toutes s'instancient, même celles qui ne reçoivent rien,
+       pour que l'appelant les traite de la même façon. La docstring de l'`ABC` dit pourquoi :
+       laquelle reçoit des réglages, et lesquels.
+   - Jamais de fonction de module. Seules exceptions :
+     - ce qu'un point d'entrée (`api/`, `cli/`, le `worker/` d'un projet) déclare au niveau du
+       module : son `init_container()`, son `get_settings()`, la fonction qu'il lance dans un
+       processus enfant, les commandes d'une ligne de commande, et ce que son framework veut au
+       niveau du module (les routes, `init_app(container)` et les lifespans de FastAPI) ;
+     - dans les essais, les fixtures et les hooks pytest (`pytest_configure`).
 3. **Une classe a une seule responsabilité.** Une classe qui en mêle deux (lire des plans et écrire
    des règles, par exemple) est coupée en deux. Une méthode qui n'a rien à faire dans sa classe en
    sort.
@@ -57,10 +72,10 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      l'instanciation.
    - Une `ABC` a **plusieurs vraies sous-classes** et une raison de les réunir (un comportement
      commun, un appelant qui les prend toutes). Un faux d'essai ne compte pas comme sous-classe.
-   - Une seule implémentation : pas d'abstraction. Seule exception : un point d'extension où
-     d'autres implémentations sont raisonnablement attendues (un autre backbone) ; la docstring de
-     l'`ABC` écrit cette attente. Sans elle, l'`ABC` est retirée et l'appelant reçoit la classe
-     concrète.
+   - Une seule implémentation, ou aucune hors des essais : pas d'abstraction. Seule exception : un
+     point d'extension où d'autres implémentations sont raisonnablement attendues (un autre
+     backbone, ou celle que chaque projet écrit) ; la docstring de l'`ABC` écrit cette attente.
+     Sans elle, l'`ABC` est retirée et l'appelant reçoit la classe concrète.
    - Le nom et le fichier d'une `ABC` (`abstract_<nom>.py`, ou le nom nu d'une famille définie dans
      un seul fichier) suivent les « Conventions de nommage » du `README.md`.
    - Un `Protocol` demande une raison forte : décrire un objet qu'on ne peut pas faire hériter, comme
@@ -89,10 +104,14 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      chargement) : on appelle l'existante.
 8. **Ni variable globale ni enveloppe triviale.**
    - Les constantes vivent dans la classe qui s'en sert.
-   - Seule exception aux variables globales : les objets qu'un point d'entrée FastAPI déclare au
-     niveau du module, comme le fait FastAPI lui-même : `app` et `container` dans `api.py`,
-     `router` dans un fichier de routeur. Les réglages n'en font pas partie : chaque usage appelle
-     `get_settings()`, mis en cache, plutôt que de lire une variable `settings` du module.
+   - Seules exceptions aux variables globales :
+     - les objets qu'un point d'entrée déclare au niveau du module parce que son framework le
+       veut : `app` et `container` dans `api.py`, `router` dans un fichier de routeur,
+       l'application d'une ligne de commande (`app = typer.Typer()`). Les réglages n'en font pas
+       partie : chaque usage appelle `get_settings()`, mis en cache, plutôt que de lire une
+       variable `settings` du module ;
+     - le `__all__` d'un module qui liste ses noms publics, quand un outil les lit. Jamais dans un
+       `__init__.py` (« Conventions de nommage » du `README.md`).
    - Pas de lambda ni de fonction d'une ligne qui ne fait que relayer un appel ou renommer une
      expression.
    - Seule exception : une lambda qui choisit un champ du schéma dans une déclaration
@@ -143,15 +162,23 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
 16. **Une docstring tient en une ligne,** plus une ligne par entrée `Args`, `Returns` et `Raises`. Dans
     une docstring ou un document, une méthode s'écrit avec ses arguments (`run(bound)`) ou sans
     parenthèses (`run`), jamais `run()`.
-    - Un attribut (champ, `ClassVar`, constante de classe) se documente par une docstring d'une
-      ligne placée juste sous lui. Jamais par une section `Attributes:` dans la docstring de la
-      classe, ni par un commentaire au-dessus de lui :
+    - **Chaque attribut déclaré dans une classe est documenté** : champ, `ClassVar`, constante de
+      classe, membre d'une énumération, `model_config`. Une ligne courte qui dit ce qu'il est,
+      sans plus. Deux formes, et seulement elles :
+      - un champ déclaré par `Field(...)` pour sa validation (`Field(ge=1, …)`), ou dont un schéma
+        lit la description (OpenAPI, l'outil ou la sortie d'un agent), se documente par la
+        `description` de ce `Field` ;
+      - tout autre attribut, par une docstring d'une ligne placée juste sous lui. On n'écrit pas
+        `Field(description=…)` pour la seule documentation.
+
+      Jamais par une section `Attributes:` dans la docstring de la classe, ni par un commentaire
+      au-dessus de lui. Un attribut que le constructeur pose (`self._session`) se documente par
+      l'entrée `Args` du constructeur :
 
       ```python
-      APP: ClassVar[str] = version(__name__.split(".", maxsplit=1)[0])
-      """Version of the package serving the API."""
       SCHEMA: ClassVar[str] = "v1"
       """Version of the schema the API serves."""
+      limit: int = Field(ge=1, description="How many records a page holds at most.")
       ```
 17. **Le code respire.**
     - Une ligne vide avant et après chaque bloc (`if`, `for`, `while`, `with`, `try`), sauf au début
@@ -204,8 +231,12 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
           raise UnreadableAnswerError(msg) from error
       ```
     - Un `except` qui ne relance pas s'en remet : il attrape une exception précise
-      (`except ValueError: body = None`). Seule une frontière finale (une requête, un processus
-      enfant) attrape `Exception` pour l'avaler ; elle porte `# noqa: BLE001 - <raison>`.
+      (`except ValueError: body = None`).
+    - Seule une frontière finale attrape `Exception` pour l'avaler. Il y en a quatre, et aucune
+      autre : une requête, un processus enfant, la dernière garde d'un fil d'exécution (thread), et
+      un cas d'un lot dont l'échec est consigné sans arrêter les autres cas. Elle porte
+      `# noqa: BLE001 - <raison>`. Dans un processus enfant lancé par `fork`, elle peut attraper
+      `BaseException` : rien ne doit remonter dans la copie du parent.
     - Ailleurs qu'à une frontière finale, `except Exception` n'apparaît pas, même pour traduire : on
       attrape l'exception précise que le code appelé lève.
     - Ce que ruff signale : BLE001 marque tout `except Exception` qui ne relance pas, même s'il

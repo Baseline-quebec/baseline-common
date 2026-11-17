@@ -103,8 +103,8 @@ est sous « Règles d'architecture ».
     du service, que l'API expose. Dans un projet, il porte ceux du domaine du client.
 - **Service** : les opérations de base d'une entité ou d'une capacité, dont la conversion des
   données externes en données du domaine. Son constructeur reçoit la configuration et les
-  dépendances, ses méthodes reçoivent les données, des objets du domaine (règle 1 de
-  `docs/rules.md`). Un service a son dossier `services/<sujet>/`
+  dépendances, ses méthodes reçoivent les données, sous l'une des formes que permet la règle 1
+  de `docs/rules.md`. Un service a son dossier `services/<sujet>/`
   dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config, adapters).
 - **Adapter** : lit un enregistrement dans la forme d'un système externe et rend celui du domaine.
   Il est propre à sa source, donc vit dans le dossier du service qui s'en sert,
@@ -146,19 +146,24 @@ est sous « Règles d'architecture ».
   - **Limite :** le gateway nomme les champs de l'API par l'`alias` du modèle. Un modèle à
     `AliasPath` se valide sur la réponse telle quelle (corps HTTP, fichier, message) ; il ne sert pas
     de `content_type` à un `ReadGateway`.
-- **Orchestrateur** : le pipeline d'un processus. Il enchaîne plusieurs services, sans règle métier
-  propre. C'est un seul fichier, `orchestrators/<processus>_orchestrator.py`, avec une ou deux
+- **Orchestrateur** : le pipeline d'un processus. Il enchaîne les étapes du processus, sans règle
+  métier propre : des services, et un repository quand l'étape n'est qu'une lecture ou une
+  écriture. C'est un seul fichier, `orchestrators/<processus>_orchestrator.py`, avec une ou deux
   méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API). Ses
   méthodes privées ne comptent pas. C'est là que des modules du framework, qui s'ignorent entre
   eux, se rencontrent.
 - **Assembly** : la composition. Les providers Dishka qui disent comment construire les services
   et les orchestrateurs. Elle construit, elle ne décide rien : aucune logique métier, aucun
-  réglage de l'API. Elle ne lit pas la requête (`fastapi.Request`) : une donnée de la requête, un
-  paramètre de chemin compris, passe par la route à la méthode du service. Elle ne construit pas
-  de conteneur. Aucun provider n'existe ailleurs.
+  réglage de l'API. Un provider qui choisit une implémentation d'après sa configuration
+  (`SqlRepository` ou `MongoRepository` selon le support configuré) construit, il ne décide pas.
+  Elle ne lit pas la requête (`fastapi.Request`) : une donnée de la requête, un paramètre de
+  chemin compris, passe par la route à la méthode du service. Elle ne construit pas de conteneur.
+  Aucun provider n'existe ailleurs.
   - **La configuration d'un service vit à côté de lui,** dans son dossier, et son provider la
     construit. Une configuration qu'aucun service ne possède (celle de la base de données) vit
-    avec son provider dans `assembly/`. Un réglage n'a qu'une source.
+    avec son provider dans `assembly/`. Un réglage n'a qu'une source : l'endroit d'où sa valeur
+    est lue, une variable d'environnement ou une clé d'un fichier, que lit un seul champ d'une
+    seule classe de configuration.
 - **Points d'entrée** (`api/`, `cli/`) : ils reçoivent une requête ou une commande, résolvent
   l'orchestrateur, le service ou, pour une lecture, le repository par leur conteneur, et
   délèguent. Ici, seule l'API existe ; un projet qui a une ligne de commande l'ajoute à côté, dans
@@ -169,8 +174,12 @@ est sous « Règles d'architecture ».
     `SPAWN_TARGETS`.
   - **Chaque point d'entrée qui utilise Dishka construit son conteneur** dans un
     `init_container()` sans argument, qui liste ses providers et appelle
-    `make_async_container(...)` (`api/v1/api.py`). Aucun paramètre ne sert qu'aux essais : un
-    essai construit son propre conteneur et le passe à `init_app(container)`.
+    `make_async_container(...)` (`api/v1/api.py`), et nulle part ailleurs. Aucun paramètre du code
+    de production, ni d'`init_container()` ni d'un constructeur, ne sert qu'aux essais : un essai
+    construit son propre conteneur et le passe à `init_app(container)`.
+  - **Ce qu'un point d'entrée déclare au niveau du module** (son `init_container()`, son
+    `get_settings()`, la fonction qu'il lance dans un processus enfant, ses commandes, ses routes)
+    est l'exception des règles 2 et 8 de `docs/rules.md`.
   - **Seule l'API connaît HTTP côté serveur** : chemins, méthodes, droits par routeur (une
     dépendance FastAPI sur le routeur). Un orchestrateur ou un service ne connaît ni route ni
     méthode HTTP ; une erreur devient une réponse HTTP dans `ExceptionHandlerMiddleware`
@@ -266,9 +275,10 @@ Un module entre s'il remplit **toutes** ces conditions.
 
 ## Règles d'architecture
 
-`tests/architecture_test.py` (ArchUnitPython) les vérifie. Une règle qui échoue se corrige dans le
-code, jamais en affaiblissant l'essai. Ses motifs partent du dossier du paquet, sous `src/` : le
-nom d'un dossier parent ne change rien à ce qu'ils voient. Ce qui distingue un dépôt tient dans le
+`tests/architecture_test.py` (ArchUnitPython) les vérifie, sauf les trois derniers points du
+repository, que vérifie la revue. Une règle qui échoue se corrige dans le code, jamais en
+affaiblissant l'essai. Ses motifs partent du dossier du paquet, sous `src/` : le nom d'un dossier
+parent ne change rien à ce qu'ils voient. Ce qui distingue un dépôt tient dans le
 bloc `ThisRepository`, en tête de l'essai : le nom du paquet, ses points d'entrée, les cibles qu'ils
 lancent dans un processus enfant et les dépôts spécialisés qu'il n'importe pas. Un dépôt qui copie
 l'essai ne change que ce bloc.
@@ -284,10 +294,13 @@ l'essai ne change que ce bloc.
   - Seule exception : la fonction qu'un point d'entrée lance dans un processus enfant, déclarée
     dans `SPAWN_TARGETS` de `ThisRepository` (`{"api": ["worker.main.run"]}`). Le point d'entrée
     l'importe par son nom ; importer son module, ou un autre nom, fait échouer l'essai.
-- Aucun provider Dishka hors de `assembly/` : ni sous-classe ni instance de `Provider`, ni rien
-  que Dishka déclare (`provide`, `alias`…).
-- Seul un point d'entrée construit un conteneur (`make_async_container`), dans un
-  `init_container()` sans argument.
+- Aucun provider Dishka hors de `assembly/` : ni sous-classe d'un provider de Dishka ou de
+  l'assembly, ni instance de `Provider`, ni rien que Dishka déclare (`provide`, `alias`…), sous
+  quelque alias que ce soit (`import dishka as di`, puis `di.Provider()`). Une classe qui n'est que
+  nommée `…Provider` (`WindmillSecretsProvider(AbstractSecretsProvider)`) n'en est pas un.
+- Seul un point d'entrée construit un conteneur (`make_async_container`, sous quelque alias que
+  ce soit), et seulement dans son `init_container()` sans argument : ni au niveau du module, ni
+  dans une autre fonction (`build(*overrides)`).
 - Seule l'API importe FastAPI ou Starlette : aucun fichier hors de `api/`, `cli/` compris, ne le
   fait ; `assembly/` ne lit donc pas la requête.
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
@@ -300,7 +313,7 @@ l'essai ne change que ce bloc.
 - Un dépôt spécialisé ne lit d'un autre dépôt Baseline que `framework/` et `models/`, et son
   `framework/` n'en lit que `framework/` : `from baseline_common.models.organization import
   Organization` passe dans `services/`, échoue dans `framework/ml/`.
-- Aucun cycle d'import.
+- Aucun cycle d'import, `from <paquet>.<dossier> import <module>` compris.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).
 - Un fichier `abstract_<nom>.py` définit la classe `Abstract…<Nom>`.
 - **Un repository lit, écrit, ou les deux.** Trois contrats : `AbstractReadRepository` lit,
@@ -309,7 +322,7 @@ l'essai ne change que ce bloc.
     qui fait les deux en héritant des deux premières. `MongoRepository` hérite de
     `MongoWriteRepository` et de `MongoReadRepository`, et de même pour `SqlRepository`,
     `QdrantRepository`, `WeaviateRepository` et `Gateway` (HTTP). `InMemoryRepository` implémente directement
-    `AbstractRepository`.
+    `AbstractRepository`. L'essai vérifie ce point ; la revue, les trois suivants.
   - Un appelant qui lit et écrit construit un seul objet : `MongoRepository(Machine, collection)`.
     Les classes de lecture et d'écriture restent pour celui qui ne fait que l'un des deux.
   - Une capacité propre au support va du côté où elle sert : `hybrid_search` est une lecture.
@@ -324,8 +337,12 @@ reste.
   s'appelle `Abstract<Nom>` : `AbstractReadRepository`, `AbstractQueryDialect`. Une famille définie
   dans un seul fichier garde son nom nu (`Filter` dans `query_filters.py`).
 - Un fichier porte le nom de sa classe principale : `in_memory_repository.py` →
-  `InMemoryRepository`.
-- Un dossier qui ne contiendrait qu'un fichier est remplacé par ce fichier.
+  `InMemoryRepository`. Seule exception : un fichier qui réunit une famille de petites classes
+  sans classe principale (les implémentations d'un même contrat, les exceptions d'un module)
+  porte le nom de la famille : `auth.py` (`BearerAuth`, `ApiKeyAuth`…), `graph_features.py`
+  (`Node`, `Edge`…), `errors.py`.
+- Un dossier qui ne contiendrait qu'un fichier, son `__init__.py` non compté, est remplacé par ce
+  fichier.
 - Un système externe a son dossier, nommé par le fournisseur ; ses classes portent ce nom :
   `http/zoho/` → `ZohoCoqlDialect`.
 - Un `__init__.py` ne contient que sa docstring : pas d'import, pas de `__all__`. On importe une
