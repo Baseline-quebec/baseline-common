@@ -158,6 +158,8 @@ Dans l'ordre de l'arborescence.
   - **Une route reçoit son service par Dishka** (`DishkaRoute`, `FromDishka[...]`) et lui
     délègue. L'API n'utilise de Dishka que son intégration FastAPI et la construction de son
     conteneur ; aucun `Provider` n'y est déclaré, ils vivent dans `assembly/`.
+  - **L'API du gabarit n'authentifie personne.** Un projet ajoute sa vérification (une
+    dépendance FastAPI sur le routeur) avant d'exposer une route.
 
 ## Contenu
 
@@ -293,7 +295,7 @@ d'un client.
 
 - **Provenance :** chaque fichier est copié d'un projet ; `docs/SOURCES.txt` en donne l'origine.
 - **Vérifier :** `uv sync --all-extras`, puis `uv run poe lint` (tous les hooks pre-commit : ruff,
-  mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage). La CI
+  mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage, au moins 95 %). La CI
   (`.github/workflows/test.yml`) lance les deux, en Python 3.12 et 3.14. Une fois par clone :
   `uv run pre-commit install`.
 - **SQL Server :** les essais de `repository/sql/` tournent sur PostgreSQL et sur SQL Server. Sans

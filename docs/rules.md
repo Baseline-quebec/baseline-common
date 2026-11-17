@@ -142,15 +142,22 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `framework/` ou `models/` de
       baseline-common (`graph/` de baseline-ml lit un `MultiDiGraph`) ; baseline-common ne lit jamais
       un dépôt spécialisé, et deux dépôts spécialisés ne se lisent pas.
+21. **Un essai se nomme `test__<sujet>__<résultat>`.**
+    - Le sujet dit ce que l'essai met en place, le résultat ce qu'il vérifie :
+      `test__a_blank_name__is_refused`. Une classe `Test<Classe>` regroupe les essais d'une classe.
+    - Ce format prime sur `test__when_<condition>__<result>` du guide du développeur.
+    - Pas d'essai BDD (pytest-bdd, Gherkin) dans baseline-common : un framework n'a pas de user
+      story. Un projet client qui en a les écrit dans ses `tests/features/`.
 
 ## Erreurs et journaux
 
-21. **Une exception remonte jusqu'au code qui sait la traiter.**
+22. **Une exception remonte jusqu'au code qui sait la traiter.**
     - Le code lève une exception précise. Il ne l'attrape que pour s'en remettre ou pour la traduire.
     - Pas de `except` qui avale l'erreur, pas de `try` qui journalise puis relance.
-    - La traduction en réponse HTTP se fait une seule fois, dans `ExceptionHandlerMiddleware`. Un
-      service ou un repository ne connaît pas HTTP.
+    - La traduction en réponse HTTP se fait une seule fois, dans `ExceptionHandlerMiddleware`
+      (`RecordNotFoundError` en 404, `DuplicateRecordError` en 409). Un service ou un repository ne
+      connaît pas HTTP.
     - Un `except Exception` n'existe qu'à une frontière finale (une requête, un processus enfant), sa
       raison écrite dans son `noqa`.
-22. **On journalise avec `loguru`, jamais avec `print`.** Une erreur est journalisée une seule fois, là
+23. **On journalise avec `loguru`, jamais avec `print`.** Une erreur est journalisée une seule fois, là
     où elle est traitée (`logger.exception`). Aucun secret ni donnée personnelle dans un journal.
