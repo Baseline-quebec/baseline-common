@@ -23,8 +23,14 @@ administrateurs** de Baseline-quebec ; baseline-common reste ouvert à tous.
 | Dépôt | Ce qu'il contient |
 |---|---|
 | [baseline-optimization](https://github.com/Baseline-quebec/baseline-optimization) | Le moteur d'optimisation : écrire un problème, le lier, le pré-vérifier, le résoudre ; ses règles propres. |
-| [baseline-ml](https://github.com/Baseline-quebec/baseline-ml) | Entraîner, suivre, exporter et exécuter un modèle ; `graph/` lit `multidigraph/` d'ici. |
+| [baseline-ml](https://github.com/Baseline-quebec/baseline-ml) | Entraîner, suivre, exporter et exécuter un modèle ; `framework/ml/graph/` lit `framework/multidigraph/` d'ici. |
 | [baseline-llm](https://github.com/Baseline-quebec/baseline-llm) | L'extraction de documents, l'évaluation des sorties, le coût des jetons, et comment un agent se construit. |
+
+Chacun a les couches d'ici. Tout son code générique tient dans un seul paquet sous `framework/`,
+qu'on importe par son chemin complet : `baseline_ml/framework/ml/`, `baseline_llm/framework/llm/`,
+`baseline_optimization/framework/optimization/`. Les modules de `framework/` ne s'importent pas
+entre eux : avec un seul paquet, la règle tient d'elle-même, et l'essai d'architecture du dépôt la
+garde.
 
 Ils dépendent de baseline-common, jamais l'inverse. Les règles de revue générales
 (`docs/rules.md`) ne vivent qu'ici ; chaque dépôt spécialisé y renvoie.
@@ -221,8 +227,9 @@ Un module entre s'il remplit **toutes** ces conditions.
    l'abstraction.
 4. **Autonome.** Il ne dépend d'aucun autre module de `framework/`. Ce dont il a besoin vit dans son
    dossier : une classe vit là où elle sert, comme `client/` dans `http/`.
-   Entre dépôts, un module spécialisé peut lire un module d'ici (`graph/` de baseline-ml lit
-   `multidigraph/`) ; un module d'ici n'en lit jamais un d'un dépôt spécialisé.
+   Entre dépôts, un module spécialisé peut lire un module d'ici (`framework/ml/graph/` de
+   baseline-ml lit `framework/multidigraph/`) ; un module d'ici n'en lit jamais un d'un dépôt
+   spécialisé.
 
 ### Ce qui n'entre pas
 

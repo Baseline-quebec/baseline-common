@@ -2,8 +2,9 @@
 
 Ces règles servent de grille à toute revue de code de baseline-common et des dépôts spécialisés
 (baseline-optimization, baseline-ml, baseline-llm), qui n'en gardent pas de copie. Une revue cite
-leur numéro. Dans un dépôt spécialisé, les dossiers du module, à la racine du paquet, tiennent le
-rôle de `framework/`.
+leur numéro. Un dépôt spécialisé a les couches d'ici ; tout son code générique tient dans un seul
+paquet sous `framework/`, qu'on importe par son chemin complet : `baseline_ml/framework/ml/`,
+`baseline_llm/framework/llm/`, `baseline_optimization/framework/optimization/`.
 Chaque règle tient dans son titre en gras ; le texte qui suit l'explique et donne un exemple.
 Une règle marquée *(signal)* n'interdit rien : elle pose une question à la revue, et un écart
 justifié est accepté.
@@ -140,8 +141,9 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
       ni `assembly/`, ni `api/`, ni les essais de ces couches.
     - Un essai d'un module de `framework/` n'importe pas un autre module de `framework/`.
     - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `framework/` ou `models/` de
-      baseline-common (`graph/` de baseline-ml lit un `MultiDiGraph`) ; baseline-common ne lit jamais
-      un dépôt spécialisé, et deux dépôts spécialisés ne se lisent pas.
+      baseline-common (`framework/ml/graph/` de baseline-ml lit `framework/multidigraph/`) ;
+      baseline-common ne lit jamais un dépôt spécialisé, et deux dépôts spécialisés ne se lisent
+      pas.
 21. **Un essai se nomme `test__<sujet>__<résultat>`.**
     - Le sujet dit ce que l'essai met en place, le résultat ce qu'il vérifie :
       `test__a_blank_name__is_refused`. Une classe `Test<Classe>` regroupe les essais d'une classe.
