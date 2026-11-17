@@ -4,10 +4,12 @@
 
 baseline-common est la base de connaissances commune des développeurs de Baseline. On y trouve le
 code qui a fait ses preuves dans un projet et qui servira au suivant :
-- des briques génériques (`core/`) ;
-- les enregistrements que les couches s'échangent (`data_schema/`) ;
-- la façon d'enchaîner des services pour un flot (`orchestrator/`) ;
-- la façon de construire un service par-dessus `core/` (`service/`).
+- des briques génériques, utilisables chacune seule (`framework/`) ;
+- les enregistrements du domaine que les couches s'échangent (`models/`) ;
+- la façon de construire un service par-dessus `framework/`, et ses adapters (`services/`) ;
+- la façon d'enchaîner des services en pipeline pour un processus (`orchestrators/`) ;
+- la composition qui branche le domaine sur les points d'entrée (`assembly/`) ;
+- les points d'entrée eux-mêmes (`api/`, et `cli/` dans un projet qui en a une).
 
 Un projet généré par
 [baseline-app-template](https://github.com/Baseline-quebec/baseline-app-template) choisit les
@@ -21,8 +23,14 @@ administrateurs** de Baseline-quebec ; baseline-common reste ouvert à tous.
 | Dépôt | Ce qu'il contient |
 |---|---|
 | [baseline-optimization](https://github.com/Baseline-quebec/baseline-optimization) | Le moteur d'optimisation : écrire un problème, le lier, le pré-vérifier, le résoudre ; ses règles propres. |
-| [baseline-ml](https://github.com/Baseline-quebec/baseline-ml) | Entraîner, suivre, exporter et exécuter un modèle ; `graph/` lit `multidigraph/` d'ici. |
+| [baseline-ml](https://github.com/Baseline-quebec/baseline-ml) | Entraîner, suivre, exporter et exécuter un modèle ; `framework/ml/graph/` lit `framework/multidigraph/` d'ici. |
 | [baseline-llm](https://github.com/Baseline-quebec/baseline-llm) | L'extraction de documents, l'évaluation des sorties, le coût des jetons, et comment un agent se construit. |
+
+Chacun a les couches d'ici. Tout son code générique tient dans un seul paquet sous `framework/`,
+qu'on importe par son chemin complet : `baseline_ml/framework/ml/`, `baseline_llm/framework/llm/`,
+`baseline_optimization/framework/optimization/`. Les modules de `framework/` ne s'importent pas
+entre eux : avec un seul paquet, la règle tient d'elle-même, et l'essai d'architecture du dépôt la
+garde.
 
 Ils dépendent de baseline-common, jamais l'inverse. Les règles de revue générales
 (`docs/rules.md`) ne vivent qu'ici ; chaque dépôt spécialisé y renvoie.
@@ -41,77 +49,199 @@ Ils dépendent de baseline-common, jamais l'inverse. Les règles de revue géné
 docs/                            la documentation ci-dessus
 docker/                          l'image des essais sur SQL Server (pilote ODBC de Microsoft)
 iac/                             infrastructure as code (vide pour l'instant)
-src/baseline_common/
-├── api/v1/                      squelette FastAPI
-├── core/                        briques génériques
+src/baseline_common/            de la couche la plus basse à la plus haute
+├── framework/                   briques génériques, une librairie par tranche
 │   ├── multidigraph/            graphe orienté multiple typé
 │   └── repository/              lire ou écrire des enregistrements
-│       ├── gateway/             une API HTTP distante (Zoho, Fidelio)
+│       ├── http/                une API HTTP distante (Zoho, Fidelio) ; client/, son client HTTP
 │       ├── nosql/mongo/         MongoDB
 │       ├── sql/                 tout dialecte SQLAlchemy async : PostgreSQL, SQL Server…
 │       ├── vectorstore/         Qdrant, Weaviate
 │       ├── abstract_repository.py
 │       └── in_memory_repository.py
-├── data_schema/                 enregistrements partagés entre couches (vide)
-├── orchestrator/                un fichier par flot (vide ici ; exemples dans les dépôts spécialisés)
-└── service/                     un service par entité ou capacité
-    ├── record_matching/matcher/ comment un service se construit
-    └── batch_replacement_service.py
+├── models/                      enregistrements du domaine partagés entre couches
+├── services/                    un service par entité ou capacité
+│   ├── record_matching/
+│   │   ├── crm_adapter.py       lire un enregistrement du domaine dans la forme d'une source
+│   │   └── record_matching_service.py  comment un service se construit
+│   └── batch_replacement_service.py
+├── orchestrators/               un pipeline par processus
+├── assembly/                    la composition : les providers Dishka des services
+└── api/                         point d'entrée FastAPI : api.py, api_version.py, settings.py,
+                                 v1/ (api.py, lifespan.py, error_handling.py, routers/)
 tests/                           même arborescence que src/ ; architecture_test.py
 ```
 
 ## Définitions
 
-Dans l'ordre de l'arborescence.
+Dans l'ordre de l'arborescence. La revue les vérifie ; ce que l'essai d'architecture en vérifie
+est sous « Règles d'architecture ».
 
-- **Module core** : du code générique, sous `core/`. Il ne nomme ni un client ni un problème.
+- **Module du framework** : du code générique, sous `framework/`. Il ne nomme ni un client ni un
+  problème. Le framework est une librairie par tranche : chaque module s'utilise et se copie seul,
+  et porte ses classes abstraites (`abstract_<nom>.py`) avec leurs implémentations.
 - **Repository** : lit **ou** écrit un seul type d'enregistrement, sans règle métier. Il est
-  injecté dans un service, ou dans un orchestrateur quand l'étape n'est qu'une lecture ou une
-  écriture (pas de service qui ne ferait que relayer).
-- **data_schema** : les enregistrements Pydantic qu'une application partage entre ses couches
-  (`api`, `orchestrator`, `service`) ou entre plusieurs services. C'est le vocabulaire commun de
-  l'application, la couche juste au-dessus de `core/`.
+  injecté dans un service, dans un orchestrateur quand l'étape n'est qu'une lecture ou une
+  écriture, ou dans une route quand la requête n'est qu'une lecture (pas de service qui ne ferait
+  que relayer).
+- **Models** : les enregistrements Pydantic du domaine qu'une application partage entre ses
+  couches (`api`, `orchestrators`, `services`) ou entre plusieurs services. C'est le vocabulaire
+  commun de l'application, la couche juste au-dessus de `framework/`.
   - **Ce qui y entre :** un enregistrement lu ou produit par plus d'un service ou plus d'une
     couche (une entité du domaine, une requête ou une réponse que l'API expose et qu'un service
     produit). Un enregistrement qu'une seule classe utilise reste dans le fichier de cette classe :
-    la sortie d'un agent dans son `output.py`, la configuration d'un service à côté de lui.
+    la sortie d'un agent à côté de lui, la configuration d'un service à côté de lui.
   - **Ce qu'il contient :** des champs, des validateurs d'invariants (un identifiant bien formé,
     une intégrité référentielle) et des propriétés dérivées simples. Aucune entrée-sortie, aucun
     appel de service, aucune règle métier lourde : une transformation de plusieurs centaines de
     lignes est un service, même si elle ne produit qu'un enregistrement.
-  - **Ce qu'il importe :** `core/` et Pydantic seulement. Il n'importe jamais `service/`,
-    `orchestrator/` ni `api/`, et `core/` ne l'importe jamais (un module de `core/` reste
-    copiable seul).
-  - **Ici,** il est vide : les enregistrements génériques vivent dans leur module de `core/`. Dans
-    un projet, il porte ceux du domaine du client.
-- **Orchestrateur** : enchaîne plusieurs services pour un flot, sans règle métier propre. C'est un
-  seul fichier, `orchestrator/<flot>_orchestrator.py`. C'est là que des modules de `core/`, qui
-  s'ignorent entre eux, se rencontrent.
-- **Service** : la logique d'une entité ou d'une capacité. Son constructeur reçoit la configuration
-  et les dépendances, ses méthodes reçoivent les données. Un service a son dossier
-  `service/<sujet>/` dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config).
+  - **Ce qu'il importe :** `framework/` et Pydantic seulement. Il n'importe jamais `services/`,
+    `orchestrators/`, `assembly/` ni `api/`, et `framework/` ne l'importe jamais (un module du
+    framework reste copiable seul).
+  - **Ici,** il porte les enregistrements de l'exemple de service : `Organization`, que lisent
+    l'adapter, le service et l'API, puis `MatchRequest` et `MatchDecision`, l'entrée et la sortie
+    du service, que l'API expose. Dans un projet, il porte ceux du domaine du client.
+- **Service** : les opérations de base d'une entité ou d'une capacité, dont la conversion des
+  données externes en données du domaine. Son constructeur reçoit la configuration et les
+  dépendances, ses méthodes reçoivent les données, sous l'une des formes que permet la règle 1
+  de `docs/rules.md`. Un service a son dossier `services/<sujet>/`
+  dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config, adapters).
+- **Adapter** : lit un enregistrement dans la forme d'un système externe et rend celui du domaine.
+  Il est propre à sa source, donc vit dans le dossier du service qui s'en sert,
+  `services/<sujet>/<source>_adapter.py`, jamais dans `framework/`. **Un adapter est
+  optionnel :** il n'existe que si le service lit une source dont la forme diffère de celle du
+  domaine. Un adapter a une structure précise, selon le cas.
+  - **Le cas courant (90 à 95 % des cas) : un schéma de source à `AliasPath`.** Une classe Pydantic
+    hérite de l'enregistrement du domaine et ne redéclare que la façon de lire chaque champ dans la
+    source. Elle est donc un enregistrement du domaine : le service qui la reçoit ne connaît pas la
+    source. Exemple : `services/record_matching/crm_adapter.py`.
+    - **Renommer un champ** ne demande même pas d'adapter : l'alias du modèle que lit le repository
+      suffit (`Field(alias="Account_Name")`).
+    - **Un champ imbriqué** se lit par `AliasPath` :
+      `Field(validation_alias=AliasPath("Account", "Legal_Name"))`. `AliasChoices` prend le premier
+      chemin présent.
+    - **Une valeur à convertir** passe par un `field_validator(mode="before")`, qui reçoit la valeur
+      brute au bout du chemin. Une conversion que Pydantic offre déjà se règle dans `model_config`
+      (`coerce_numbers_to_str=True` pour un identifiant numérique).
+  - **Le cas rare : plusieurs sources pour un même enregistrement.** Une réservation de voyage
+    réunit un vol, lu dans l'API d'une compagnie aérienne, et un séjour, lu dans celle d'un hôtel :
+
+    ```
+    services/booking/
+    ├── airline_flight.py        AirlineFlight : le vol tel que l'API de la compagnie le répond
+    ├── hotel_stay.py            HotelStay : le séjour tel que l'API de l'hôtel le répond
+    ├── trip_adapter.py          TripAdapter : réunit un vol et un séjour en un Trip du domaine
+    └── booking_service.py       reçoit des Trip ; ne connaît ni la compagnie ni l'hôtel
+    ```
+
+    - **Un schéma par source,** construit comme dans le cas courant (alias, `AliasPath`,
+      validateurs), mais sur la forme de sa seule source : il n'hérite pas de l'enregistrement du
+      domaine, dont il ne porte qu'une partie.
+    - **Une classe d'adaptation,** `<Domaine>Adapter`, réunit les schémas en l'enregistrement du
+      domaine (`Trip`, dans `models/`). Comme un service, son constructeur reçoit ce qui la
+      configure (les repositories des deux sources) et sa méthode reçoit les données
+      (`read(reference)` rend un `Trip`).
+    - **Cette classe n'existe que si le cas arrive.** Tant qu'une seule source fournit
+      l'enregistrement, le schéma à `AliasPath` suffit.
+  - **Limite :** le gateway nomme les champs de l'API par l'`alias` du modèle. Un modèle à
+    `AliasPath` se valide sur la réponse telle quelle (corps HTTP, fichier, message) ; il ne sert pas
+    de `content_type` à un `ReadGateway`.
+- **Orchestrateur** : le pipeline d'un processus. Il enchaîne les étapes du processus, sans règle
+  métier propre : des services, et un repository quand l'étape n'est qu'une lecture ou une
+  écriture. C'est un seul fichier, `orchestrators/<processus>_orchestrator.py`, avec une ou deux
+  méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API). Ses
+  méthodes privées ne comptent pas. C'est là que des modules du framework, qui s'ignorent entre
+  eux, se rencontrent.
+- **Assembly** : la composition. Les providers Dishka qui disent comment construire les services
+  et les orchestrateurs. Elle construit, elle ne décide rien : aucune logique métier, aucun
+  réglage de l'API. Un provider qui choisit une implémentation d'après sa configuration
+  (`SqlRepository` ou `MongoRepository` selon le support configuré) construit, il ne décide pas.
+  Elle ne lit pas la requête (`fastapi.Request`) : une donnée de la requête, un paramètre de
+  chemin compris, passe par la route à la méthode du service. Elle ne construit pas de conteneur.
+  Aucun provider n'existe ailleurs.
+  - **La configuration d'un service vit à côté de lui,** dans son dossier, et son provider la
+    construit. Une configuration qu'aucun service ne possède (celle de la base de données) vit
+    avec son provider dans `assembly/`. Un réglage n'a qu'une source : l'endroit d'où sa valeur
+    est lue, une variable d'environnement ou une clé d'un fichier, que lit un seul champ d'une
+    seule classe de configuration.
+- **Points d'entrée** (`api/`, `cli/`) : ils reçoivent une requête ou une commande, résolvent
+  l'orchestrateur, le service ou, pour une lecture, le repository par leur conteneur, et
+  délèguent. Ici, seule l'API existe ; un projet qui a une ligne de commande l'ajoute à côté, dans
+  `cli/`, sur les mêmes providers.
+  - **Ils sont au même rang et ne s'importent pas entre eux.** Seule exception : un point d'entrée
+    nomme la fonction qu'il lance dans un processus enfant, et rien d'autre de son module
+    (`from <paquet>.worker.main import run`) ; l'essai d'architecture la déclare dans
+    `SPAWN_TARGETS`.
+  - **Chaque point d'entrée qui utilise Dishka construit son conteneur** dans un
+    `init_container()` sans argument, qui liste ses providers et appelle
+    `make_async_container(...)` (`api/v1/api.py`), et nulle part ailleurs. Aucun paramètre du code
+    de production, ni d'`init_container()` ni d'un constructeur, ne sert qu'aux essais : un essai
+    construit son propre conteneur et le passe à `init_app(container)`.
+  - **Ce qu'un point d'entrée déclare au niveau du module** (son `init_container()`, son
+    `get_settings()`, la fonction qu'il lance dans un processus enfant, ses commandes, ses routes)
+    est l'exception des règles 2 et 8 de `docs/rules.md`.
+  - **Seule l'API connaît HTTP côté serveur** : chemins, méthodes, droits par routeur (une
+    dépendance FastAPI sur le routeur). Un orchestrateur ou un service ne connaît ni route ni
+    méthode HTTP ; une erreur devient une réponse HTTP dans `ExceptionHandlerMiddleware`
+    (règle 22). Un gateway, client d'une API distante, n'est pas concerné.
+  - **L'API suit la structure d'ecolopharm-sales :** `api.py` (l'app racine : elle monte la
+    version et répond à `/health`), `settings.py` (`Settings` et `get_settings()`, les réglages de l'API seulement ; chaque usage
+    appelle `get_settings()`, jamais une variable `settings` du module),
+    `v1/api.py` (`init_container()`, `init_app(container)`, puis `container` et `app` au niveau du
+    module), `v1/lifespan.py`, `v1/error_handling.py` et un fichier par routeur dans
+    `v1/routers/`, chacun avec son `router = APIRouter(...)` et ses routes décorées.
+  - **Une route reçoit son service par Dishka** (`DishkaRoute`, `FromDishka[...]`) et lui
+    délègue. L'API n'utilise de Dishka que son intégration FastAPI et la construction de son
+    conteneur ; aucun `Provider` n'y est déclaré, ils vivent dans `assembly/`.
+  - **Une route qui ne fait que lire reçoit directement le repository,** comme un orchestrateur
+    dont l'étape n'est qu'une lecture : pas de service qui ne ferait que relayer.
+  - **L'API du gabarit n'authentifie personne.** Un projet ajoute sa vérification (une
+    dépendance FastAPI sur le routeur) avant d'exposer une route.
 
 ## Contenu
 
 Les classes à connaître, couche par couche.
 
-### core/
+### framework/
 
 | Module | Ce qu'il fait | Classes clés |
 |---|---|---|
 | `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
 | `repository/` | Les contrats de lecture, d'écriture et des deux réunis, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `AbstractRepository`, `InMemoryRepository` |
-| `repository/gateway/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
+| `repository/http/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `Gateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
 | `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository`, `MongoRepository` |
 | `repository/sql/` | Une base SQL, quel que soit le dialecte SQLAlchemy, sur des tables SQLModel et la session de l'appelant ; chaque écriture dans son point de sauvegarde, un refus de la base levé en `RecordRejectedError`, lu par le traducteur du dialecte (PostgreSQL, SQL Server, générique ailleurs). Extras : `sql`, plus le pilote, `postgres` (asyncpg) ou `sqlserver` (aioodbc). | `SqlReadRepository`, `SqlWriteRepository`, `SqlRepository`, `AbstractRejectionTranslator` |
 | `repository/vectorstore/` | Recherche vectorielle et hybride. | `QdrantReadRepository`, `WeaviateReadRepository`, leurs pendants d'écriture, et `QdrantRepository`, `WeaviateRepository`, qui font les deux |
 
-### service/
+### services/
 
 | Service | Ce qu'il montre |
 |---|---|
-| `record_matching/matcher/` | Comment un service se construit : `deps.py`, `output.py`, `matcher.py`. À quel enregistrement connu correspond un nom écrit dans un document, décidé par des règles. |
-| `batch_replacement_service.py` | `BatchReplacementService` : réécrire un lot à la place du précédent de même portée. Ses essais le branchent sur Zoho : l'exemple d'un service sur un gateway. |
+| `record_matching/record_matching_service.py` | Comment un service se construit : la configuration au constructeur, les données dans la méthode. `RecordMatchingService.match(request)` reçoit un `MatchRequest` et dit à quelle `Organization` connue correspond le nom écrit dans un document, en comparant les noms normalisés. |
+| `record_matching/crm_adapter.py` | Comment un adapter se construit : `CrmOrganization` lit un compte de CRM tel que son API le répond (identifiant numérique, nom imbriqué, adresse en parties) et rend une `Organization`, que le service reçoit sans connaître le CRM. |
+| `batch_replacement_service.py` | `BatchReplacementService` : réécrire un lot à la place des enregistrements que tient le repository, en reprenant leurs ids. Un repository restreint (`SqlRepository(..., scope=...)`) limite le lot à sa portée. Ses essais le branchent sur Zoho, par `Gateway`. |
+
+### orchestrators/
+
+| Orchestrateur | Ce qu'il montre |
+|---|---|
+| `record_matching_orchestrator.py` | Comment un orchestrateur se construit : `RecordMatchingOrchestrator.match(name)` enchaîne les étapes d'un processus sans règle propre. Il lit les organisations connues par un repository, puis laisse `RecordMatchingService` décider. Le repository y est injecté directement, puisque l'étape n'est qu'une lecture. |
+
+### models/
+
+| Fichier | Ce qu'il montre |
+|---|---|
+| `organization.py` | `Organization` : l'entité du domaine que lisent l'adapter, le service et l'API. |
+| `record_matching.py` | `MatchRequest`, ce que le service reçoit, et `MatchDecision`, ce qu'il rend ; l'API expose les deux. |
+
+### assembly/ et api/
+
+| Fichier | Ce qu'il montre |
+|---|---|
+| `assembly/service_provider.py` | `ServiceProvider` : le provider Dishka où un projet déclare ses services ; il construit ici `RecordMatchingService`. |
+| `api/settings.py` | `Settings` et `get_settings()` : les réglages de l'API, lus de l'environnement et du `.env`. |
+| `api/v1/api.py` | `init_container()`, le conteneur sur les providers de l'assembly ; `init_app(container)`, les routes et les erreurs en français. |
+| `api/v1/routers/record_matching.py` | Une route qui reçoit son service par Dishka et lui délègue. |
 
 ## Ce qui entre ici
 
@@ -126,10 +256,11 @@ Un module entre s'il remplit **toutes** ces conditions.
    abstraction : un moteur, un protocole, une sémantique (filtres, pagination, liaison d'un
    modèle). Un adaptateur mince autour d'une API ou d'un format n'entre pas : il se réécrit sur
    l'abstraction.
-4. **Autonome.** Il ne dépend d'aucun autre module de `core/`. Ce dont il a besoin vit dans son
-   dossier : une classe vit là où elle sert, comme `http_client/` dans `gateway/`.
-   Entre dépôts, un module spécialisé peut lire un module d'ici (`graph/` de baseline-ml lit
-   `multidigraph/`) ; un module d'ici n'en lit jamais un d'un dépôt spécialisé.
+4. **Autonome.** Il ne dépend d'aucun autre module de `framework/`. Ce dont il a besoin vit dans son
+   dossier : une classe vit là où elle sert, comme `client/` dans `http/`.
+   Entre dépôts, un module spécialisé peut lire un module d'ici (`framework/ml/graph/` de
+   baseline-ml lit `framework/multidigraph/`) ; un module d'ici n'en lit jamais un d'un dépôt
+   spécialisé.
 
 ### Ce qui n'entre pas
 
@@ -137,20 +268,52 @@ Un module entre s'il remplit **toutes** ces conditions.
   déjà comment envelopper une API HTTP.
 - **Un repository qui se réécrit en quelques lignes** sur un repository existant, comme lire et
   écrire un fichier entier sur `InMemoryRepository`.
-- **Une ABC pour une seule implémentation.**
-- **Le contenu métier d'un client** : ses services, orchestrateurs, prompts et `data_schema`. Ce
+- **Une ABC pour une seule implémentation,** hors du point d'extension de la règle 4 de
+  `docs/rules.md`.
+- **Le contenu métier d'un client** : ses services, adapters, orchestrateurs, prompts et `models`. Ce
   n'est pas une connaissance réutilisable.
 
 ## Règles d'architecture
 
-`tests/architecture_test.py` (ArchUnitPython) les vérifie. Une règle qui échoue se corrige dans le
-code, jamais en affaiblissant l'essai.
+`tests/architecture_test.py` (ArchUnitPython) les vérifie, sauf les trois derniers points du
+repository, que vérifie la revue. Une règle qui échoue se corrige dans le code, jamais en
+affaiblissant l'essai. Ses motifs partent du dossier du paquet, sous `src/` : le nom d'un dossier
+parent ne change rien à ce qu'ils voient. Ce qui distingue un dépôt tient dans le
+bloc `ThisRepository`, en tête de l'essai : le nom du paquet, ses points d'entrée, les cibles qu'ils
+lancent dans un processus enfant et les dépôts spécialisés qu'il n'importe pas. Un dépôt qui copie
+l'essai ne change que ce bloc.
 
+- Tout fichier vit dans le dossier d'une couche. À la racine du paquet ne restent que son
+  `__init__.py` et des fichiers qui ne sont pas du Python (`py.typed`) ; tout autre dossier, et
+  tout `.py` qu'il contient, fait échouer l'essai.
 - Les dépendances ne descendent que dans un sens :
-  `api → orchestrator → service → data_schema → core`.
-- Les modules de `core/` ne s'importent pas entre eux.
-- Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`).
-- Aucun cycle d'import.
+  `api, cli → assembly → orchestrators → services → models → framework`.
+  - Les points d'entrée (`api`, `cli`) sont au même rang : aucun n'importe l'autre.
+  - Un projet ajoute les siens à ce rang, dans `ENTRY_POINTS` de `ThisRepository` (un `worker` à
+    côté de `api` et de `cli`).
+  - Seule exception : la fonction qu'un point d'entrée lance dans un processus enfant, déclarée
+    dans `SPAWN_TARGETS` de `ThisRepository` (`{"api": ["worker.main.run"]}`). Le point d'entrée
+    l'importe par son nom ; importer son module, ou un autre nom, fait échouer l'essai.
+- Aucun provider Dishka hors de `assembly/` : ni sous-classe d'un provider de Dishka ou de
+  l'assembly, ni instance de `Provider`, ni rien que Dishka déclare (`provide`, `alias`…), sous
+  quelque alias que ce soit (`import dishka as di`, puis `di.Provider()`). Une classe qui n'est que
+  nommée `…Provider` (`WindmillSecretsProvider(AbstractSecretsProvider)`) n'en est pas un.
+- Seul un point d'entrée construit un conteneur (`make_async_container`, sous quelque alias que
+  ce soit), et seulement dans son `init_container()` sans argument : ni au niveau du module, ni
+  dans une autre fonction (`build(*overrides)`).
+- Seule l'API importe FastAPI ou Starlette : aucun fichier hors de `api/`, `cli/` compris, ne le
+  fait ; `assembly/` ne lit donc pas la requête.
+- Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
+  <module>` compris.
+- Aucun import d'un paquet entier, le sien ou un autre de Baseline (`from baseline_common import
+  api`, `import baseline_common`) : il cacherait la couche atteinte. On importe le module par son
+  chemin.
+- Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`) ; un
+  dépôt spécialisé n'importe pas les autres.
+- Un dépôt spécialisé ne lit d'un autre dépôt Baseline que `framework/` et `models/`, et son
+  `framework/` n'en lit que `framework/` : `from baseline_common.models.organization import
+  Organization` passe dans `services/`, échoue dans `framework/ml/`.
+- Aucun cycle d'import, `from <paquet>.<dossier> import <module>` compris.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).
 - Un fichier `abstract_<nom>.py` définit la classe `Abstract…<Nom>`.
 - **Un repository lit, écrit, ou les deux.** Trois contrats : `AbstractReadRepository` lit,
@@ -158,24 +321,30 @@ code, jamais en affaiblissant l'essai.
   - Chaque support de repository fournit trois classes : une de lecture, une d'écriture, et une
     qui fait les deux en héritant des deux premières. `MongoRepository` hérite de
     `MongoWriteRepository` et de `MongoReadRepository`, et de même pour `SqlRepository`,
-    `QdrantRepository` et `WeaviateRepository`. `InMemoryRepository` implémente directement
-    `AbstractRepository`.
+    `QdrantRepository`, `WeaviateRepository` et `Gateway` (HTTP). `InMemoryRepository` implémente directement
+    `AbstractRepository`. L'essai vérifie ce point ; la revue, les trois suivants.
   - Un appelant qui lit et écrit construit un seul objet : `MongoRepository(Machine, collection)`.
     Les classes de lecture et d'écriture restent pour celui qui ne fait que l'un des deux.
-  - Le gateway garde deux classes, `ReadGateway` et `WriteGateway`.
   - Une capacité propre au support va du côté où elle sert : `hybrid_search` est une lecture.
   - L'administration du support a sa propre classe (`WeaviateCollection`, `QdrantCollection`).
 
 ## Conventions de nommage
 
+L'essai d'architecture vérifie les fichiers `abstract_<nom>.py` et les `__init__.py` ; la revue, le
+reste.
+
 - Une ABC qui a de vraies implémentations dans d'autres fichiers vit dans `abstract_<nom>.py` et
   s'appelle `Abstract<Nom>` : `AbstractReadRepository`, `AbstractQueryDialect`. Une famille définie
   dans un seul fichier garde son nom nu (`Filter` dans `query_filters.py`).
 - Un fichier porte le nom de sa classe principale : `in_memory_repository.py` →
-  `InMemoryRepository`.
-- Un dossier qui ne contiendrait qu'un fichier est remplacé par ce fichier.
+  `InMemoryRepository`. Seule exception : un fichier qui réunit une famille de petites classes
+  sans classe principale (les implémentations d'un même contrat, les exceptions d'un module)
+  porte le nom de la famille : `auth.py` (`BearerAuth`, `ApiKeyAuth`…), `graph_features.py`
+  (`Node`, `Edge`…), `errors.py`.
+- Un dossier qui ne contiendrait qu'un fichier, son `__init__.py` non compté, est remplacé par ce
+  fichier.
 - Un système externe a son dossier, nommé par le fournisseur ; ses classes portent ce nom :
-  `gateway/zoho/` → `ZohoCoqlDialect`.
+  `http/zoho/` → `ZohoCoqlDialect`.
 - Un `__init__.py` ne contient que sa docstring : pas d'import, pas de `__all__`. On importe une
   classe depuis le fichier qui la définit. Une réexportation chargerait tous les fichiers du paquet,
   avec leurs dépendances : importer le lecteur Qdrant chargeait `httpx` par le `__init__` de
@@ -186,16 +355,16 @@ code, jamais en affaiblissant l'essai.
 
 1. **Copier d'abord, sans réécrire,** depuis le projet d'origine. Noter l'origine (dépôt, branche,
    commit, chemin) dans `docs/SOURCES.txt`.
-2. **Ranger** le code dans `core/<sujet>/` et ses essais dans `tests/core/<sujet>/`, en suivant les
+2. **Ranger** le code dans `framework/<sujet>/` et ses essais dans `tests/framework/<sujet>/`, en suivant les
    conventions de nommage.
 3. **Relire contre `docs/rules.md`** classe par classe. Ce qui ne passe pas est réécrit
    ou retiré, jamais seulement déplacé.
 4. **Retirer le couplage au projet d'origine** : noms de client, exemples métier, imports du
-   `data_schema` du client (un enregistrement générique partagé va dans `data_schema/`).
+   `models` du client (un enregistrement générique partagé va dans `models/`).
 5. **Faire revoir** par un agent indépendant (`@dev`). Les essais, y compris ceux
    d'architecture, doivent passer.
 
-Un exemple de service ou d'orchestrateur montre **comment** on construit : la configuration et les
+Un exemple de service, d'adapter ou d'orchestrateur montre **comment** on construit : la configuration et les
 dépendances au constructeur, les données dans les méthodes. Il ne contient aucune règle métier
 d'un client.
 
@@ -203,7 +372,7 @@ d'un client.
 
 - **Provenance :** chaque fichier est copié d'un projet ; `docs/SOURCES.txt` en donne l'origine.
 - **Vérifier :** `uv sync --all-extras`, puis `uv run poe lint` (tous les hooks pre-commit : ruff,
-  mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage). La CI
+  mypy, codespell, detect-secrets…) et `uv run poe test` (pytest sous coverage, au moins 95 %). La CI
   (`.github/workflows/test.yml`) lance les deux, en Python 3.12 et 3.14. Une fois par clone :
   `uv run pre-commit install`.
 - **SQL Server :** les essais de `repository/sql/` tournent sur PostgreSQL et sur SQL Server. Sans
@@ -216,7 +385,7 @@ d'un client.
   docker run --rm --network host --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume "$PWD":/repo --volume baseline-common-uv-cache:/root/.cache/uv \
     --env TESTCONTAINERS_HOST_OVERRIDE=localhost baseline-common-sqlserver-tests \
-    uv run --locked --all-extras --quiet pytest -p no:cacheprovider tests/core/repository/sql
+    uv run --locked --all-extras --quiet pytest -p no:cacheprovider tests/framework/repository/sql
   ```
 - **Une application sur SQL Server :** une colonne texte unique ou indexée a une longueur
   (`max_length`) ; `ondelete="RESTRICT"` n'existe pas (le défaut, `NO ACTION`, refuse de même) ;
@@ -224,5 +393,3 @@ d'un client.
   `NVARCHAR` (`sa_type=Unicode`). Les contraintes portent un nom (`naming_convention`) : le
   traducteur en tire les colonnes, que SQL Server ne nomme pas. Les valeurs d'une référence
   brisée restent inconnues sur SQL Server.
-- **Pipeline documentaire :** les prompts rendus neutres n'ont pas encore tourné contre un vrai
-  modèle ; ils n'ont pas démontré qu'ils reproduisent la qualité mesurée dans le projet d'origine.

@@ -1,34 +1,34 @@
-feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/repository/ -> src/baseline_common/core/repository/
-feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/repository/ -> tests/core/repository/
-feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/http_client/ -> src/baseline_common/core/repository/gateway/http_client/
-feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/http_client/ -> tests/core/repository/gateway/http_client/
-feat/embedding_recommandation@905a8ed | recom-graphml/src/recom_graphml/persistence/vectorstore/ -> src/baseline_common/core/repository/vectorstore/weaviate/ (weaviate_vectorstore.py split into weaviate_read_repository.py, weaviate_write_repository.py, weaviate_collection.py; abstract_vectorstore.py removed)
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/repository/ -> src/baseline_common/framework/repository/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/repository/ -> tests/framework/repository/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/core/http_client/ -> src/baseline_common/framework/repository/http/client/
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/tests/core/http_client/ -> tests/framework/repository/http/client/
+feat/embedding_recommandation@905a8ed | recom-graphml/src/recom_graphml/persistence/vectorstore/ -> src/baseline_common/framework/repository/vectorstore/weaviate/ (weaviate_vectorstore.py split into weaviate_read_repository.py, weaviate_write_repository.py, weaviate_collection.py; abstract_vectorstore.py removed)
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/__init__.py -> src/baseline_common/api/__init__.py
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/api.py -> src/baseline_common/api/api.py
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/constants.py -> src/baseline_common/api/api_version.py
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/settings.py -> src/baseline_common/api/settings.py
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/__init__.py -> src/baseline_common/api/v1/__init__.py
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/api.py -> src/baseline_common/api/v1/api.py
-feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/lifespan.py -> src/baseline_common/api/v1/lifespan_v1.py
-feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/error_handling.py -> src/baseline_common/api/v1/exception_handler_middleware.py
-feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/validation_error.py -> src/baseline_common/api/v1/french_validation_error.py
-feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/container -> src/baseline_common/api/v1/container (abstract_provider.py removed: no-op setup hooks, one subclass)
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/lifespan.py -> src/baseline_common/api/v1/lifespan.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/error_handling.py -> src/baseline_common/api/v1/error_handling.py
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/validation_error.py -> src/baseline_common/api/v1/error_handling.py (merged with the middleware, as in ecolopharm-sales)
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/container -> src/baseline_common/assembly (abstract_provider.py removed: no-op setup hooks, one subclass)
 feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/routers/__init__.py -> src/baseline_common/api/v1/routers/__init__.py
-feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/routers/health_router.py -> src/baseline_common/api/v1/routers/health_router.py
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/vectorstore/qdrant_vectorstore.py -> src/baseline_common/core/repository/vectorstore/qdrant/ (split into qdrant_read_repository.py, qdrant_write_repository.py, qdrant_collection.py)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/interfaces/repository/vectorstore/base_vectorstore.py -> src/baseline_common/core/repository/vectorstore/qdrant/qdrant_read_repository.py (ValueCount, ValuesNotIndexedError, OrderNotIndexedError; rest removed)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/data_models/vectorstore/hierarchical_search_result.py -> src/baseline_common/core/repository/vectorstore/qdrant/qdrant_read_repository.py (HierarchicalSearchResult)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/service/search_service.py -> src/baseline_common/core/repository/vectorstore/qdrant/qdrant_read_repository.py (hierarchical_search only)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infrastructure/qdrant/client_factory.py -> src/baseline_common/core/repository/vectorstore/qdrant/qdrant_collection.py (QdrantConnection)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/vectorstore/{test_qdrant_vectorstore,test_qdrant_corpus_queries,test_schema_indexes}.py -> tests/core/repository/vectorstore/qdrant/
-feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_configurator.py -> src/baseline_common/core/multidigraph/multidigraph_config.py
-feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_builder.py -> src/baseline_common/core/multidigraph/graph_builder.py
-feat/hgt@a31a616 | recom-graphml-hgt/tests/core/multidigraph/{graph_configurator_test,graph_builder_test}.py -> tests/core/multidigraph/{multidigraph_config_test,graph_builder_test}.py
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/nosql/mongo_repository.py -> src/baseline_common/core/repository/nosql/mongo/ (split into mongo_read_repository.py, mongo_write_repository.py; aggregate, get_metadata, create_indexes removed)
+feat/real_data_adjustement@9cfc03a | cegep-mv-schedule/apps/backend/src/cegep_mv_schedule/api/v1/routers/health_router.py -> src/baseline_common/api/v1/routers/health.py
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/vectorstore/qdrant_vectorstore.py -> src/baseline_common/framework/repository/vectorstore/qdrant/ (split into qdrant_read_repository.py, qdrant_write_repository.py, qdrant_collection.py)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/interfaces/repository/vectorstore/base_vectorstore.py -> src/baseline_common/framework/repository/vectorstore/qdrant/qdrant_read_repository.py (ValueCount, ValuesNotIndexedError, OrderNotIndexedError; rest removed)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/data_models/vectorstore/hierarchical_search_result.py -> src/baseline_common/framework/repository/vectorstore/qdrant/qdrant_read_repository.py (HierarchicalSearchResult)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/service/search_service.py -> src/baseline_common/framework/repository/vectorstore/qdrant/qdrant_read_repository.py (hierarchical_search only)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infrastructure/qdrant/client_factory.py -> src/baseline_common/framework/repository/vectorstore/qdrant/qdrant_collection.py (QdrantConnection)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/vectorstore/{test_qdrant_vectorstore,test_qdrant_corpus_queries,test_schema_indexes}.py -> tests/framework/repository/vectorstore/qdrant/
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_configurator.py -> src/baseline_common/framework/multidigraph/multidigraph_config.py
+feat/hgt@a31a616 | recom-graphml-hgt/src/recom_graphml/core/multidigraph/graph_builder.py -> src/baseline_common/framework/multidigraph/graph_builder.py
+feat/hgt@a31a616 | recom-graphml-hgt/tests/core/multidigraph/{graph_configurator_test,graph_builder_test}.py -> tests/framework/multidigraph/{multidigraph_config_test,graph_builder_test}.py
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/nosql/mongo_repository.py -> src/baseline_common/framework/repository/nosql/mongo/ (split into mongo_read_repository.py, mongo_write_repository.py; aggregate, get_metadata, create_indexes removed)
 origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/src/noa/infra/nosql/mongo_repository_content.py -> removed (envelope; record id stored as _id instead)
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/no_sql/test_mongo_repository.py -> tests/core/repository/nosql/mongo/
-origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/helpers/fake_mongo.py -> tests/core/repository/nosql/mongo/conftest.py (AsyncMongomock, over mongomock)
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/data_augmented_assistant/infra/no_sql/test_mongo_repository.py -> tests/framework/repository/nosql/mongo/
+origin/main@6d2db61 | sfppn-maintenance-assistee/apps/backend/tests/helpers/fake_mongo.py -> tests/framework/repository/nosql/mongo/conftest.py (AsyncMongomock, over mongomock)
 local | tourisme-monteregie-chatbot/src/tourisme_monteregie_chatbot/persistence/nosql/mongo_repository.py -> mongo_write_repository.py (idea only: record id as _id, ObjectId as a fresh id)
-feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/service/sales_push/sales_push_service.py -> src/baseline_common/service/batch_replacement_service.py (SalesPushService._replace only, made generic: scope fields and id field configured; product and pharmacy resolution removed)
-feat/engine-and-course-timetabling@46ce432 | planifia-education/src/planifia_education/core/repository/sql/ -> src/baseline_common/core/repository/sql/ (SqlReadRepository, SqlWriteRepository; the refusal read through one translator per dialect: PostgreSQL, SQL Server)
-feat/engine-and-course-timetabling@46ce432 | planifia-education/tests/core/repository/sql/ -> tests/core/repository/sql/ (Gadget replaced by Machine, Part and Tool; run on PostgreSQL and SQL Server)
+feat/headerless-column-mapping@e706096 | ecolopharm-sales/apps/backend/src/ecolopharm_sales/service/sales_push/sales_push_service.py -> src/baseline_common/services/batch_replacement_service.py (SalesPushService._replace only, made generic: scope fields and id field configured; product and pharmacy resolution removed)
+feat/engine-and-course-timetabling@46ce432 | planifia-education/src/planifia_education/core/repository/sql/ -> src/baseline_common/framework/repository/sql/ (SqlReadRepository, SqlWriteRepository; the refusal read through one translator per dialect: PostgreSQL, SQL Server)
+feat/engine-and-course-timetabling@46ce432 | planifia-education/tests/core/repository/sql/ -> tests/framework/repository/sql/ (Gadget replaced by Machine, Part and Tool; run on PostgreSQL and SQL Server)

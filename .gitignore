@@ -2,7 +2,7 @@
 htmlcov/
 reports/
 
-# Data (anchored: src/baseline_ml/data/ is code)
+# Data, at the repository root only: a code package named data/ stays tracked
 /data/
 /notebooks/
 *.ipynb
