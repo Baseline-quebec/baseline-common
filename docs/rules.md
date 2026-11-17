@@ -43,7 +43,8 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      outils ont besoin pendant l'exécution ; sans outil, c'est `None` (`Agent[None, MatchDecision]`).
 2. **On instancie une classe pour la configurer.** Les arguments du constructeur (réglages,
    dépendances, paramètres) sont ce qui configure l'objet. Une classe dont le constructeur ne
-   prendrait aucun argument n'a rien à configurer, donc ne s'instancie pas.
+   prendrait aucun argument n'a rien à configurer, donc ne s'instancie pas, sauf dans une famille
+   d'`ABC` qui s'instancie (plus bas).
    - Une logique sans état est une méthode statique d'une classe qu'on n'instancie jamais ; cette
      classe porte aussi les constantes de cette logique. On l'appelle sur la classe :
      `Imports.names(code)` dans l'essai d'architecture, jamais `Imports().names(code)`.
@@ -56,8 +57,8 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
        `@classmethod` et `@abstractmethod`, et l'appelant reçoit la classe
        (`codec: type[AbstractCodec]`, puis `codec.encode(boxes)`) ;
      - au moins une reçoit des réglages : toutes s'instancient, même celles qui ne reçoivent rien,
-       pour que l'appelant les traite de la même façon. La docstring de l'`ABC` dit pourquoi :
-       laquelle reçoit des réglages, et lesquels.
+       pour que l'appelant les traite de la même façon. La docstring de l'`ABC` dit pourquoi la
+       famille s'instancie ; elle ne nomme pas quelle implémentation reçoit quel réglage.
    - Jamais de fonction de module. Seules exceptions :
      - ce qu'un point d'entrée (`api/`, `cli/`, le `worker/` d'un projet) déclare au niveau du
        module : son `init_container()`, son `get_settings()`, la fonction qu'il lance dans un
@@ -110,7 +111,8 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
        l'application d'une ligne de commande (`app = typer.Typer()`). Les réglages n'en font pas
        partie : chaque usage appelle `get_settings()`, mis en cache, plutôt que de lire une
        variable `settings` du module ;
-     - le `__all__` d'un module qui liste ses noms publics, quand un outil les lit. Jamais dans un
+     - le `__all__` d'un module qui liste ses noms publics, quand un outil les lit : ruff (règle
+       `F401`) et mypy y prennent les noms qu'un module réexporte. Jamais dans un
        `__init__.py` (« Conventions de nommage » du `README.md`).
    - Pas de lambda ni de fonction d'une ligne qui ne fait que relayer un appel ou renommer une
      expression.
@@ -164,21 +166,35 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     parenthèses (`run`), jamais `run()`.
     - **Chaque attribut déclaré dans une classe est documenté** : champ, `ClassVar`, constante de
       classe, membre d'une énumération, `model_config`. Une ligne courte qui dit ce qu'il est,
-      sans plus. Deux formes, et seulement elles :
-      - un champ déclaré par `Field(...)` pour sa validation (`Field(ge=1, …)`), ou dont un schéma
-        lit la description (OpenAPI, l'outil ou la sortie d'un agent), se documente par la
-        `description` de ce `Field` ;
-      - tout autre attribut, par une docstring d'une ligne placée juste sous lui. On n'écrit pas
-        `Field(description=…)` pour la seule documentation.
+      sans plus. Une seule forme par attribut, jamais les deux :
+      - un champ qui porte une validation (`Field(ge=1, …)`) se documente soit par la
+        `description` de son `Field`, soit par une docstring d'une ligne ;
+      - un champ dont un modèle ou un outil lit la description (la sortie d'un agent, le schéma
+        d'un outil) la garde dans `Field(description=…)`, sans docstring ;
+      - tout autre attribut, `model_config` compris, se documente par une docstring d'une ligne
+        placée juste sous lui, jamais par un `Field(description=…)`.
 
       Jamais par une section `Attributes:` dans la docstring de la classe, ni par un commentaire
-      au-dessus de lui. Un attribut que le constructeur pose (`self._session`) se documente par
-      l'entrée `Args` du constructeur :
+      au-dessus de lui :
 
       ```python
+      model_config = ConfigDict(frozen=True)
+      """Frozen: a query never changes once built."""
       SCHEMA: ClassVar[str] = "v1"
       """Version of the schema the API serves."""
       limit: int = Field(ge=1, description="How many records a page holds at most.")
+      ```
+    - **Un attribut que le constructeur pose** :
+      - s'il ne fait que garder un argument, même converti (`self._session = session`,
+        `self.scope = scope or {}`), il se documente par l'entrée `Args` de cet argument, sans
+        docstring ;
+      - tout autre attribut public qu'il pose (un état, une valeur tirée d'ailleurs) prend une
+        docstring d'une ligne sous son affectation :
+
+      ```python
+      self.config = config
+      self.collection_name = content_type.__collection_name__
+      """The collection the documents live in."""
       ```
 17. **Le code respire.**
     - Une ligne vide avant et après chaque bloc (`if`, `for`, `while`, `with`, `try`), sauf au début
