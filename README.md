@@ -80,8 +80,9 @@ Dans l'ordre de l'arborescence.
   problème. Le framework est une librairie par tranche : chaque module s'utilise et se copie seul,
   et porte ses classes abstraites (`abstract_<nom>.py`) avec leurs implémentations.
 - **Repository** : lit **ou** écrit un seul type d'enregistrement, sans règle métier. Il est
-  injecté dans un service, ou dans un orchestrateur quand l'étape n'est qu'une lecture ou une
-  écriture (pas de service qui ne ferait que relayer).
+  injecté dans un service, dans un orchestrateur quand l'étape n'est qu'une lecture ou une
+  écriture, ou dans une route quand la requête n'est qu'une lecture (pas de service qui ne ferait
+  que relayer).
 - **Models** : les enregistrements Pydantic du domaine qu'une application partage entre ses
   couches (`api`, `orchestrators`, `services`) ou entre plusieurs services. C'est le vocabulaire
   commun de l'application, la couche juste au-dessus de `framework/`.
@@ -153,8 +154,9 @@ Dans l'ordre de l'arborescence.
   réglage de l'API. Elle ne construit pas de conteneur : chaque point d'entrée qui utilise Dishka
   construit le sien à partir de ces providers (`init_container()` dans `api/v1/api.py`).
 - **Points d'entrée** (`api/`, `cli/`) : ils reçoivent une requête ou une commande, résolvent
-  l'orchestrateur ou le service par leur conteneur, et délèguent. Ici, seule l'API existe ; un
-  projet qui a une ligne de commande l'ajoute à côté, dans `cli/`, sur les mêmes providers.
+  l'orchestrateur, le service ou, pour une lecture, le repository par leur conteneur, et
+  délèguent. Ici, seule l'API existe ; un projet qui a une ligne de commande l'ajoute à côté, dans
+  `cli/`, sur les mêmes providers.
   - **L'API suit la structure d'ecolopharm-sales :** `api.py` (l'app racine : elle monte la
     version et répond à `/health`), `settings.py` (`Settings` et `get_settings()`, les réglages de l'API seulement ; chaque usage
     appelle `get_settings()`, jamais une variable `settings` du module),
@@ -164,6 +166,8 @@ Dans l'ordre de l'arborescence.
   - **Une route reçoit son service par Dishka** (`DishkaRoute`, `FromDishka[...]`) et lui
     délègue. L'API n'utilise de Dishka que son intégration FastAPI et la construction de son
     conteneur ; aucun `Provider` n'y est déclaré, ils vivent dans `assembly/`.
+  - **Une route qui ne fait que lire reçoit directement le repository,** comme un orchestrateur
+    dont l'étape n'est qu'une lecture : pas de service qui ne ferait que relayer.
   - **L'API du gabarit n'authentifie personne.** Un projet ajoute sa vérification (une
     dépendance FastAPI sur le routeur) avant d'exposer une route.
 
