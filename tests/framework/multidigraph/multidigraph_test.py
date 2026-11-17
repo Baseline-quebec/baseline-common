@@ -1,7 +1,11 @@
 """Tests for the multidigraph module."""
 
-from typing import Any
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any, Literal
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import networkx as nx
 import pytest
 from pydantic import ValidationError
@@ -938,3 +942,71 @@ class TestTraversal:
         neighbours = graph.neighbours_of("a")
 
         assert {node.id_ for node in neighbours} == {"b", "c"}
+
+
+@pytest.fixture
+def headless() -> Iterator[None]:
+    """Draw without a display, and close every figure the test opened.
+
+    Yields:
+        Once the figures draw off screen.
+    """
+    mpl.use("Agg")
+    yield
+    plt.close("all")
+
+
+@pytest.mark.usefixtures("headless")
+class TestPlot:
+    """The figure ``plot`` draws, saved to a file rather than shown."""
+
+    @pytest.mark.parametrize(
+        "layout", ["spring", "random", "circular", "planar", "shell", "spectral"]
+    )
+    def test__each_layout__saves_the_figure(
+        self,
+        line_graph_fixture: MultiDiGraph[Node, Track],
+        tmp_path: Path,
+        layout: Literal["spring", "random", "circular", "planar", "shell", "spectral"],
+    ) -> None:
+        """A figure given a path is written there, whatever the layout places the nodes."""
+        path = tmp_path / "graph.png"
+
+        line_graph_fixture.plot(layout=layout, save_path=str(path))
+
+        assert path.stat().st_size > 0
+
+    def test__node_features__are_written_under_the_node_id(
+        self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
+    ) -> None:
+        """A node's label is its id, then one line per attribute it holds."""
+        line_graph_fixture.plot(show_node_features=True, save_path=str(tmp_path / "graph.png"))
+
+        labels = {text.get_text() for text in plt.gca().texts}
+
+        assert "a\nregion: north" in labels
+
+    def test__an_edge_attribute__labels_each_edge(
+        self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
+    ) -> None:
+        """Each edge is labelled by the attribute asked for."""
+        line_graph_fixture.plot(edge_label_attr="grade", save_path=str(tmp_path / "graph.png"))
+
+        labels = {text.get_text() for text in plt.gca().texts}
+
+        assert {"main", "branch"} <= labels
+
+    def test__a_highlighted_kind__is_drawn_bold(
+        self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
+    ) -> None:
+        """Only the edges of the kind highlighted stand out of the gray, wider than the rest."""
+        line_graph_fixture.plot(
+            node_color_attr="region",
+            edge_color_attr="grade",
+            highlight={"main": "#eb6834"},
+            save_path=str(tmp_path / "graph.png"),
+        )
+
+        widths = sorted(patch.get_linewidth() for patch in plt.gca().patches)
+
+        assert widths == [2.0, 2.0, 5.0]

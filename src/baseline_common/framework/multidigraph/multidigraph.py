@@ -32,6 +32,16 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
     )
     """Fixed-order categorical hues for ``plot`` (CVD-validated); overflow folds, never cycles."""
 
+    PLOT_LAYOUTS: ClassVar[dict[str, Callable[..., dict[Any, Any]]]] = {
+        "spring": partial(nx.spring_layout, seed=42),
+        "random": partial(nx.random_layout, seed=42),
+        "circular": partial(nx.circular_layout, scale=2),
+        "planar": partial(nx.planar_layout, scale=2),
+        "shell": partial(nx.shell_layout, scale=2),
+        "spectral": partial(nx.spectral_layout, scale=2),
+    }
+    """The networkx layouts ``plot`` offers; the random ones are seeded, so a figure repeats."""
+
     nodes: list[NodeT] = Field(default_factory=list)
     """The nodes; changed through ``add_*``/``remove_*`` only, so the indexes stay in step."""
     edges: list[EdgeT] = Field(default_factory=list)
@@ -551,7 +561,7 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
 
         return components_set, components_node_ids, components_node_idx
 
-    def plot(  # noqa: C901, PLR0912, PLR0913, PLR0914, PLR0915, PLR0917
+    def plot(  # noqa: PLR0913, PLR0917
         self,
         figsize: tuple[int, int] = (12, 8),
         node_size: int = 3000,
@@ -563,9 +573,7 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
         edge_label_attr: str | None = None,
         node_color_attr: str | None = None,
         edge_color_attr: str | None = None,
-        layout: Literal[
-            "spring", "circular", "kamada_kawai", "planar", "random", "shell", "spectral"
-        ] = "spring",
+        layout: Literal["spring", "circular", "planar", "random", "shell", "spectral"] = "spring",
         save_path: str | None = None,
         highlight: dict[Any, str] | None = None,
     ) -> None:
@@ -592,22 +600,7 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
 
         plt.figure(figsize=figsize)
 
-        pos: Any
-
-        if layout == "spring":
-            pos = nx.spring_layout(graph, seed=42)
-        elif layout == "circular":
-            pos = nx.circular_layout(graph, scale=2)
-        elif layout == "kamada_kawai":
-            pos = nx.kamada_kawai_layout(graph, scale=2)
-        elif layout == "planar":
-            pos = nx.planar_layout(graph, scale=2)
-        elif layout == "random":
-            pos = nx.random_layout(graph, seed=42)
-        elif layout == "shell":
-            pos = nx.shell_layout(graph, scale=2)
-        elif layout == "spectral":
-            pos = nx.spectral_layout(graph, scale=2)
+        pos = self.PLOT_LAYOUTS[layout](graph)
 
         node_values = [
             data.get(node_color_attr) if node_color_attr else None
@@ -649,79 +642,33 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
             node_size=node_size,
         )
 
-        if with_labels:  # noqa: PLR1702
-            if show_node_features:
-                node_labels = {}
+        if with_labels and show_node_features:
+            nx.draw_networkx_labels(
+                graph,
+                pos,
+                labels={node.id_: self._node_label(node) for node in self.nodes},
+                font_size=font_size - 2,
+                font_color="black",
+                verticalalignment="center",
+                horizontalalignment="center",
+                bbox={
+                    "boxstyle": "round,pad=0.5",
+                    "facecolor": "white",
+                    "edgecolor": "gray",
+                    "alpha": 0.95,
+                    "linewidth": 1.5,
+                },
+            )
+        elif with_labels:
+            labels = {node.id_: node.id_ for node in self.nodes}
+            nx.draw_networkx_labels(graph, pos, labels=labels, font_size=font_size)
 
-                for node in self.nodes:
-                    all_attrs = node.model_dump(exclude_none=True, exclude_unset=True)
+        edge_labels = self._edge_labels(graph, edge_label_attr) if edge_label_attr else {}
 
-                    meta_attrs = {"id_", "linked_to", "feature_type_str"}
-
-                    feature_items = []
-
-                    for k, v in all_attrs.items():
-                        if k not in meta_attrs:
-                            if k == "features" and isinstance(v, list):
-                                feature_names: list[str] = []
-
-                                for feat in v:
-                                    if isinstance(feat, dict) and "name" in feat:
-                                        name = feat.get("alias") or feat.get("name")
-
-                                        if name is not None:
-                                            feature_names.append(str(name))
-
-                                if feature_names:
-                                    feature_items.append(f"features: {', '.join(feature_names)}")
-
-                            elif not isinstance(v, (list, dict)) or (
-                                isinstance(v, list) and v and not isinstance(v[0], dict)
-                            ):
-                                feature_items.append(f"{k}: {v}")
-
-                    if feature_items:
-                        feature_str = "\n".join(feature_items)
-                        node_labels[node.id_] = f"{node.id_}\n{feature_str}"
-                    else:
-                        node_labels[node.id_] = node.id_
-
-                nx.draw_networkx_labels(
-                    graph,
-                    pos,
-                    labels=node_labels,
-                    font_size=font_size - 2,
-                    font_color="black",
-                    verticalalignment="center",
-                    horizontalalignment="center",
-                    bbox={
-                        "boxstyle": "round,pad=0.5",
-                        "facecolor": "white",
-                        "edgecolor": "gray",
-                        "alpha": 0.95,
-                        "linewidth": 1.5,
-                    },
-                )
-            else:
-                node_labels = {node.id_: node.id_ for node in self.nodes}
-                nx.draw_networkx_labels(graph, pos, labels=node_labels, font_size=font_size)
-
-        if edge_label_attr:
-            edge_labels = {}
-
-            for u, v, data in graph.edges(data=True):
-                if edge_label_attr in data:
-                    edge_labels[u, v] = data[edge_label_attr]
-                else:
-                    edge_attrs = {k: v for k, v in data.items() if k != "feature_type_str"}
-
-                    if edge_attrs:
-                        edge_labels[u, v] = "\n".join([f"{k}: {v}" for k, v in edge_attrs.items()])
-
-            if edge_labels:
-                nx.draw_networkx_edge_labels(
-                    graph, pos, edge_labels=edge_labels, font_size=font_size, font_color="black"
-                )
+        if edge_labels:
+            nx.draw_networkx_edge_labels(
+                graph, pos, edge_labels=edge_labels, font_size=font_size, font_color="black"
+            )
 
         # A node label runs far wider than its node and is clipped to the axes; the margin is
         # what keeps « address:civic|1500||recollets|trois-rivieres » from losing its end.
@@ -733,6 +680,68 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
         else:
             plt.show()
+
+    @staticmethod
+    def _node_label(node: Node) -> str:
+        """Write a node's id, then one line per attribute worth showing.
+
+        Args:
+            node: The node to label.
+
+        Returns:
+            The id, followed by its scalar attributes and the names of its features.
+        """
+        lines = [node.id_]
+
+        for key, value in node.model_dump(exclude_none=True, exclude_unset=True).items():
+            if key in {"id_", "linked_to", "feature_type_str"}:
+                continue
+
+            if key == "features" and isinstance(value, list):
+                names = [
+                    str(name)
+                    for feature in value
+                    if isinstance(feature, dict)
+                    and "name" in feature
+                    and (name := feature.get("alias") or feature.get("name")) is not None
+                ]
+
+                if names:
+                    lines.append(f"features: {', '.join(names)}")
+
+            elif not isinstance(value, (list, dict)) or (
+                isinstance(value, list) and value and not isinstance(value[0], dict)
+            ):
+                lines.append(f"{key}: {value}")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _edge_labels(graph: "nx.MultiDiGraph", attribute: str) -> dict[tuple[Any, Any], Any]:
+        """Label each edge by an attribute, or by all its attributes when it lacks that one.
+
+        Args:
+            graph: The graph drawn.
+            attribute: The edge attribute to show.
+
+        Returns:
+            One label per pair of endpoints that has something to show.
+        """
+        labels: dict[tuple[Any, Any], Any] = {}
+
+        for source, target, data in graph.edges(data=True):
+            if attribute in data:
+                labels[source, target] = data[attribute]
+                continue
+
+            shown = {key: value for key, value in data.items() if key != "feature_type_str"}
+
+            if shown:
+                labels[source, target] = "\n".join(
+                    f"{key}: {value}" for key, value in shown.items()
+                )
+
+        return labels
 
     @classmethod
     def _plot_colors(cls, values: list[Any], fallback: str) -> dict[Any, str]:
