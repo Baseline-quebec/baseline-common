@@ -231,6 +231,7 @@ class QdrantReadRepository[T: VectorDocument](AbstractReadRepository[T]):
         self.embedding_model = embedding_model
         self.config = config
         self.collection_name = content_type.__collection_name__
+        """The collection the documents live in."""
 
     @property
     def search_params(self) -> SearchParams | None:

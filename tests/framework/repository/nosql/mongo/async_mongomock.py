@@ -40,6 +40,7 @@ class AsyncMongomock:
             collection: The mongomock collection.
         """
         self.name = collection.name
+        """The collection's name."""
         self.collection = collection
 
     def find(self, query: dict[str, Any], **options: object) -> MongomockCursor:

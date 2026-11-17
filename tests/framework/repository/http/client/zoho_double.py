@@ -16,6 +16,7 @@ class Clock:
     def __init__(self) -> None:
         """Start at zero."""
         self.now = 0.0
+        """The time, in seconds."""
 
     def __call__(self) -> float:
         """Read the time.
@@ -49,9 +50,13 @@ class ZohoDouble:
         """
         self._config = config
         self.accounts = ScriptedServer(*grants)
+        """The accounts server, answering token requests from the script."""
         self.crm: list[str] = []
+        """The ``Authorization`` header of each CRM request, in order."""
         self.rejected: set[str] = set()
+        """The tokens the CRM refuses."""
         self.clock = Clock()
+        """The clock the client reads."""
 
     @staticmethod
     def grant(value: str, expires_in: int = 3600) -> httpx.Response:

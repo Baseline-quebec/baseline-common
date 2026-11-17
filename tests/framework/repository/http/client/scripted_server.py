@@ -14,6 +14,7 @@ class ScriptedServer:
         """
         self._answers = list(answers)
         self.requests: list[httpx.Request] = []
+        """The requests received, in order."""
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         """Answer one request from the script.

@@ -24,7 +24,9 @@ class WeaviateDouble:
     def __init__(self) -> None:
         """Wire the mocked client and collection to the objects held."""
         self.objects: dict[str, Object[dict[str, Any], None]] = {}
+        """The objects held, by uuid."""
         self.collection = MagicMock()
+        """The mocked collection, served for any tenant."""
         self.collection.with_tenant.return_value = self.collection
         self.collection.query.fetch_objects = AsyncMock(side_effect=self.fetch_objects)
         self.collection.query.hybrid = AsyncMock(return_value=QueryReturn(objects=[]))
@@ -34,6 +36,7 @@ class WeaviateDouble:
         self.collection.aggregate.over_all = AsyncMock(side_effect=self.over_all)
         self.collection.iterator = self.iterator
         self.client = MagicMock()
+        """The mocked async client, handing out the collection."""
         self.client.collections.get.return_value = self.collection
         self.client.collections.exists = AsyncMock(return_value=True)
         self.client.collections.create = AsyncMock()

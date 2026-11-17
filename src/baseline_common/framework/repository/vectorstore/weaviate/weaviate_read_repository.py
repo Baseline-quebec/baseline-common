@@ -81,6 +81,7 @@ class WeaviateReadRepository[T: VectorDocument](AbstractReadRepository[T]):
         self.embedding_model = embedding_model
         self.config = config
         self.collection = weaviate_client.collections.get(content_type.__collection_name__)
+        """The collection the documents live in, for the tenant when one is set."""
 
         if config.tenant:
             self.collection = self.collection.with_tenant(config.tenant)
