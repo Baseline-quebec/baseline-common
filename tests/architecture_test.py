@@ -15,14 +15,35 @@ from archunitpython.common.projection.types import ProjectedEdge
 from archunitpython.files.assertion.custom_file_logic import FileInfo
 
 
+# ---- Per repository: a copy of this file in another repository changes this block only. ----
+class ThisRepository:
+    """What sets one repository's copy apart; the rest of the file is the same in every copy."""
+
+    PACKAGE: ClassVar[str] = "baseline_common"
+    """The package these rules check."""
+    ENTRY_POINTS: ClassVar[list[str]] = ["api", "cli"]
+    """The top layers, side by side: none imports another; a project adds its own (`worker`)."""
+    SPAWN_TARGETS: ClassVar[dict[str, list[str]]] = {}
+    """Per entry point, the other entry points' functions it spawns (`worker.main.run`)."""
+    SPECIALISED_PACKAGES: ClassVar[list[str]] = [
+        "baseline_optimization",
+        "baseline_ml",
+        "baseline_llm",
+    ]
+    """The specialised repositories this one never imports, its own left out."""
+
+
+# ---- End of the per-repository block. ----
+
+
 @pytest.fixture
 def package() -> str:
-    """The package these rules check, its name written here only for a copy in another repo.
+    """The package these rules check, named in `ThisRepository`.
 
     Returns:
         Its import name.
     """
-    return "baseline_common"
+    return ThisRepository.PACKAGE
 
 
 @pytest.fixture
@@ -49,18 +70,68 @@ def root(source: str, package: str) -> str:
     return "^" + re.escape(f"{source}/{package}/")
 
 
+class Imports:
+    @staticmethod
+    def names(code: str) -> list[str]:
+        """The dotted names a file imports, `from <module> import <name>` as `<module>.<name>`.
+
+        Args:
+            code: The file's source code.
+
+        Returns:
+            Each imported name, relative imports left out.
+        """
+        names: list[str] = []
+
+        for node in ast.walk(ast.parse(code)):
+            if isinstance(node, ast.Import):
+                names += [alias.name for alias in node.names]
+
+            elif isinstance(node, ast.ImportFrom) and node.module is not None:
+                # `from <package>.framework import <module>` names the module in the alias only.
+                names += [f"{node.module}.{alias.name}" for alias in node.names]
+
+        return names
+
+    @staticmethod
+    def takes_from_dishka(file: FileInfo, names: set[str]) -> bool:
+        """Whether a file imports one of the names from Dishka, or reads it as `dishka.<name>`.
+
+        Args:
+            file: The file read by ArchUnitPython.
+            names: The names Dishka exports that the file may not use.
+
+        Returns:
+            True when it does.
+        """
+        taken: list[str] = []
+
+        for node in ast.walk(ast.parse(file.content)):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "dishka":
+                taken += [alias.name for alias in node.names]
+
+            elif isinstance(node, ast.Attribute) and ast.unparse(node).startswith("dishka."):
+                taken += [node.attr]
+
+        return not names.isdisjoint(taken)
+
+
 class TestLayers:
-    ORDER: ClassVar[list[list[str]]] = [
-        ["framework"],
-        ["models"],
-        ["services"],
-        ["orchestrators"],
-        ["assembly"],
-        ["api", "cli"],
-    ]
-    """The layers by rank, lowest first; a project adds its entry points beside `api` and `cli`."""
-    LAYERS: ClassVar[list[str]] = [layer for rank in ORDER for layer in rank]
+    ORDER: ClassVar[list[str]] = ["framework", "models", "services", "orchestrators", "assembly"]
+    """The layers below the entry points, lowest first."""
+    LAYERS: ClassVar[list[str]] = [*ORDER, *ThisRepository.ENTRY_POINTS]
     """Every layer folder a file may live in."""
+    DECLARING: ClassVar[set[str]] = {
+        "Provider",
+        "provide",
+        "provide_all",
+        "from_context",
+        "alias",
+        "decorate",
+    }
+    """What Dishka declares a provider or a factory with."""
+    CONTAINERS: ClassVar[set[str]] = {"make_container", "make_async_container"}
+    """What Dishka builds a container with."""
 
     def test__every_python_file__lives_in_a_layer(self, source: str, root: str) -> None:
         """Only the package's own `__init__.py` sits outside the layer folders the rules read."""
@@ -82,19 +153,59 @@ class TestLayers:
 
         assert folders - {*self.LAYERS, "__pycache__"} == set()
 
-    @pytest.mark.parametrize("layer", LAYERS)
-    def test__a_layer__imports_no_layer_above_or_beside_it(
+    @pytest.mark.parametrize("layer", ORDER)
+    def test__a_layer__never_imports_a_layer_above_it(
         self, source: str, root: str, layer: str
     ) -> None:
-        """Dependencies point down only; the entry points, side by side, ignore each other."""
-        rank = next(index for index, names in enumerate(self.ORDER) if layer in names)
-        forbidden = [name for names in self.ORDER[rank:] for name in names if name != layer]
+        """Dependencies point down only, from the entry points to the framework."""
+        above = [*self.ORDER[self.ORDER.index(layer) + 1 :], *ThisRepository.ENTRY_POINTS]
         rule = project_layers(source)
 
-        for name in [layer, *forbidden]:
+        for name in [layer, *above]:
             rule = rule.layer(name).defined_by(re.compile(f"{root}{name}/"))
 
-        assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*forbidden))
+        assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*above))
+
+    @staticmethod
+    def names_only_its_spawn_targets(file: FileInfo, package: str, entry_point: str) -> bool:
+        """Whether an entry point's file names no other entry point, but for its spawn targets.
+
+        Args:
+            file: The file read by ArchUnitPython.
+            package: The package these rules check.
+            entry_point: The entry point the file belongs to.
+
+        Returns:
+            True when each import of another entry point is a function `SPAWN_TARGETS` lists.
+        """
+        entry_points = ThisRepository.ENTRY_POINTS
+        targets = ThisRepository.SPAWN_TARGETS.get(entry_point, [])
+        others = [f"{package}.{other}" for other in entry_points if other != entry_point]
+        allowed = {f"{package}.{target}" for target in targets}
+        named = {
+            name
+            for name in Imports.names(file.content)
+            if any(name == other or name.startswith(f"{other}.") for other in others)
+        }
+
+        return named <= allowed
+
+    @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
+    def test__an_entry_point__names_another_only_to_spawn_it(
+        self, source: str, package: str, root: str, entry_point: str
+    ) -> None:
+        """Entry points ignore each other, but for the function one launches in a child process."""
+        condition = partial(
+            self.names_only_its_spawn_targets, package=package, entry_point=entry_point
+        )
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}{entry_point}/"))
+            .should()
+            .adhere_to(condition, "imports another entry point beyond its spawn targets")
+        )
+
+        assert_passes(rule)
 
     @staticmethod
     def imports_only_its_framework_module(file: FileInfo, source: str, package: str) -> bool:
@@ -110,18 +221,10 @@ class TestLayers:
         """
         own = Path(file.path).relative_to(Path(source, package, "framework")).parts[0]
         prefix = f"{package}.framework."
-        names: list[str] = []
-
-        for node in ast.walk(ast.parse(file.content)):
-            if isinstance(node, ast.Import):
-                names += [alias.name for alias in node.names]
-
-            elif isinstance(node, ast.ImportFrom) and node.module is not None:
-                # `from <package>.framework import <module>` names the module in the alias only.
-                names += [f"{node.module}.{alias.name}" for alias in node.names]
-
         imported = {
-            name.removeprefix(prefix).split(".")[0] for name in names if name.startswith(prefix)
+            name.removeprefix(prefix).split(".")[0]
+            for name in Imports.names(file.content)
+            if name.startswith(prefix)
         }
 
         return imported <= {own}
@@ -140,46 +243,93 @@ class TestLayers:
 
         assert_passes(rule)
 
-    PROVIDING: ClassVar[set[str]] = {"provide", "provide_all", "from_context", "alias", "decorate"}
-    """Dishka's ways to declare a factory, on a provider instance or as decorators."""
-
     @classmethod
-    def declares_no_provider(cls, file: FileInfo) -> bool:
-        """Whether a file declares no Dishka provider, as a class or as an instance.
+    def declares_a_provider(cls, file: FileInfo) -> bool:
+        """Whether a file declares a Dishka provider, as a class or as an instance.
 
         Args:
             file: The file read by ArchUnitPython.
 
         Returns:
-            True when it subclasses no `…Provider`, builds no `Provider()` and calls no `provide`.
+            True when a class is based on a `…Provider`, or the file takes `Provider`, `provide`
+            or another of `DECLARING` from Dishka.
         """
-        for node in ast.walk(ast.parse(file.content)):
-            if isinstance(node, ast.ClassDef) and any(
-                ast.unparse(base).endswith("Provider") for base in node.bases
-            ):
-                return False
+        based = any(
+            ast.unparse(base).endswith("Provider")
+            for node in ast.walk(ast.parse(file.content))
+            if isinstance(node, ast.ClassDef)
+            for base in node.bases
+        )
 
-            called = node.func if isinstance(node, ast.Call) else node
-            name = called.attr if isinstance(called, ast.Attribute) else ast.unparse(called)
+        return based or Imports.takes_from_dishka(file, cls.DECLARING)
 
-            if isinstance(node, ast.Call) and name == "Provider":
-                return False
+    @pytest.mark.parametrize("layer", [layer for layer in LAYERS if layer != "assembly"])
+    def test__a_layer_but_the_assembly__declares_no_provider(
+        self, source: str, root: str, layer: str
+    ) -> None:
+        """Providers live in `assembly/`; an entry point builds its container from them."""
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}{layer}/"))
+            .should_not()
+            .adhere_to(self.declares_a_provider, "declares a Dishka provider")
+        )
 
-            if isinstance(node, (ast.Call, ast.Name, ast.Attribute)) and name in cls.PROVIDING:
-                return False
+        assert_passes(rule)
 
-        return True
+    @pytest.mark.parametrize("layer", ORDER)
+    def test__a_layer_below_the_entry_points__builds_no_container(
+        self, source: str, root: str, layer: str
+    ) -> None:
+        """Only an entry point builds a container, in its `init_container()`."""
+        condition = partial(Imports.takes_from_dishka, names=self.CONTAINERS)
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}{layer}/"))
+            .should_not()
+            .adhere_to(condition, "builds a Dishka container")
+        )
 
-    @pytest.mark.parametrize("entry_point", ORDER[-1])
-    def test__an_entry_point__declares_no_provider(
+        assert_passes(rule)
+
+    @staticmethod
+    def builds_its_container_without_argument(file: FileInfo) -> bool:
+        """Whether every `init_container` a file defines takes no argument.
+
+        Args:
+            file: The file read by ArchUnitPython.
+
+        Returns:
+            True when none takes one: a test builds its own container instead.
+        """
+        functions = [
+            node
+            for node in ast.walk(ast.parse(file.content))
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+            and node.name == "init_container"
+        ]
+
+        return not any(
+            function.args.posonlyargs
+            or function.args.args
+            or function.args.kwonlyargs
+            or function.args.vararg
+            or function.args.kwarg
+            for function in functions
+        )
+
+    @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
+    def test__an_entry_point__builds_its_container_without_argument(
         self, source: str, root: str, entry_point: str
     ) -> None:
-        """An entry point builds its container from the assembly's providers and declares none."""
+        """No parameter serves the tests only: a test builds its container and passes it."""
         rule = (
             project_files(source)
             .in_path(re.compile(f"{root}{entry_point}/"))
             .should()
-            .adhere_to(self.declares_no_provider, "declares a Dishka provider")
+            .adhere_to(
+                self.builds_its_container_without_argument, "init_container takes an argument"
+            )
         )
 
         assert_passes(rule)
@@ -232,10 +382,8 @@ class TestForbiddenImports:
         r"^(ecolopharm_sales|cegep_mv_schedule|project_assembly|recom_graphml"
         r"|benny_order_vision|munera_poc)(\.|$)"
     )
-    SPECIALISED_PACKAGES: ClassVar[re.Pattern[str]] = re.compile(
-        r"^baseline_(optimization|ml|llm)(\.|$)"
-    )
-    """The specialised repositories: they read baseline-common, never the reverse."""
+    HTTP_SERVERS: ClassVar[re.Pattern[str]] = re.compile(r"^(fastapi|starlette)(\.|$)")
+    """The packages that serve HTTP: only the API imports them."""
     BASELINE_PACKAGES: ClassVar[list[str]] = [
         "baseline_common",
         "baseline_ml",
@@ -297,12 +445,67 @@ class TestForbiddenImports:
         self, source: str, root: str
     ) -> None:
         """Dependencies between repositories point to baseline-common, never from it."""
+        specialised = "|".join(ThisRepository.SPECIALISED_PACKAGES)
         rule = (
             project_files(source)
             .in_path(re.compile(root))
             .should_not()
             .depend_on_external_modules()
-            .matching(self.SPECIALISED_PACKAGES)
+            .matching(re.compile(rf"^({specialised})(\.|$)"))
+        )
+
+        assert_passes(rule)
+
+    @classmethod
+    def reads_baseline_through_framework_or_models(
+        cls, file: FileInfo, source: str, package: str
+    ) -> bool:
+        """Whether a file reads other Baseline packages only through `framework/` or `models/`.
+
+        Args:
+            file: The file read by ArchUnitPython.
+            source: The `src` folder.
+            package: The package these rules check.
+
+        Returns:
+            True when it does; a framework file reads only their `framework/`.
+        """
+        layer = Path(file.path).relative_to(Path(source, package)).parts[0]
+        readable = ["framework"] if layer == "framework" else ["framework", "models"]
+        others = [other for other in cls.BASELINE_PACKAGES if other != package]
+
+        # `from <other> import models` reads models/; importing a package whole has its own test.
+        return all(
+            any(f"{name}.".startswith(f"{other}.{part}.") for part in readable)
+            for name in Imports.names(file.content)
+            for other in others
+            if name.startswith(f"{other}.")
+        )
+
+    def test__another_baseline_package__is_read_through_its_framework_or_models(
+        self, source: str, package: str, root: str
+    ) -> None:
+        """A repository reads another's `framework/`, and its `models/` above the framework."""
+        condition = partial(
+            self.reads_baseline_through_framework_or_models, source=source, package=package
+        )
+        rule = (
+            project_files(source)
+            .in_path(re.compile(root))
+            .should()
+            .adhere_to(condition, "reads another Baseline package beyond framework/ or models/")
+        )
+
+        assert_passes(rule)
+
+    def test__only_the_api__knows_http(self, source: str, root: str) -> None:
+        """Routes and requests stay in `api/`: no other layer imports FastAPI or Starlette."""
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}(?!api/)"))
+            .should_not()
+            .depend_on_external_modules()
+            .matching(self.HTTP_SERVERS)
         )
 
         assert_passes(rule)
@@ -378,7 +581,7 @@ class TestRepositories:
     WRITE: ClassVar[str] = "AbstractWriteRepository"
     """The contract of a class that writes."""
     WHOLE: ClassVar[list[str]] = ["InMemoryRepository"]
-    """Implements both contracts in one class: a substitute for the tests, with no store to split."""
+    """Implements both contracts in one class: a test substitute, with no store to split."""
 
     @staticmethod
     def bases(folder: Path) -> dict[str, list[str]]:
@@ -426,7 +629,7 @@ class TestRepositories:
     def test__each_store__provides_a_read_a_write_and_a_combined_class(
         self, source: str, package: str
     ) -> None:
-        """A store's combined class inherits its read class and its write class, and each has one."""
+        """Each store has a read class, a write class and a combined class inheriting both."""
         classes = self.bases(Path(source, package, "framework", "repository"))
         sides = {
             name: {self.READ, self.WRITE} & self.ancestors(name, classes)

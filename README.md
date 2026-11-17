@@ -249,9 +249,10 @@ Un module entre s'il remplit **toutes** ces conditions.
 
 `tests/architecture_test.py` (ArchUnitPython) les vérifie. Une règle qui échoue se corrige dans le
 code, jamais en affaiblissant l'essai. Ses motifs partent du dossier du paquet, sous `src/` : le
-nom d'un dossier parent ne change rien à ce qu'ils voient. Le nom du paquet n'y figure qu'une fois,
-dans la fixture `package` : un dépôt spécialisé qui copie l'essai change ce nom et la liste des
-dépôts qu'il n'importe pas.
+nom d'un dossier parent ne change rien à ce qu'ils voient. Ce qui distingue un dépôt tient dans le
+bloc `ThisRepository`, en tête de l'essai : le nom du paquet, ses points d'entrée, les cibles qu'ils
+lancent dans un processus enfant et les dépôts spécialisés qu'il n'importe pas. Un dépôt qui copie
+l'essai ne change que ce bloc.
 
 - Tout fichier vit dans le dossier d'une couche. À la racine du paquet ne restent que son
   `__init__.py` et des fichiers qui ne sont pas du Python (`py.typed`) ; tout autre dossier, et
@@ -259,7 +260,8 @@ dépôts qu'il n'importe pas.
 - Les dépendances ne descendent que dans un sens :
   `api, cli → assembly → orchestrators → services → models → framework`.
   - Les points d'entrée (`api`, `cli`) sont au même rang : aucun n'importe l'autre.
-  - Un projet ajoute les siens à ce rang, dans `ORDER` (un `worker` à côté de `api` et de `cli`).
+  - Un projet ajoute les siens à ce rang, dans `ENTRY_POINTS` de `ThisRepository` (un `worker` à
+    côté de `api` et de `cli`).
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
   <module>` compris.
 - Aucun import d'un paquet entier, le sien ou un autre de Baseline (`from baseline_common import
