@@ -15,7 +15,7 @@ from baseline_common.framework.repository.query_filters import (
     SortOrder,
     TextFilter,
 )
-from tests.framework.repository.conftest import Equipment
+from tests.framework.repository.equipment import Equipment
 
 
 class TestFilters:

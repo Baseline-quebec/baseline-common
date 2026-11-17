@@ -6,8 +6,8 @@ import httpx
 import pytest
 
 from baseline_common.framework.repository.http.write_gateway import WriteError
-from tests.framework.repository.http.client.conftest import ScriptedServer
-from tests.framework.repository.http.zoho.conftest import WritesOf, ZohoAccount
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
+from tests.framework.repository.http.zoho.zoho_account import WritesOf, ZohoAccount
 
 
 class TestWrites:

@@ -12,7 +12,7 @@ from baseline_common.framework.repository.vectorstore.qdrant.qdrant_read_reposit
 from baseline_common.framework.repository.vectorstore.qdrant.qdrant_repository import (
     QdrantRepository,
 )
-from tests.framework.repository.vectorstore.qdrant.conftest import Machine
+from tests.framework.repository.vectorstore.qdrant.machine import Machine
 
 
 @pytest.fixture

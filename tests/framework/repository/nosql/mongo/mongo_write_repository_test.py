@@ -18,8 +18,8 @@ from baseline_common.framework.repository.nosql.mongo.mongo_write_repository imp
     MongoWriteRepository,
 )
 from baseline_common.framework.repository.query_filters import EqualityFilter
-from tests.framework.repository.conftest import Site
-from tests.framework.repository.nosql.mongo.conftest import Machine
+from tests.framework.repository.equipment import Site
+from tests.framework.repository.nosql.mongo.machine import Machine
 
 
 class TestInsert:

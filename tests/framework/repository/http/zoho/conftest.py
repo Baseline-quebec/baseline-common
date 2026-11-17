@@ -1,9 +1,6 @@
 """Fixtures of the Zoho gateway tests: Accounts readers and writers over a scripted CRM."""
 
-from collections.abc import Callable
-
 import pytest
-from pydantic import BaseModel, ConfigDict, Field
 
 from baseline_common.framework.repository.http.client.http_client import HttpClient
 from baseline_common.framework.repository.http.client.http_config import HttpConfig
@@ -11,25 +8,8 @@ from baseline_common.framework.repository.http.read_gateway import ReadGateway
 from baseline_common.framework.repository.http.write_gateway import WriteGateway
 from baseline_common.framework.repository.http.zoho.coql_dialect import ZohoCoqlDialect
 from baseline_common.framework.repository.http.zoho.write_config import ZohoWriteConfig
-from tests.framework.repository.http.client.conftest import ScriptedServer
-
-
-class ZohoAccount(BaseModel):
-    """A customer account as Zoho's Accounts module holds it: each alias is a Zoho field."""
-
-    model_config = ConfigDict(frozen=True, validate_by_name=True, validate_by_alias=True)
-
-    zoho_id: str | None = Field(None, alias="id")
-    name: str = Field(alias="Account_Name")
-    industry: str | None = Field(None, alias="Industry")
-    status: str = Field("Actif", alias="Status")
-    postal_code: str | None = Field(None, alias="Billing_Code")
-
-
-# The signature of the `reads_of` fixture, which it and every test using it annotate.
-type ReadsOf = Callable[[ScriptedServer], ReadGateway[ZohoAccount]]
-# The signature of the `writes_of` fixture, which it and every test using it annotate.
-type WritesOf = Callable[..., WriteGateway[ZohoAccount]]
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
+from tests.framework.repository.http.zoho.zoho_account import ReadsOf, WritesOf, ZohoAccount
 
 
 @pytest.fixture

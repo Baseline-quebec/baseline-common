@@ -17,7 +17,7 @@ from baseline_common.framework.repository.vectorstore.qdrant.qdrant_read_reposit
 from baseline_common.framework.repository.vectorstore.qdrant.qdrant_write_repository import (
     QdrantWriteRepository,
 )
-from tests.framework.repository.vectorstore.qdrant.conftest import Machine
+from tests.framework.repository.vectorstore.qdrant.machine import Machine
 
 
 class TestInsert:

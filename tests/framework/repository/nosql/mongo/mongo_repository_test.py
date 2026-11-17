@@ -8,7 +8,8 @@ from pymongo.collection import Collection
 from baseline_common.framework.repository.abstract_repository import AbstractRepository
 from baseline_common.framework.repository.nosql.mongo.mongo_repository import MongoRepository
 from baseline_common.framework.repository.query_filters import EqualityFilter
-from tests.framework.repository.nosql.mongo.conftest import AsyncMongomock, Machine
+from tests.framework.repository.nosql.mongo.async_mongomock import AsyncMongomock
+from tests.framework.repository.nosql.mongo.machine import Machine
 
 
 if TYPE_CHECKING:

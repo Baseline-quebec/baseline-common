@@ -17,7 +17,8 @@ from baseline_common.framework.repository.query_filters import (
     SortOrder,
     TextFilter,
 )
-from tests.framework.repository.nosql.mongo.conftest import AsyncMongomock, Machine
+from tests.framework.repository.nosql.mongo.async_mongomock import AsyncMongomock
+from tests.framework.repository.nosql.mongo.machine import Machine
 
 
 class Prefix(Filter):

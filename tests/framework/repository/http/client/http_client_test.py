@@ -8,7 +8,7 @@ import pytest
 from baseline_common.framework.repository.http.client.auth import ApiKeyAuth, BearerAuth
 from baseline_common.framework.repository.http.client.http_client import HttpClient
 from baseline_common.framework.repository.http.client.http_config import HttpConfig
-from tests.framework.repository.http.client.conftest import ScriptedServer
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
 
 
 class TestRequest:

@@ -11,7 +11,7 @@ from baseline_common.framework.repository.http.client.auth import (
     OAuthRefreshTokenAuth,
     TokenRefreshError,
 )
-from tests.framework.repository.http.client.conftest import ZohoDouble
+from tests.framework.repository.http.client.zoho_double import ZohoDouble
 
 
 class TestGrant:

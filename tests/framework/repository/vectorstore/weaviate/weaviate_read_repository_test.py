@@ -18,7 +18,8 @@ from baseline_common.framework.repository.vectorstore.weaviate.weaviate_read_rep
     WeaviateConfig,
     WeaviateReadRepository,
 )
-from tests.framework.repository.vectorstore.weaviate.conftest import Machine, WeaviateDouble
+from tests.framework.repository.vectorstore.weaviate.machine import Machine
+from tests.framework.repository.vectorstore.weaviate.weaviate_double import WeaviateDouble
 
 
 class TestTenant:

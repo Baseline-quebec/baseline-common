@@ -38,7 +38,8 @@ from baseline_common.framework.repository.vectorstore.qdrant.qdrant_write_reposi
     QdrantWriteRepository,
 )
 from baseline_common.framework.repository.vectorstore.vector_document import RetrievedDocument
-from tests.framework.repository.vectorstore.qdrant.conftest import Machine, Workshop
+from tests.framework.repository.vectorstore.qdrant.machine import Machine
+from tests.framework.repository.vectorstore.qdrant.workshop import Workshop
 
 
 class MachineName(BaseModel):

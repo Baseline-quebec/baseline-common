@@ -18,7 +18,7 @@ from baseline_common.services.batch_replacement_service import (
     BatchReplacement,
     BatchReplacementService,
 )
-from tests.framework.repository.http.client.conftest import ScriptedServer
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
 
 
 class WorkOrder(BaseModel):

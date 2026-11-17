@@ -14,8 +14,8 @@ from baseline_common.framework.repository.query_filters import (
     SortOrder,
     TextFilter,
 )
-from tests.framework.repository.http.client.conftest import ScriptedServer
-from tests.framework.repository.http.zoho.conftest import ReadsOf, ZohoAccount
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
+from tests.framework.repository.http.zoho.zoho_account import ReadsOf, ZohoAccount
 
 
 class TestQuery:

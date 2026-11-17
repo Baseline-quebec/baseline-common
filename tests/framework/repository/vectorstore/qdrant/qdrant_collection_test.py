@@ -30,7 +30,7 @@ from baseline_common.framework.repository.vectorstore.vector_document import (
     VectorDocument,
     VectorStoreProperty,
 )
-from tests.framework.repository.vectorstore.qdrant.conftest import Machine
+from tests.framework.repository.vectorstore.qdrant.machine import Machine
 
 
 class Gauge(VectorDocument):

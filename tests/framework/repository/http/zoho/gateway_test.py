@@ -8,8 +8,8 @@ from baseline_common.framework.repository.http.client.http_config import HttpCon
 from baseline_common.framework.repository.http.gateway import Gateway
 from baseline_common.framework.repository.http.zoho.coql_dialect import ZohoCoqlDialect
 from baseline_common.framework.repository.http.zoho.write_config import ZohoWriteConfig
-from tests.framework.repository.http.client.conftest import ScriptedServer
-from tests.framework.repository.http.zoho.conftest import ZohoAccount
+from tests.framework.repository.http.client.scripted_server import ScriptedServer
+from tests.framework.repository.http.zoho.zoho_account import ZohoAccount
 
 
 class TestGateway:

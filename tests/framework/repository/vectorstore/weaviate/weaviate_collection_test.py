@@ -12,7 +12,8 @@ from baseline_common.framework.repository.vectorstore.vector_document import Vec
 from baseline_common.framework.repository.vectorstore.weaviate.weaviate_collection import (
     WeaviateCollection,
 )
-from tests.framework.repository.vectorstore.weaviate.conftest import Machine, WeaviateDouble
+from tests.framework.repository.vectorstore.weaviate.machine import Machine
+from tests.framework.repository.vectorstore.weaviate.weaviate_double import WeaviateDouble
 
 
 class TestProperties:
