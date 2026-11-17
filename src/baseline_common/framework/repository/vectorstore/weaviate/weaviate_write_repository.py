@@ -130,7 +130,8 @@ class WeaviateWriteRepository[T: VectorDocument](AbstractWriteRepository[T]):
             weaviate.exceptions.UnexpectedStatusCodeError,
             weaviate.exceptions.WeaviateQueryError,
         ) as err:
-            raise ValueError(err.message) from err
+            msg = f"Weaviate refused to delete {len(ids)} documents: {err.message}"
+            raise ValueError(msg) from err
 
         if len(uuids_to_delete) != response.successful:
             not_deleted_ids = list(
@@ -140,7 +141,6 @@ class WeaviateWriteRepository[T: VectorDocument](AbstractWriteRepository[T]):
                 f"Failed to delete {len(not_deleted_ids)}/{len(uuids_to_delete)}. "
                 f"These are the ids that were not deleted: {not_deleted_ids}."
             )
-            logger.error(error_msg)
             raise ValueError(error_msg)
 
         logger.info("Deleted {} documents successfully from Weaviate.", response.successful)

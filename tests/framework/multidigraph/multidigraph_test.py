@@ -296,6 +296,13 @@ class TestMultiDiGraph:
         with pytest.raises(ValueError, match="Edge relations must be unique"):
             MultiDiGraph(nodes=[node1, node2], edges=[edge1, edge2])
 
+    def test__a_field_networkx_takes_as_its_own_argument__is_refused(self) -> None:
+        """A node field named after an argument of `add_node` cannot be projected to networkx."""
+        node = Node(id_="1", node_for_adding="a")
+
+        with pytest.raises(ValidationError, match="clashes with an argument of networkx"):
+            MultiDiGraph(nodes=[node])
+
     def test__merge_multidigraph__merges_two_graphs(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:

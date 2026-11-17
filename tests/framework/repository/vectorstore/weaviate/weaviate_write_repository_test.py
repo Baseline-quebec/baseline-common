@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 from pydantic_ai import Embedder
+from weaviate.exceptions import WeaviateQueryError
 
 from baseline_common.framework.repository.abstract_repository import RecordNotFoundError
 from baseline_common.framework.repository.vectorstore.weaviate.weaviate_read_repository import (
@@ -189,6 +190,18 @@ class TestDelete:
 
         assert deleted == ["m-1", "m-3"]
         assert list(weaviate_double.objects) == [str(uuid.uuid5(uuid.NAMESPACE_DNS, "m-2"))]
+
+    @staticmethod
+    async def test__a_refused_delete__is_raised_with_its_reason(
+        weaviate_double: WeaviateDouble, machine_writes: WeaviateWriteRepository[Machine]
+    ) -> None:
+        """Weaviate's refusal comes back as a ValueError that says what was refused."""
+        weaviate_double.collection.data.delete_many.side_effect = WeaviateQueryError(
+            "shard unavailable", "GRPC delete"
+        )
+
+        with pytest.raises(ValueError, match=r"refused to delete 1 documents: .*shard"):
+            await machine_writes.delete_many(["m-1"])
 
     @staticmethod
     async def test__a_missing_id__is_refused_naming_its_uuid(

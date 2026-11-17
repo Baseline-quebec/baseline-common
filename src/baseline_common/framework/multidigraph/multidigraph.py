@@ -106,13 +106,14 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
             The validated instance, unchanged when the projection succeeds.
 
         Raises:
-            ValueError: If projecting to ``nx.MultiDiGraph`` fails.
+            ValueError: If a node or an edge has a field networkx takes as its own argument.
         """
         try:
             _ = self.networkx_graph
-        except Exception as e:
-            error_msg = f"Error creating networkx graph: {e}"
-            raise ValueError(error_msg) from e
+        except TypeError as error:
+            # Pydantic turns a ValueError, not a TypeError, into a ValidationError.
+            msg = f"A field clashes with an argument of networkx: {error}"
+            raise ValueError(msg) from error
 
         return self
 

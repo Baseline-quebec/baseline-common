@@ -167,7 +167,8 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
             ]
 
             if rejection.reason is RejectionReason.UNIQUE and rejection.columns == primary_key:
-                raise DuplicateRecordError(", ".join(rejection.values)) from error
+                msg = f"already held: {', '.join(rejection.values)}"
+                raise DuplicateRecordError(msg) from error
 
             raise rejection from error
 
