@@ -3,7 +3,7 @@
 Ces règles servent de grille à toute revue de code de baseline-common et des dépôts spécialisés
 (baseline-optimization, baseline-ml, baseline-llm), qui n'en gardent pas de copie. Une revue cite
 leur numéro. Dans un dépôt spécialisé, les dossiers du module, à la racine du paquet, tiennent le
-rôle de `core/`.
+rôle de `framework/`.
 Chaque règle tient dans son titre en gras ; le texte qui suit l'explique et donne un exemple.
 Une règle marquée *(signal)* n'interdit rien : elle pose une question à la revue, et un écart
 justifié est accepté.
@@ -63,6 +63,10 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
      chargement) : on appelle l'existante.
 8. **Ni variable globale ni enveloppe triviale.**
    - Les constantes vivent dans la classe qui s'en sert.
+   - Seule exception aux variables globales : les objets qu'un point d'entrée FastAPI déclare au
+     niveau du module, comme le fait FastAPI lui-même : `app` et `container` dans `api.py`,
+     `router` dans un fichier de routeur. Les réglages n'en font pas partie : chaque usage appelle
+     `get_settings()`, mis en cache, plutôt que de lire une variable `settings` du module.
    - Pas de lambda ni de fonction d'une ligne qui ne fait que relayer un appel ou renommer une
      expression.
    - Seule exception : une lambda qui choisit un champ du schéma dans une déclaration
@@ -70,7 +74,7 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
 
 ## Organisation
 
-9. **Le code de `core/` est générique.** Il ne nomme ni un client, ni un problème, ni une entité
+9. **Le code de `framework/` est générique.** Il ne nomme ni un client, ni un problème, ni une entité
    métier. Un besoin propre à un problème passe par un paramètre ou une abstraction générique,
    jamais par du code qui nomme ce problème. Ce qui est propre à un problème ne sert qu'aux essais.
 10. **Aucun nom de classe ne commence par un souligné.** Une classe intermédiaire, comme l'état d'une
@@ -102,6 +106,16 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
 16. **Une docstring tient en une ligne,** plus une ligne par entrée `Args`, `Returns` et `Raises`. Dans
     une docstring ou un document, une méthode s'écrit avec ses arguments (`run(bound)`) ou sans
     parenthèses (`run`), jamais `run()`.
+    - Un attribut (champ, `ClassVar`, constante de classe) se documente par une docstring d'une
+      ligne placée juste sous lui. Jamais par une section `Attributes:` dans la docstring de la
+      classe, ni par un commentaire au-dessus de lui :
+
+      ```python
+      APP: ClassVar[str] = version(__name__.split(".", maxsplit=1)[0])
+      """Version of the package serving the API."""
+      SCHEMA: ClassVar[str] = "v1"
+      """Version of the schema the API serves."""
+      ```
 17. **Le code respire.**
     - Une ligne vide avant et après chaque bloc (`if`, `for`, `while`, `with`, `try`), sauf au début
       ou à la fin du bloc qui le contient.
@@ -121,11 +135,11 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     dossier qui les contient tous. `tests/conftest.py` ne garde que ce qui sert partout. Une fixture
     ne remonte pas « au cas où ».
 20. **Un essai respecte les couches du code qu'il teste.** Ses imports suivent le même sens que le
-    code : `api → orchestrator → service → data_schema → core`.
-    - Un essai sous `tests/core/` n'importe ni `service/`, ni `orchestrator/`, ni `data_schema/`, ni
-      `api/`, ni les essais de ces couches.
-    - Un essai d'un module de `core/` n'importe pas un autre module de `core/`.
-    - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `core/` ou `data_schema/` de
+    code : `api, cli → assembly → orchestrators → services → models → framework`.
+    - Un essai sous `tests/framework/` n'importe ni `models/`, ni `services/`, ni `orchestrators/`,
+      ni `assembly/`, ni `api/`, ni les essais de ces couches.
+    - Un essai d'un module de `framework/` n'importe pas un autre module de `framework/`.
+    - Entre dépôts, le sens est le même : un dépôt spécialisé peut lire `framework/` ou `models/` de
       baseline-common (`graph/` de baseline-ml lit un `MultiDiGraph`) ; baseline-common ne lit jamais
       un dépôt spécialisé, et deux dépôts spécialisés ne se lisent pas.
 

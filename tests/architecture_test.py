@@ -25,13 +25,20 @@ def source() -> str:
 
 
 class TestLayers:
-    CORE: ClassVar[str] = "*/baseline_common/core/*"
-    ORDER: ClassVar[list[str]] = ["core", "data_schema", "service", "orchestrator", "api"]
-    CORE_PACKAGE: ClassVar[str] = "baseline_common.core."
+    FRAMEWORK: ClassVar[str] = "*/baseline_common/framework/*"
+    ORDER: ClassVar[list[str]] = [
+        "framework",
+        "models",
+        "services",
+        "orchestrators",
+        "assembly",
+        "api",
+    ]
+    FRAMEWORK_PACKAGE: ClassVar[str] = "baseline_common.framework."
 
-    @pytest.mark.parametrize("layer", ["core", "data_schema", "service", "orchestrator"])
+    @pytest.mark.parametrize("layer", ORDER[:-1])
     def test__a_layer__never_imports_a_layer_above_it(self, source: str, layer: str) -> None:
-        """Dependencies point down only: api → orchestrator → service → data_schema → core."""
+        """Dependencies point down only, from the entry points to the framework."""
         above = self.ORDER[self.ORDER.index(layer) + 1 :]
         rule = project_layers(source)
 
@@ -41,16 +48,16 @@ class TestLayers:
         assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*above))
 
     @classmethod
-    def imports_only_its_core_module(cls, file: FileInfo) -> bool:
-        """Whether a core file imports no core module other than its own.
+    def imports_only_its_framework_module(cls, file: FileInfo) -> bool:
+        """Whether a framework file imports no framework module other than its own.
 
         Args:
             file: The file read by ArchUnitPython.
 
         Returns:
-            True when every core import it makes is of its own module.
+            True when every framework import it makes is of its own module.
         """
-        inside = Path(file.path).as_posix().split("/baseline_common/core/", 1)[1]
+        inside = Path(file.path).as_posix().split("/baseline_common/framework/", 1)[1]
         own = inside.split("/", 1)[0]
         names: list[str] = []
 
@@ -61,17 +68,17 @@ class TestLayers:
             elif isinstance(node, ast.ImportFrom) and node.module is not None:
                 names += [node.module]
 
-        imported = {name.split(".")[2] for name in names if name.startswith(cls.CORE_PACKAGE)}
+        imported = {name.split(".")[2] for name in names if name.startswith(cls.FRAMEWORK_PACKAGE)}
 
         return imported <= {own}
 
-    def test__each_core_module__imports_no_other_core_module(self, source: str) -> None:
-        """A project copies one core module alone, so it imports no other."""
+    def test__each_framework_module__imports_no_other_one(self, source: str) -> None:
+        """A project copies one framework module alone, so it imports no other."""
         rule = (
             project_files(source)
-            .in_path(self.CORE)
+            .in_path(self.FRAMEWORK)
             .should()
-            .adhere_to(self.imports_only_its_core_module, "imports another core module")
+            .adhere_to(self.imports_only_its_framework_module, "imports another framework module")
         )
 
         assert_passes(rule)
@@ -124,13 +131,13 @@ class TestForbiddenImports:
         r"^(ecolopharm_sales|cegep_mv_schedule|project_assembly|recom_graphml"
         r"|benny_order_vision|munera_poc)(\.|$)"
     )
-    # the specialised repositories read baseline-common, never the reverse
     SPECIALISED_PACKAGES: ClassVar[re.Pattern[str]] = re.compile(
         r"^baseline_(optimization|ml|llm)(\.|$)"
     )
+    """The specialised repositories: they read baseline-common, never the reverse."""
 
     def test__no_source_file__imports_a_client_project(self, source: str) -> None:
-        """Core and its examples are generic: no file imports a client project's package."""
+        """The framework and its examples are generic: no file imports a client project's package."""
         rule = (
             project_files(source)
             .in_path("*/baseline_common/*")

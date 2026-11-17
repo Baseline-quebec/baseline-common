@@ -235,17 +235,17 @@ api = [
     { name = "pydantic-settings" },
     { name = "uvicorn" },
 ]
-gateway = [
-    { name = "httpx" },
-    { name = "loguru" },
-    { name = "pydantic" },
-]
 graph = [
     { name = "networkx" },
     { name = "pydantic" },
 ]
 graph-plot = [
     { name = "matplotlib" },
+]
+http = [
+    { name = "httpx" },
+    { name = "loguru" },
+    { name = "pydantic" },
 ]
 mongo = [
     { name = "loguru" },
@@ -306,16 +306,16 @@ requires-dist = [
     { name = "dishka", marker = "extra == 'api'", specifier = ">=1.10.1" },
     { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115.0" },
     { name = "httpx", marker = "extra == 'api'", specifier = ">=0.28.0" },
-    { name = "httpx", marker = "extra == 'gateway'", specifier = ">=0.28.0" },
+    { name = "httpx", marker = "extra == 'http'", specifier = ">=0.28.0" },
     { name = "loguru", marker = "extra == 'api'", specifier = ">=0.7.3" },
-    { name = "loguru", marker = "extra == 'gateway'", specifier = ">=0.7.3" },
+    { name = "loguru", marker = "extra == 'http'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'mongo'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'qdrant'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'weaviate'", specifier = ">=0.7.3" },
     { name = "matplotlib", marker = "extra == 'graph-plot'", specifier = ">=3.10.0" },
     { name = "networkx", marker = "extra == 'graph'", specifier = ">=3.6.1" },
-    { name = "pydantic", marker = "extra == 'gateway'", specifier = ">=2.10.0" },
     { name = "pydantic", marker = "extra == 'graph'", specifier = ">=2.10.0" },
+    { name = "pydantic", marker = "extra == 'http'", specifier = ">=2.10.0" },
     { name = "pydantic", marker = "extra == 'mongo'", specifier = ">=2.10.0" },
     { name = "pydantic-ai-slim", marker = "extra == 'qdrant'", specifier = ">=1.0" },
     { name = "pydantic-ai-slim", marker = "extra == 'weaviate'", specifier = ">=1.0" },
@@ -327,7 +327,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.34.0" },
     { name = "weaviate-client", marker = "extra == 'weaviate'", specifier = ">=4.10.0" },
 ]
-provides-extras = ["graph", "graph-plot", "qdrant", "weaviate", "mongo", "gateway", "sql", "postgres", "sqlserver", "api"]
+provides-extras = ["graph", "graph-plot", "qdrant", "weaviate", "mongo", "http", "sql", "postgres", "sqlserver", "api"]
 
 [package.metadata.requires-dev]
 test = [

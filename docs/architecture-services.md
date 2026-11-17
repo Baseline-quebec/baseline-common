@@ -14,11 +14,12 @@ Les data models sont uniquement de la donnée. La logique métier vit dans les s
 
 ## Types de classes
 
-- **Data Models** — objets de données purs, sans logique métier. Représentent les entités du domaine sous forme de structures sérialisables. Ceux que plusieurs services ou couches partagent vivent dans `data_schema/` ; celui qu'une seule classe utilise reste dans son fichier (définition complète dans le `README.md`).
+- **Data Models** — objets de données purs, sans logique métier. Représentent les entités du domaine sous forme de structures sérialisables. Ceux que plusieurs services ou couches partagent vivent dans `models/` ; celui qu'une seule classe utilise reste dans son fichier (définition complète dans le `README.md`).
 - **Services** — portent la logique métier. Chaque service cible **une seule entité de données** (ex : `UserService` gère les `User`).
-- **Orchestrateurs** — coordonnent plusieurs services quand un flot implique plusieurs entités. Un orchestrateur par flot métier (ex : `OnboardingOrchestrator` appelle `UserService`, `TeamService`, `NotificationService`).
+- **Orchestrateurs** — le pipeline d'un processus : ils enchaînent plusieurs services quand un flot implique plusieurs entités. Un orchestrateur par flot métier (ex : `OnboardingOrchestrator` appelle `UserService`, `TeamService`, `NotificationService`). Une ou deux méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API).
 - **Repositories** — sérialisent et persistent les data models. Un repository par entité.
-- **Adapters** — isolent chaque système externe derrière une interface
+- **Adapters** — lisent un enregistrement dans la forme d'un système externe et rendent celui du domaine. Ils vivent dans le dossier du service, `services/<sujet>/<source>_adapter.py`, et sont optionnels : dans 90 à 95 % des cas, un schéma de source à `AliasPath` suffit (définition complète dans le `README.md`).
+- **Assembly** — la composition : les providers Dishka qui disent comment construire les services. Chaque point d'entrée (`api/`, `cli/`) construit son conteneur à partir d'eux. Elle ne contient aucune logique.
 
 ## Noyau d'un module
 
@@ -95,7 +96,7 @@ Ne lister que les patterns **effectivement utilisés** avec leur justification. 
 - **Service Layer** — logique métier par entité, point d'entrée pour les cas d'utilisation
 - **Orchestrator** — coordination de plusieurs services pour un flot multi-entités
 - **Adapter/Client** — isolation d'un système externe derrière une interface interne
-- **Dependency Injection** — câblage des services, repositories et adapters dans les endpoints
+- **Dependency Injection** — câblage des services et des repositories dans les endpoints, déclaré dans `assembly/`
 - **Strategy** — plusieurs algorithmes interchangeables pour un même comportement
 - **Observer/Events** — découplage entre producteur et consommateur d'événements
 
