@@ -253,9 +253,13 @@ nom d'un dossier parent ne change rien à ce qu'ils voient. Le nom du paquet n'y
 dans la fixture `package` : un dépôt spécialisé qui copie l'essai change ce nom et la liste des
 dépôts qu'il n'importe pas.
 
-- Aucun fichier à la racine du paquet, hors `__init__.py` : tout vit dans le dossier d'une couche.
+- Tout fichier vit dans le dossier d'une couche. À la racine du paquet ne restent que son
+  `__init__.py` et des fichiers qui ne sont pas du Python (`py.typed`) ; tout autre dossier, et
+  tout `.py` qu'il contient, fait échouer l'essai.
 - Les dépendances ne descendent que dans un sens :
   `api, cli → assembly → orchestrators → services → models → framework`.
+  - Les points d'entrée (`api`, `cli`) sont au même rang : aucun n'importe l'autre.
+  - Un projet ajoute les siens à ce rang, dans `ORDER` (un `worker` à côté de `api` et de `cli`).
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
   <module>` compris.
 - Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`).

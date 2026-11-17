@@ -50,38 +50,51 @@ def root(source: str, package: str) -> str:
 
 
 class TestLayers:
-    ORDER: ClassVar[list[str]] = [
-        "framework",
-        "models",
-        "services",
-        "orchestrators",
-        "assembly",
-        "api",
+    ORDER: ClassVar[list[list[str]]] = [
+        ["framework"],
+        ["models"],
+        ["services"],
+        ["orchestrators"],
+        ["assembly"],
+        ["api", "cli"],
     ]
+    """The layers by rank, lowest first; a project adds its entry points beside `api` and `cli`."""
+    LAYERS: ClassVar[list[str]] = [layer for rank in ORDER for layer in rank]
+    """Every layer folder a file may live in."""
 
-    def test__the_package_root__holds_only_its_init(self, source: str, root: str) -> None:
-        """Every other file lives in a layer folder, where the layer rules see it."""
+    def test__every_python_file__lives_in_a_layer(self, source: str, root: str) -> None:
+        """Only the package's own `__init__.py` sits outside the layer folders the rules read."""
+        layers = "|".join(self.LAYERS)
         rule = (
             project_files(source)
-            .in_path(re.compile(f"{root}[^/]+$"))
+            .in_path(re.compile(root))
             .should()
-            .have_name(re.compile(r"^__init__\.py$"))
+            .be_in_path(re.compile(rf"{root}(__init__\.py$|({layers})/)"))
         )
 
         assert_passes(rule)
 
-    @pytest.mark.parametrize("layer", ORDER[:-1])
-    def test__a_layer__never_imports_a_layer_above_it(
+    def test__the_package_root__holds_no_folder_but_the_layers(
+        self, source: str, package: str
+    ) -> None:
+        """Non-Python files such as `py.typed` may sit at the root; a folder there is a layer."""
+        folders = {entry.name for entry in Path(source, package).iterdir() if entry.is_dir()}
+
+        assert folders - {*self.LAYERS, "__pycache__"} == set()
+
+    @pytest.mark.parametrize("layer", LAYERS)
+    def test__a_layer__imports_no_layer_above_or_beside_it(
         self, source: str, root: str, layer: str
     ) -> None:
-        """Dependencies point down only, from the entry points to the framework."""
-        above = self.ORDER[self.ORDER.index(layer) + 1 :]
+        """Dependencies point down only; the entry points, side by side, ignore each other."""
+        rank = next(index for index, names in enumerate(self.ORDER) if layer in names)
+        forbidden = [name for names in self.ORDER[rank:] for name in names if name != layer]
         rule = project_layers(source)
 
-        for name in [layer, *above]:
+        for name in [layer, *forbidden]:
             rule = rule.layer(name).defined_by(re.compile(f"{root}{name}/"))
 
-        assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*above))
+        assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*forbidden))
 
     @staticmethod
     def imports_only_its_framework_module(file: FileInfo, source: str, package: str) -> bool:
