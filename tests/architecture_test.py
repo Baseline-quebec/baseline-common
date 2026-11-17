@@ -370,3 +370,80 @@ class TestNaming:
         )
 
         assert_passes(rule)
+
+
+class TestRepositories:
+    READ: ClassVar[str] = "AbstractReadRepository"
+    """The contract of a class that reads."""
+    WRITE: ClassVar[str] = "AbstractWriteRepository"
+    """The contract of a class that writes."""
+    WHOLE: ClassVar[list[str]] = ["InMemoryRepository"]
+    """Implements both contracts in one class: a substitute for the tests, with no store to split."""
+
+    @staticmethod
+    def bases(folder: Path) -> dict[str, list[str]]:
+        """The direct bases of each class defined under a folder, by name.
+
+        Args:
+            folder: The folder read, its subfolders included.
+
+        Returns:
+            Each class's name, with the names of its direct bases, their type arguments dropped.
+        """
+        classes: dict[str, list[str]] = {}
+
+        for path in folder.rglob("*.py"):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.ClassDef):
+                    bases = [b.value if isinstance(b, ast.Subscript) else b for b in node.bases]
+                    classes[node.name] = [ast.unparse(base).rsplit(".", 1)[-1] for base in bases]
+
+        return classes
+
+    @staticmethod
+    def ancestors(name: str, classes: dict[str, list[str]]) -> set[str]:
+        """Every class a class inherits from, through the classes known by name.
+
+        Args:
+            name: The class.
+            classes: The direct bases of each known class.
+
+        Returns:
+            Its ancestors' names.
+        """
+        found: set[str] = set()
+        pending = list(classes.get(name, []))
+
+        while pending:
+            base = pending.pop()
+
+            if base not in found:
+                found.add(base)
+                pending += classes.get(base, [])
+
+        return found
+
+    def test__each_store__provides_a_read_a_write_and_a_combined_class(
+        self, source: str, package: str
+    ) -> None:
+        """A store's combined class inherits its read class and its write class, and each has one."""
+        classes = self.bases(Path(source, package, "framework", "repository"))
+        sides = {
+            name: {self.READ, self.WRITE} & self.ancestors(name, classes)
+            for name in classes
+            if not name.startswith("Abstract")
+        }
+        readers = {name for name, side in sides.items() if side == {self.READ}}
+        writers = {name for name, side in sides.items() if side == {self.WRITE}}
+        combined = {name for name, side in sides.items() if len(side) == 2} - set(self.WHOLE)
+        unpaired = [
+            name
+            for name in sorted(combined)
+            if not (readers & set(classes[name]) and writers & set(classes[name]))
+        ]
+        halves = {base for name in combined for base in classes[name]}
+
+        assert unpaired == [], "combined without both a read class and a write class"
+        assert sorted((readers | writers) - halves) == [], (
+            "read or write class with no combined one"
+        )
