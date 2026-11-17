@@ -32,8 +32,10 @@ class InvoicedTotal(BaseModel):
     net_amount: Decimal = Field(alias="montant_net", allow_inf_nan=False)
 
 
+# How the scripted Fidelio server answers; `ViewOf` and the gateway it builds take one.
 type Handler = Callable[[httpx.Request], httpx.Response]
 
+# The signature of the `view_of` fixture, which every test of the file annotates.
 type ViewOf = Callable[[Handler], ReadGateway[InvoicedTotal]]
 
 

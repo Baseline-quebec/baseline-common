@@ -36,9 +36,6 @@ from baseline_common.framework.repository.vectorstore.weaviate.weaviate_write_re
 )
 
 
-type WeaviateObject = Object[dict[str, Any], None]
-
-
 class Machine(VectorDocument):
     """A machine of a workshop, with a field of each Weaviate data type."""
 
@@ -68,7 +65,7 @@ class WeaviateDouble:
 
     def __init__(self) -> None:
         """Wire the mocked client and collection to the objects held."""
-        self.objects: dict[str, WeaviateObject] = {}
+        self.objects: dict[str, Object[dict[str, Any], None]] = {}
         self.collection = MagicMock()
         self.collection.with_tenant.return_value = self.collection
         self.collection.query.fetch_objects = AsyncMock(side_effect=self.fetch_objects)
@@ -85,7 +82,9 @@ class WeaviateDouble:
         self.client.collections.delete = AsyncMock()
 
     @staticmethod
-    def stored(properties: dict[str, Any], vector: list[float] | None = None) -> WeaviateObject:
+    def stored(
+        properties: dict[str, Any], vector: list[float] | None = None
+    ) -> Object[dict[str, Any], None]:
         """Build an object as Weaviate returns it.
 
         Args:
@@ -104,7 +103,7 @@ class WeaviateDouble:
             collection="Machines",
         )
 
-    def by_id(self, id_: str) -> WeaviateObject:
+    def by_id(self, id_: str) -> Object[dict[str, Any], None]:
         """Find a held object by its id_.
 
         Args:
@@ -217,7 +216,7 @@ class WeaviateDouble:
             properties={}, total_count=len(self.objects) if total_count else None
         )
 
-    async def iterator(self) -> AsyncIterator[WeaviateObject]:
+    async def iterator(self) -> AsyncIterator[Object[dict[str, Any], None]]:
         """Iterate over every object held.
 
         Yields:

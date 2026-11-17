@@ -26,7 +26,9 @@ class ZohoAccount(BaseModel):
     postal_code: str | None = Field(None, alias="Billing_Code")
 
 
+# The signature of the `reads_of` fixture, which it and every test using it annotate.
 type ReadsOf = Callable[[ScriptedServer], ReadGateway[ZohoAccount]]
+# The signature of the `writes_of` fixture, which it and every test using it annotate.
 type WritesOf = Callable[..., WriteGateway[ZohoAccount]]
 
 
