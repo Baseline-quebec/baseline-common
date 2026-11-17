@@ -93,7 +93,8 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
         repeated = {id_ for id_ in ids if ids.count(id_) > 1} | await self._held_ids(ids)
 
         if repeated:
-            raise DuplicateRecordError(", ".join(sorted(repeated)))
+            msg = f"already held: {', '.join(sorted(repeated))}"
+            raise DuplicateRecordError(msg)
 
         async with self._atomically():
             self._reads.session.add_all(scoped)

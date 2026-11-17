@@ -46,10 +46,10 @@ class TestInsert:
         await machine_writes.insert_one(held)
         twin = Machine(serial="S-2")
 
-        with pytest.raises(DuplicateRecordError):
+        with pytest.raises(DuplicateRecordError, match=f"already held: {held.id}"):
             await machine_writes.insert_one(Machine(id=held.id, serial="S-3"))
 
-        with pytest.raises(DuplicateRecordError):
+        with pytest.raises(DuplicateRecordError, match=f"already held: {twin.id}"):
             await machine_writes.insert_many([twin, Machine(id=twin.id, serial="S-4")])
 
     @staticmethod
