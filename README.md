@@ -262,6 +262,9 @@ dépôts qu'il n'importe pas.
   - Un projet ajoute les siens à ce rang, dans `ORDER` (un `worker` à côté de `api` et de `cli`).
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
   <module>` compris.
+- Aucun import d'un paquet entier, le sien ou un autre de Baseline (`from baseline_common import
+  api`, `import baseline_common`) : il cacherait la couche atteinte. On importe le module par son
+  chemin.
 - Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`).
 - Aucun cycle d'import.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).

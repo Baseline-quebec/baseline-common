@@ -192,6 +192,50 @@ class TestForbiddenImports:
         r"^baseline_(optimization|ml|llm)(\.|$)"
     )
     """The specialised repositories: they read baseline-common, never the reverse."""
+    BASELINE_PACKAGES: ClassVar[list[str]] = [
+        "baseline_common",
+        "baseline_ml",
+        "baseline_llm",
+        "baseline_optimization",
+    ]
+    """Baseline's packages; a file names their modules, never one of them, nor `package`, alone."""
+
+    @staticmethod
+    def imports_no_package_whole(file: FileInfo, packages: set[str]) -> bool:
+        """Whether a file imports modules by their path, never one of the packages alone.
+
+        Args:
+            file: The file read by ArchUnitPython.
+            packages: The packages a file may not import whole.
+
+        Returns:
+            True when no `import <package>` nor `from <package> import <name>` names one of them.
+        """
+        modules: list[str | None] = []
+
+        for node in ast.walk(ast.parse(file.content)):
+            if isinstance(node, ast.Import):
+                modules += [alias.name for alias in node.names]
+
+            elif isinstance(node, ast.ImportFrom):
+                modules += [node.module]
+
+        return packages.isdisjoint(modules)
+
+    def test__no_source_file__imports_a_package_whole(
+        self, source: str, package: str, root: str
+    ) -> None:
+        """`from <package> import api` hides the layer it reaches from the layer rules."""
+        packages = {package, *self.BASELINE_PACKAGES}
+        condition = partial(self.imports_no_package_whole, packages=packages)
+        rule = (
+            project_files(source)
+            .in_path(re.compile(root))
+            .should()
+            .adhere_to(condition, "imports a package whole instead of naming its module")
+        )
+
+        assert_passes(rule)
 
     def test__no_source_file__imports_a_client_project(self, source: str, root: str) -> None:
         """The framework and its examples are generic: no file imports a client project's package."""
