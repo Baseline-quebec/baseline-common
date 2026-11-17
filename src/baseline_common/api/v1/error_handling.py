@@ -12,6 +12,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from baseline_common.framework.repository.abstract_repository import (
+    DuplicateRecordError,
+    RecordNotFoundError,
+)
+
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
     """Convert uncaught exceptions into structured French JSON error responses."""
@@ -27,10 +32,24 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             call_next: The rest of the app.
 
         Returns:
-            The app's response; 501 for a feature not yet built; 500 for any other exception.
+            The app's response; 404 for a record not held, 409 for an id already held, 501
+            for a feature not yet built, 500 for any other exception.
         """
         try:
             return await call_next(request)
+
+        except RecordNotFoundError:
+            logger.warning("A request named a record the backend does not hold.")
+            return JSONResponse(
+                status_code=HTTPStatus.NOT_FOUND, content={"error": "Enregistrement introuvable."}
+            )
+
+        except DuplicateRecordError:
+            logger.warning("A request gave a record an id the backend already holds.")
+            return JSONResponse(
+                status_code=HTTPStatus.CONFLICT,
+                content={"error": "Un enregistrement porte déjà cet identifiant."},
+            )
 
         except NotImplementedError:
             logger.warning("Unimplemented feature requested.")
@@ -55,6 +74,7 @@ class FrenchValidationError(RequestValidationError):
         "string_type": "Une chaîne de caractères est attendue.",
         "string_too_short": "La valeur est trop courte.",
         "string_too_long": "La valeur est trop longue.",
+        "too_long": "La liste est trop longue.",
         "int_type": "Un entier est attendu.",
         "int_parsing": "Entier invalide.",
         "float_type": "Un nombre décimal est attendu.",

@@ -7,6 +7,10 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from baseline_common.api.v1.error_handling import ExceptionHandlerMiddleware, FrenchValidationError
+from baseline_common.framework.repository.abstract_repository import (
+    DuplicateRecordError,
+    RecordNotFoundError,
+)
 from tests.api.v1.probe_router import ProbeRouter
 
 
@@ -30,6 +34,16 @@ class TestExceptionHandlerMiddleware:
         ("failure", "code", "error"),
         [
             (
+                RecordNotFoundError("no record 42"),
+                status.HTTP_404_NOT_FOUND,
+                "Enregistrement introuvable.",
+            ),
+            (
+                DuplicateRecordError("ids already held: 42"),
+                status.HTTP_409_CONFLICT,
+                "Un enregistrement porte déjà cet identifiant.",
+            ),
+            (
                 NotImplementedError(),
                 status.HTTP_501_NOT_IMPLEMENTED,
                 "Cette fonctionnalité n'est pas encore disponible.",
@@ -40,7 +54,7 @@ class TestExceptionHandlerMiddleware:
     def test__an_uncaught_exception__is_answered_in_french_json(
         self, failure: Exception, code: int, error: str
     ) -> None:
-        """A feature not yet built answers 501; anything else answers 500, its cause kept out."""
+        """A known failure answers its own status; anything else answers 500, its cause kept out."""
         client = self.probe_client(failure)
 
         response = client.get("/fail")
