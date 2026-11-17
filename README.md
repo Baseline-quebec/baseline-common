@@ -244,11 +244,16 @@ Un module entre s'il remplit **toutes** ces conditions.
 ## Règles d'architecture
 
 `tests/architecture_test.py` (ArchUnitPython) les vérifie. Une règle qui échoue se corrige dans le
-code, jamais en affaiblissant l'essai.
+code, jamais en affaiblissant l'essai. Ses motifs partent du dossier du paquet, sous `src/` : le
+nom d'un dossier parent ne change rien à ce qu'ils voient. Le nom du paquet n'y figure qu'une fois,
+dans la fixture `package` : un dépôt spécialisé qui copie l'essai change ce nom et la liste des
+dépôts qu'il n'importe pas.
 
+- Aucun fichier à la racine du paquet, hors `__init__.py` : tout vit dans le dossier d'une couche.
 - Les dépendances ne descendent que dans un sens :
   `api, cli → assembly → orchestrators → services → models → framework`.
-- Les modules de `framework/` ne s'importent pas entre eux.
+- Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
+  <module>` compris.
 - Aucun import d'un dépôt spécialisé (`baseline_optimization`, `baseline_ml`, `baseline_llm`).
 - Aucun cycle d'import.
 - Aucun import d'un paquet client (`ecolopharm_sales`, `cegep_mv_schedule`, etc.).

@@ -1,5 +1,6 @@
 import ast
 import re
+from functools import partial
 from pathlib import Path
 from typing import ClassVar
 
@@ -15,17 +16,40 @@ from archunitpython.files.assertion.custom_file_logic import FileInfo
 
 
 @pytest.fixture
+def package() -> str:
+    """The package these rules check, its name written here only for a copy in another repo.
+
+    Returns:
+        Its import name.
+    """
+    return "baseline_common"
+
+
+@pytest.fixture
 def source() -> str:
     """The `src` folder, the root the import graph is read from.
 
     Returns:
-        Its path.
+        Its absolute path, written as ArchUnitPython writes the paths of the files it reads.
     """
-    return str(Path(__file__).parents[1] / "src")
+    return (Path(__file__).parents[1] / "src").absolute().as_posix()
+
+
+@pytest.fixture
+def root(source: str, package: str) -> str:
+    """The start of every path pattern: the package's folder, so no parent folder's name matches.
+
+    Args:
+        source: The `src` folder.
+        package: The package these rules check.
+
+    Returns:
+        A regular expression anchored on the package's folder, its trailing slash included.
+    """
+    return "^" + re.escape(f"{source}/{package}/")
 
 
 class TestLayers:
-    FRAMEWORK: ClassVar[str] = "*/baseline_common/framework/*"
     ORDER: ClassVar[list[str]] = [
         "framework",
         "models",
@@ -34,31 +58,45 @@ class TestLayers:
         "assembly",
         "api",
     ]
-    FRAMEWORK_PACKAGE: ClassVar[str] = "baseline_common.framework."
+
+    def test__the_package_root__holds_only_its_init(self, source: str, root: str) -> None:
+        """Every other file lives in a layer folder, where the layer rules see it."""
+        rule = (
+            project_files(source)
+            .in_path(re.compile(f"{root}[^/]+$"))
+            .should()
+            .have_name(re.compile(r"^__init__\.py$"))
+        )
+
+        assert_passes(rule)
 
     @pytest.mark.parametrize("layer", ORDER[:-1])
-    def test__a_layer__never_imports_a_layer_above_it(self, source: str, layer: str) -> None:
+    def test__a_layer__never_imports_a_layer_above_it(
+        self, source: str, root: str, layer: str
+    ) -> None:
         """Dependencies point down only, from the entry points to the framework."""
         above = self.ORDER[self.ORDER.index(layer) + 1 :]
         rule = project_layers(source)
 
         for name in [layer, *above]:
-            rule = rule.layer(name).defined_by(f"*/baseline_common/{name}/*")
+            rule = rule.layer(name).defined_by(re.compile(f"{root}{name}/"))
 
         assert_passes(rule.where_layer(layer).may_not_depend_on_layers(*above))
 
-    @classmethod
-    def imports_only_its_framework_module(cls, file: FileInfo) -> bool:
+    @staticmethod
+    def imports_only_its_framework_module(file: FileInfo, source: str, package: str) -> bool:
         """Whether a framework file imports no framework module other than its own.
 
         Args:
             file: The file read by ArchUnitPython.
+            source: The `src` folder.
+            package: The package these rules check.
 
         Returns:
             True when every framework import it makes is of its own module.
         """
-        inside = Path(file.path).as_posix().split("/baseline_common/framework/", 1)[1]
-        own = inside.split("/", 1)[0]
+        own = Path(file.path).relative_to(Path(source, package, "framework")).parts[0]
+        prefix = f"{package}.framework."
         names: list[str] = []
 
         for node in ast.walk(ast.parse(file.content)):
@@ -66,19 +104,25 @@ class TestLayers:
                 names += [alias.name for alias in node.names]
 
             elif isinstance(node, ast.ImportFrom) and node.module is not None:
-                names += [node.module]
+                # `from <package>.framework import <module>` names the module in the alias only.
+                names += [f"{node.module}.{alias.name}" for alias in node.names]
 
-        imported = {name.split(".")[2] for name in names if name.startswith(cls.FRAMEWORK_PACKAGE)}
+        imported = {
+            name.removeprefix(prefix).split(".")[0] for name in names if name.startswith(prefix)
+        }
 
         return imported <= {own}
 
-    def test__each_framework_module__imports_no_other_one(self, source: str) -> None:
+    def test__each_framework_module__imports_no_other_one(
+        self, source: str, package: str, root: str
+    ) -> None:
         """A project copies one framework module alone, so it imports no other."""
+        condition = partial(self.imports_only_its_framework_module, source=source, package=package)
         rule = (
             project_files(source)
-            .in_path(self.FRAMEWORK)
+            .in_path(re.compile(f"{root}framework/"))
             .should()
-            .adhere_to(self.imports_only_its_framework_module, "imports another framework module")
+            .adhere_to(condition, "imports another framework module")
         )
 
         assert_passes(rule)
@@ -136,11 +180,11 @@ class TestForbiddenImports:
     )
     """The specialised repositories: they read baseline-common, never the reverse."""
 
-    def test__no_source_file__imports_a_client_project(self, source: str) -> None:
+    def test__no_source_file__imports_a_client_project(self, source: str, root: str) -> None:
         """The framework and its examples are generic: no file imports a client project's package."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_common/*")
+            .in_path(re.compile(root))
             .should_not()
             .depend_on_external_modules()
             .matching(self.CLIENT_PACKAGES)
@@ -148,11 +192,13 @@ class TestForbiddenImports:
 
         assert_passes(rule)
 
-    def test__no_source_file__imports_a_specialised_repository(self, source: str) -> None:
+    def test__no_source_file__imports_a_specialised_repository(
+        self, source: str, root: str
+    ) -> None:
         """Dependencies between repositories point to baseline-common, never from it."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_common/*")
+            .in_path(re.compile(root))
             .should_not()
             .depend_on_external_modules()
             .matching(self.SPECIALISED_PACKAGES)
@@ -198,11 +244,11 @@ class TestNaming:
             isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) for node in body
         )
 
-    def test__a_package__re_exports_nothing(self, source: str) -> None:
+    def test__a_package__re_exports_nothing(self, source: str, root: str) -> None:
         """An ``__init__.py`` holds a docstring only: importing a name loads only its own file."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_common/*")
+            .in_path(re.compile(root))
             .with_name("__init__.py")
             .should()
             .adhere_to(self.holds_only_a_docstring, "imports or defines something")
@@ -211,12 +257,12 @@ class TestNaming:
         assert_passes(rule)
 
     def test__an_abstract_file__defines_the_abstract_class_it_is_named_after(
-        self, source: str
+        self, source: str, root: str
     ) -> None:
         """A file `abstract_<name>.py` holds the ABC `Abstract…<Name>`."""
         rule = (
             project_files(source)
-            .in_path("*/baseline_common/*")
+            .in_path(re.compile(root))
             .with_name(re.compile(r"^abstract_\w+\.py$"))
             .should()
             .adhere_to(self.defines_its_abstract_class, "defines no class Abstract…<Name>")
