@@ -21,6 +21,7 @@ from baseline_common.framework.repository.sql.sql_read_repository import SqlRead
 from baseline_common.framework.repository.sql.sql_write_repository import SqlWriteRepository
 from tests.framework.repository.sql.workshop_tables import (
     Bench,
+    Clamp,
     Hall,
     Machine,
     Part,
@@ -385,6 +386,44 @@ class TestScope:
         assert renamed is not None
         assert (kept.hall_id, kept.name) == (quebec_hall.id, "vise")
         assert (renamed.hall_id, renamed.name) == (montreal_hall.id, "press")
+
+    @staticmethod
+    async def test__a_grandchild_held_in_another_scope__is_refused_and_kept(
+        session: AsyncSession,
+    ) -> None:
+        """A clamp is in the scope of its bench's hall; Montréal still rewrites its own clamp."""
+        quebec = SqlWriteRepository(SqlReadRepository(session, Hall, scope={"site": "Québec"}))
+        montreal = SqlWriteRepository(SqlReadRepository(session, Hall, scope={"site": "Montréal"}))
+        quebec_clamp, montreal_clamp = Clamp(name="vise"), Clamp(name="vise")
+        quebec_bench = Bench(clamps=[quebec_clamp])
+        await quebec.insert_one(Hall(benches=[quebec_bench]))
+        bench = Bench(clamps=[montreal_clamp])
+        hall = Hall(benches=[bench])
+        await montreal.insert_one(hall)
+
+        with pytest.raises(DuplicateRecordError, match=f"already held: {quebec_clamp.id}"):
+            await montreal.upsert_one(Hall(benches=[Bench(clamps=[Clamp(id=quebec_clamp.id)])]))
+
+        await montreal.upsert_one(
+            Hall(
+                id=hall.id,
+                benches=[
+                    Bench(
+                        id=bench.id,
+                        hall_id=hall.id,
+                        clamps=[Clamp(id=montreal_clamp.id, bench_id=bench.id, name="press")],
+                    )
+                ],
+            )
+        )
+
+        clamps = SqlReadRepository(session, Clamp)
+        kept = await clamps.get_by_id(str(quebec_clamp.id))
+        renamed = await clamps.get_by_id(str(montreal_clamp.id))
+        assert kept is not None
+        assert renamed is not None
+        assert (kept.bench_id, kept.name) == (quebec_bench.id, "vise")
+        assert (renamed.bench_id, renamed.name) == (bench.id, "press")
 
     @staticmethod
     async def test__an_owned_row_of_the_same_table__is_held_in_its_own_scope(

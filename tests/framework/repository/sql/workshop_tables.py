@@ -1,4 +1,4 @@
-"""The tables of the SQL repository tests: machines, their parts, tools, halls and racks."""
+"""The tables of the SQL repository tests: machines and parts, tools, halls and racks."""
 
 import uuid
 from datetime import datetime
@@ -92,6 +92,19 @@ class Bench(WorkshopTable, table=True):
     """The bench's id."""
     hall_id: uuid.UUID | None = Field(default=None, foreign_key="hall.id")
     """The hall that owns it."""
+    name: str = ""
+    """Its name."""
+    clamps: list["Clamp"] = Relationship(sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    """The clamps it owns."""
+
+
+class Clamp(WorkshopTable, table=True):
+    """A clamp of a bench, two levels under the hall that carries the site."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    """The clamp's id."""
+    bench_id: uuid.UUID | None = Field(default=None, foreign_key="bench.id")
+    """The bench that owns it."""
     name: str = ""
     """Its name."""
 
