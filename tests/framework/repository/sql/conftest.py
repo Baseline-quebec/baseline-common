@@ -104,6 +104,19 @@ def machine_reads(session: AsyncSession) -> SqlReadRepository[Machine]:
 
 
 @pytest.fixture
+def quebec_reads(session: AsyncSession) -> SqlReadRepository[Machine]:
+    """Reads the machines of the Québec site.
+
+    Args:
+        session: The test's session.
+
+    Returns:
+        The reader.
+    """
+    return SqlReadRepository(session, Machine, scope={"site": "Québec"})
+
+
+@pytest.fixture
 def machine_writes(machine_reads: SqlReadRepository[Machine]) -> SqlWriteRepository[Machine]:
     """Writes the machines of the Montréal site.
 

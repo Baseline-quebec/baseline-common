@@ -3,12 +3,13 @@
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from itertools import batched
-from typing import ClassVar, Self, cast
+from itertools import batched, starmap
+from typing import Any, ClassVar, Self, cast
 
-from sqlalchemy import ColumnElement, Table, delete, select
+from sqlalchemy import ColumnElement, Table, and_, delete, exists, or_, select
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import Mapper, RelationshipDirection, RelationshipProperty
 from sqlmodel import SQLModel
 
 from baseline_common.framework.repository.abstract_repository import (
@@ -102,52 +103,72 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
         return [self._id_of(record) for record in scoped]
 
     async def update_many(self, records: Sequence[T]) -> list[str]:
-        """Replace held rows with the ones of the same ids, owned children included.
+        """Replace rows of the scope with the ones of the same ids, owned children included.
 
         Args:
             records: The rows, as they now are.
 
         Returns:
             Their ids, in order.
+
+        Raises:
+            RecordNotFoundError: When the scope holds no row of an id; nothing is written.
+            DuplicateRecordError: When an owned child's id is held outside the scope; nothing is
+                written.
         """
-        await self._held([self._id_of(record) for record in records])
-        return await self.upsert_many(records)
+        missing = await self._missing([self._id_of(record) for record in records])
+
+        if missing:
+            msg = f"no record {', '.join(missing)}"
+            raise RecordNotFoundError(msg)
+
+        elsewhere = await self._held_elsewhere(records)
+
+        if elsewhere:
+            msg = f"already held: {', '.join(elsewhere)}"
+            raise DuplicateRecordError(msg)
+
+        return await self._merged(records)
 
     async def upsert_many(self, records: Sequence[T]) -> list[str]:
         """Insert rows, each replacing the row of the same id, owned children included.
 
-        An id held outside the scope is a ``DuplicateRecordError``, before any write: a scoped
-        upsert never moves a row from one scope to another.
-
         Args:
             records: The rows, as they now are.
 
         Returns:
             Their ids, in order.
+
+        Raises:
+            DuplicateRecordError: When the key a row or an owned child is merged on is held
+                outside the scope, so the upsert would move it; nothing is written.
         """
-        await self._not_held_elsewhere([self._id_of(record) for record in records])
-        scoped = [self._scoped(record) for record in records]
+        elsewhere = await self._held_elsewhere(records)
 
-        async with self._atomically():
-            for record in scoped:
-                self._leave_to_the_database(record)
-                await self._reads.session.merge(record)
+        if elsewhere:
+            msg = f"already held: {', '.join(elsewhere)}"
+            raise DuplicateRecordError(msg)
 
-        return [self._id_of(record) for record in scoped]
+        return await self._merged(records)
 
     async def delete_many(self, ids: list[str]) -> list[str]:
         """Delete rows of the scope; the database applies its ``ON DELETE`` rules.
-
-        An id held only outside the scope is, as one held nowhere, a ``RecordNotFoundError``,
-        before any delete.
 
         Args:
             ids: The rows' ids.
 
         Returns:
             The ids deleted, in order.
+
+        Raises:
+            RecordNotFoundError: When the scope holds no row of an id, though another scope may;
+                nothing is deleted.
         """
-        await self._held(ids, self._reads.in_scope())
+        missing = await self._missing(ids)
+
+        if missing:
+            msg = f"no record {', '.join(missing)}"
+            raise RecordNotFoundError(msg)
 
         async with self._atomically():
             for batch in batched(ids, self.KEYS_PER_STATEMENT):
@@ -184,23 +205,20 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
             raise rejection from error
 
-    async def _held(self, ids: list[str], *conditions: ColumnElement[bool]) -> None:
-        """Raise ``RecordNotFoundError`` unless every id is held where the conditions hold."""
-        missing = set(ids) - await self._held_ids(ids, *conditions)
+    async def _merged(self, records: Sequence[T]) -> list[str]:
+        """Merge rows, put in the scope, each on the row of the same key."""
+        scoped = [self._scoped(record) for record in records]
 
-        if missing:
-            raise RecordNotFoundError(", ".join(sorted(missing)))
+        async with self._atomically():
+            for record in scoped:
+                self._leave_to_the_database(record)
+                await self._reads.session.merge(record)
 
-    async def _not_held_elsewhere(self, ids: list[str]) -> None:
-        """Raise ``DuplicateRecordError`` for an id held out of the scope: no write moves a row."""
-        if not self._reads.scope:
-            return
+        return [self._id_of(record) for record in scoped]
 
-        elsewhere = await self._held_ids(ids) - await self._held_ids(ids, self._reads.in_scope())
-
-        if elsewhere:
-            msg = f"already held: {', '.join(sorted(elsewhere))}"
-            raise DuplicateRecordError(msg)
+    async def _missing(self, ids: list[str]) -> list[str]:
+        """The ids among these the scope does not hold, sorted."""
+        return sorted(set(ids) - await self._held_ids(ids, self._reads.in_scope()))
 
     async def _held_ids(self, ids: list[str], *conditions: ColumnElement[bool]) -> set[str]:
         """The ids among these the table holds, in any scope unless the conditions narrow it."""
@@ -213,6 +231,114 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
         return held
 
+    async def _held_elsewhere(self, records: Sequence[T]) -> list[str]:
+        """The keys merge would match, of these rows or their owned children, held out of scope.
+
+        Merge matches a row on its table's primary key, which may differ from the repository's
+        id, and takes the scope's values where that key holds them.
+        """
+        if not self._reads.scope:
+            return []
+
+        mapper = sa_inspect(self._reads.content_type)
+        names = [mapper.get_property_by_column(column).key for column in mapper.primary_key]
+        keys = [
+            list(starmap(self._reads.scope.get, zip(names, values, strict=True)))
+            for values in (mapper.primary_key_from_instance(record) for record in records)
+        ]
+        return sorted(await self._outside(mapper, records, keys, self._reads.in_scope()))
+
+    async def _outside(
+        self,
+        mapper: Mapper[Any],
+        rows: Sequence[object],
+        keys: Sequence[Sequence[Any]],
+        in_scope: ColumnElement[bool],
+    ) -> set[str]:
+        """The keys of these rows held out of the scope, then of their owned children.
+
+        Args:
+            mapper: Maps the rows' table.
+            rows: The rows named.
+            keys: The primary key merge matches each row on.
+            in_scope: The condition a row of this table meets when the scope holds it.
+
+        Returns:
+            The keys held out of the scope, as text.
+        """
+        outside = await self._held_keys(mapper, keys) - await self._held_keys(
+            mapper, keys, in_scope
+        )
+
+        for relationship in self._owned(mapper):
+            owned = relationship.mapper
+            children = [child for row in rows for child in self._children(row, relationship)]
+
+            if not children:
+                continue
+
+            # A child of the same table meets the scope's condition itself; another, through
+            # its parent.
+            child_in_scope = (
+                in_scope if owned is mapper else exists().where(relationship.primaryjoin, in_scope)
+            )
+            child_keys = [owned.primary_key_from_instance(child) for child in children]
+            outside |= await self._outside(owned, children, child_keys, child_in_scope)
+
+        return outside
+
+    async def _held_keys(
+        self, mapper: Mapper[Any], keys: Sequence[Sequence[Any]], *conditions: ColumnElement[bool]
+    ) -> set[str]:
+        """The primary keys among these the table holds where the conditions hold, as text."""
+        columns = list(mapper.primary_key)
+        known = [key for key in keys if None not in key]
+        held: set[str] = set()
+
+        for batch in batched(known, self.KEYS_PER_STATEMENT // len(columns)):
+            statement = select(*columns).where(self._keys_condition(columns, batch), *conditions)
+            held |= {
+                self._label(tuple(row)) for row in await self._reads.session.execute(statement)
+            }
+
+        return held
+
+    @staticmethod
+    def _keys_condition(
+        columns: list[ColumnElement[Any]], keys: Sequence[Sequence[Any]]
+    ) -> ColumnElement[bool]:
+        """The condition that selects rows by their primary key, of one column or several."""
+        if len(columns) == 1:
+            return columns[0].in_([key[0] for key in keys])
+
+        return or_(
+            *(
+                and_(*(column == value for column, value in zip(columns, key, strict=True)))
+                for key in keys
+            )
+        )
+
+    @staticmethod
+    def _label(key: Sequence[Any]) -> str:
+        """A primary key as text: its value, or its values in parentheses."""
+        return str(key[0]) if len(key) == 1 else f"({', '.join(str(value) for value in key)})"
+
+    @staticmethod
+    def _owned(mapper: Mapper[Any]) -> list[RelationshipProperty[Any]]:
+        """The relationships along which merge writes children this table owns."""
+        return [
+            relationship
+            for relationship in mapper.relationships
+            if relationship.direction is RelationshipDirection.ONETOMANY
+            and relationship.cascade.merge
+        ]
+
+    @staticmethod
+    def _children(record: object, relationship: RelationshipProperty[Any]) -> list[Any]:
+        """The children a record gives along a relationship, none when it gives none."""
+        children = sa_inspect(record).dict.get(relationship.key) or []
+        return children if isinstance(children, list) else [children]
+
     def _leave_to_the_database(self, record: SQLModel) -> None:
         """Unset the empty columns the database fills, here and in owned children, so merge keeps them."""
         state = sa_inspect(record)
@@ -222,9 +348,7 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
                 state.dict.pop(column.key, None)
 
         for relationship in state.mapper.relationships:
-            children = state.dict.get(relationship.key) or []
-
-            for child in children if isinstance(children, list) else [children]:
+            for child in self._children(record, relationship):
                 self._leave_to_the_database(child)
 
     def _scoped(self, record: T) -> T:
