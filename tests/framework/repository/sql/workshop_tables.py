@@ -1,11 +1,11 @@
-"""The tables of the SQL repository tests: machines, their parts, and tools."""
+"""The tables of the SQL repository tests: machines and parts, tools, halls and racks."""
 
 import uuid
 from datetime import datetime
 from typing import ClassVar
 
 from sqlalchemy import CheckConstraint, DateTime, MetaData, func
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class WorkshopTable(SQLModel):
@@ -72,3 +72,51 @@ class Shift(WorkshopTable, table=True):
     """The serial of the machine, half of the key."""
     rank: int = Field(primary_key=True)
     """The shift's rank, the other half of the key."""
+
+
+class Hall(WorkshopTable, table=True):
+    """A hall of a site; it owns its benches, written and deleted with it."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    """The hall's id."""
+    site: str = ""
+    """The site it stands on."""
+    benches: list["Bench"] = Relationship(sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    """The benches it owns."""
+
+
+class Bench(WorkshopTable, table=True):
+    """A bench of a hall; it carries no site of its own."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    """The bench's id."""
+    hall_id: uuid.UUID | None = Field(default=None, foreign_key="hall.id")
+    """The hall that owns it."""
+    name: str = ""
+    """Its name."""
+    clamps: list["Clamp"] = Relationship(sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    """The clamps it owns."""
+
+
+class Clamp(WorkshopTable, table=True):
+    """A clamp of a bench, two levels under the hall that carries the site."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    """The clamp's id."""
+    bench_id: uuid.UUID | None = Field(default=None, foreign_key="bench.id")
+    """The bench that owns it."""
+    name: str = ""
+    """Its name."""
+
+
+class Rack(WorkshopTable, table=True):
+    """A rack of a site; it owns the racks stacked on it, rows of the same table."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    """The rack's id."""
+    site: str = ""
+    """The site it stands on."""
+    base_id: uuid.UUID | None = Field(default=None, foreign_key="rack.id")
+    """The rack it is stacked on."""
+    stacked: list["Rack"] = Relationship(sa_relationship_kwargs={"cascade": "all"})
+    """The racks stacked on it."""

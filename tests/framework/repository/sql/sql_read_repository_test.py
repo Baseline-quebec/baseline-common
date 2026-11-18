@@ -31,14 +31,13 @@ class TestGetById:
 
     @staticmethod
     async def test__another_scope__sees_none_of_the_rows(
-        machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
+        machine_writes: SqlWriteRepository[Machine], quebec_reads: SqlReadRepository[Machine]
     ) -> None:
         """A reader of another site finds neither the row nor any match."""
         (id_,) = await machine_writes.insert_many([Machine(serial="S-1")])
-        other = SqlReadRepository(machine_reads.session, Machine, scope={"site": "Québec"})
 
-        assert await other.get_by_id(id_) is None
-        assert await other.get_by_filters() == []
+        assert await quebec_reads.get_by_id(id_) is None
+        assert await quebec_reads.get_by_filters() == []
 
 
 class TestGetByFilters:
