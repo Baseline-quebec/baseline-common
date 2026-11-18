@@ -3,7 +3,6 @@
 import asyncio
 import multiprocessing
 import os
-import signal
 import time
 from collections.abc import Callable, Iterator
 from functools import partial
@@ -124,17 +123,14 @@ class TestSpawnedProcessPool:
         pool = SpawnedProcessPool(1, hold)
         running = asyncio.ensure_future(pool.run(started))
         process_id = int(await asyncio.to_thread(self.written, started))
-        [busy] = [
-            process for process in multiprocessing.active_children() if process.pid == process_id
-        ]
 
         pool.close()
 
         with pytest.raises(SpawnedProcessDiedError):
             await running
 
-        busy.join(timeout=10)
-        assert busy.exitcode == -signal.SIGTERM
+        # The pool's own thread reaps the process: the test can only see that it is gone.
+        await asyncio.to_thread(self.until, partial(self.has_ended, process_id))
 
     def test__the_parent_s_death__ends_its_pool_process(self, started: Path) -> None:
         """A pool process watches the process that spawned it, and ends when it dies."""
