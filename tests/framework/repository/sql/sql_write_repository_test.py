@@ -234,3 +234,105 @@ class TestUpdateAndUpsert:
 
         with pytest.raises(RecordNotFoundError):
             await machine_writes.delete_one(str(uuid.uuid4()))
+
+
+@pytest.fixture
+def quebec_reads(session: AsyncSession) -> SqlReadRepository[Machine]:
+    """Reads the machines of the Québec site.
+
+    Args:
+        session: The test's session.
+
+    Returns:
+        The reader.
+    """
+    return SqlReadRepository(session, Machine, scope={"site": "Québec"})
+
+
+@pytest.fixture
+async def quebec_machine(quebec_reads: SqlReadRepository[Machine]) -> Machine:
+    """A lathe the Québec site holds.
+
+    Args:
+        quebec_reads: The reader of the Québec site.
+
+    Returns:
+        The machine, as inserted.
+    """
+    machine = Machine(serial="S-9", name="lathe")
+    await SqlWriteRepository(quebec_reads).insert_one(machine)
+    return machine
+
+
+class TestScope:
+    """A scoped write replaces the rows of its scope and never moves a row of another one."""
+
+    @staticmethod
+    async def test__an_id_held_in_another_scope__is_a_duplicate_and_its_row_is_kept(
+        machine_reads: SqlReadRepository[Machine],
+        machine_writes: SqlWriteRepository[Machine],
+        quebec_reads: SqlReadRepository[Machine],
+        quebec_machine: Machine,
+    ) -> None:
+        """Montréal's upsert or update of Québec's id is refused before any write."""
+        held = f"already held: {quebec_machine.id}"
+
+        with pytest.raises(DuplicateRecordError, match=held):
+            await machine_writes.upsert_one(
+                Machine(id=quebec_machine.id, serial="S-9", name="mill")
+            )
+
+        with pytest.raises(DuplicateRecordError, match=held):
+            await machine_writes.update_one(
+                Machine(id=quebec_machine.id, serial="S-9", name="mill")
+            )
+
+        with pytest.raises(DuplicateRecordError, match=held):
+            await machine_writes.upsert_many([
+                Machine(serial="S-1"),
+                Machine(id=quebec_machine.id, serial="S-9", name="mill"),
+            ])
+
+        stored = await quebec_reads.get_by_id(str(quebec_machine.id))
+        assert stored is not None
+        assert (stored.site, stored.name) == ("Québec", "lathe")
+        assert await machine_reads.get_by_filters() == []
+
+    @staticmethod
+    async def test__an_id_held_in_the_scope__is_replaced(
+        machine_reads: SqlReadRepository[Machine],
+        machine_writes: SqlWriteRepository[Machine],
+        quebec_machine: Machine,
+    ) -> None:
+        """Montréal updates and upserts its own row, beside Québec's."""
+        machine = Machine(serial="S-1")
+        await machine_writes.insert_one(machine)
+
+        await machine_writes.update_one(Machine(id=machine.id, serial="S-1", name="mill"))
+        await machine_writes.upsert_many([
+            Machine(id=machine.id, serial="S-1", name="drill"),
+            Machine(serial="S-2"),
+        ])
+
+        stored = await machine_reads.get_by_id(str(machine.id))
+        assert stored is not None
+        assert (stored.site, stored.name) == ("Montréal", "drill")
+        assert len(await machine_reads.get_by_filters()) == 2
+        assert quebec_machine.site == "Québec"
+
+    @staticmethod
+    async def test__an_unscoped_writer__replaces_a_row_of_any_scope(
+        session: AsyncSession, quebec_machine: Machine
+    ) -> None:
+        """Without a scope, an upsert or an update replaces the row of the id, as it always did."""
+        reads = SqlReadRepository(session, Machine)
+        writes = SqlWriteRepository(reads)
+
+        await writes.upsert_one(Machine(id=quebec_machine.id, serial="S-9", name="mill"))
+        await writes.update_one(
+            Machine(id=quebec_machine.id, serial="S-9", name="drill", site="Lévis")
+        )
+
+        stored = await reads.get_by_id(str(quebec_machine.id))
+        assert stored is not None
+        assert (stored.site, stored.name) == ("Lévis", "drill")

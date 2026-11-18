@@ -6,7 +6,7 @@ from enum import StrEnum
 from itertools import batched
 from typing import ClassVar, Self, cast
 
-from sqlalchemy import Table, delete, select
+from sqlalchemy import ColumnElement, Table, delete, select
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import DBAPIError
 from sqlmodel import SQLModel
@@ -116,12 +116,16 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
     async def upsert_many(self, records: Sequence[T]) -> list[str]:
         """Insert rows, each replacing the row of the same id, owned children included.
 
+        An id held outside the scope is a ``DuplicateRecordError``, before any write: a scoped
+        upsert never moves a row from one scope to another.
+
         Args:
             records: The rows, as they now are.
 
         Returns:
             Their ids, in order.
         """
+        await self._not_held_elsewhere([self._id_of(record) for record in records])
         scoped = [self._scoped(record) for record in records]
 
         async with self._atomically():
@@ -178,19 +182,30 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
             raise rejection from error
 
     async def _held(self, ids: list[str]) -> None:
-        """Raise ``RecordNotFoundError`` unless every id is held in the scope."""
+        """Raise ``RecordNotFoundError`` unless the table holds every id, in any scope."""
         missing = set(ids) - await self._held_ids(ids)
 
         if missing:
             raise RecordNotFoundError(", ".join(sorted(missing)))
 
-    async def _held_ids(self, ids: list[str]) -> set[str]:
-        """The ids among these that the table holds, in any scope: a key is unique table-wide."""
+    async def _not_held_elsewhere(self, ids: list[str]) -> None:
+        """Raise ``DuplicateRecordError`` for an id held out of the scope: no write moves a row."""
+        if not self._reads.scope:
+            return
+
+        elsewhere = await self._held_ids(ids) - await self._held_ids(ids, self._reads.in_scope())
+
+        if elsewhere:
+            msg = f"already held: {', '.join(sorted(elsewhere))}"
+            raise DuplicateRecordError(msg)
+
+    async def _held_ids(self, ids: list[str], *conditions: ColumnElement[bool]) -> set[str]:
+        """The ids among these the table holds, in any scope unless the conditions narrow it."""
         column = self._reads.column(self._reads.primary_key)
         held: set[str] = set()
 
         for batch in batched(ids, self.KEYS_PER_STATEMENT):
-            statement = select(column).where(self._reads.key_condition(batch))
+            statement = select(column).where(self._reads.key_condition(batch), *conditions)
             held |= {str(id_) for id_ in (await self._reads.session.execute(statement)).scalars()}
 
         return held

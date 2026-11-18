@@ -60,7 +60,11 @@ class RecordNotFoundError(LookupError):
 
 
 class DuplicateRecordError(ValueError):
-    """An insert gives a record the id of one the backend already holds."""
+    """An insert gives a record the id of one the backend already holds.
+
+    A scoped repository raises it too when an update or an upsert names an id held outside its
+    scope.
+    """
 
 
 class AbstractWriteRepository[T: BaseModel](ABC):
