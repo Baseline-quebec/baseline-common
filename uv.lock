@@ -257,6 +257,9 @@ postgres = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "sqlmodel" },
 ]
+process = [
+    { name = "loguru" },
+]
 qdrant = [
     { name = "loguru" },
     { name = "pydantic-ai-slim" },
@@ -310,6 +313,7 @@ requires-dist = [
     { name = "loguru", marker = "extra == 'api'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'http'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'mongo'", specifier = ">=0.7.3" },
+    { name = "loguru", marker = "extra == 'process'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'qdrant'", specifier = ">=0.7.3" },
     { name = "loguru", marker = "extra == 'weaviate'", specifier = ">=0.7.3" },
     { name = "matplotlib", marker = "extra == 'graph-plot'", specifier = ">=3.10.0" },
@@ -327,7 +331,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.34.0" },
     { name = "weaviate-client", marker = "extra == 'weaviate'", specifier = ">=4.10.0" },
 ]
-provides-extras = ["graph", "graph-plot", "qdrant", "weaviate", "mongo", "http", "sql", "postgres", "sqlserver", "api"]
+provides-extras = ["graph", "graph-plot", "qdrant", "weaviate", "mongo", "http", "process", "sql", "postgres", "sqlserver", "api"]
 
 [package.metadata.requires-dev]
 test = [
