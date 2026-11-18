@@ -138,13 +138,16 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
     async def delete_many(self, ids: list[str]) -> list[str]:
         """Delete rows of the scope; the database applies its ``ON DELETE`` rules.
 
+        An id held only outside the scope is, as one held nowhere, a ``RecordNotFoundError``,
+        before any delete.
+
         Args:
             ids: The rows' ids.
 
         Returns:
             The ids deleted, in order.
         """
-        await self._held(ids)
+        await self._held(ids, self._reads.in_scope())
 
         async with self._atomically():
             for batch in batched(ids, self.KEYS_PER_STATEMENT):
@@ -181,9 +184,9 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
             raise rejection from error
 
-    async def _held(self, ids: list[str]) -> None:
-        """Raise ``RecordNotFoundError`` unless the table holds every id, in any scope."""
-        missing = set(ids) - await self._held_ids(ids)
+    async def _held(self, ids: list[str], *conditions: ColumnElement[bool]) -> None:
+        """Raise ``RecordNotFoundError`` unless every id is held where the conditions hold."""
+        missing = set(ids) - await self._held_ids(ids, *conditions)
 
         if missing:
             raise RecordNotFoundError(", ".join(sorted(missing)))

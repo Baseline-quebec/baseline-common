@@ -265,7 +265,7 @@ async def quebec_machine(quebec_reads: SqlReadRepository[Machine]) -> Machine:
 
 
 class TestScope:
-    """A scoped write replaces the rows of its scope and never moves a row of another one."""
+    """A scoped write changes the rows of its scope and never moves or deletes another one's."""
 
     @staticmethod
     async def test__an_id_held_in_another_scope__is_a_duplicate_and_its_row_is_kept(
@@ -319,6 +319,37 @@ class TestScope:
         assert (stored.site, stored.name) == ("Montréal", "drill")
         assert len(await machine_reads.get_by_filters()) == 2
         assert quebec_machine.site == "Québec"
+
+    @staticmethod
+    async def test__an_id_held_in_another_scope__is_not_found_and_nothing_is_deleted(
+        machine_writes: SqlWriteRepository[Machine],
+        quebec_reads: SqlReadRepository[Machine],
+        quebec_machine: Machine,
+    ) -> None:
+        """Through Montréal, Québec's id is refused as an id held nowhere, before any delete."""
+        machine = Machine(serial="S-1")
+        await machine_writes.insert_one(machine)
+
+        with pytest.raises(RecordNotFoundError, match=str(quebec_machine.id)):
+            await machine_writes.delete_one(str(quebec_machine.id))
+
+        with pytest.raises(RecordNotFoundError, match=str(quebec_machine.id)):
+            await machine_writes.delete_many([str(machine.id), str(quebec_machine.id)])
+
+        assert await quebec_reads.get_by_id(str(quebec_machine.id)) is not None
+        assert await machine_writes.delete_one(str(machine.id)) == str(machine.id)
+
+    @staticmethod
+    async def test__an_unscoped_writer__deletes_a_row_of_any_scope(
+        session: AsyncSession, quebec_reads: SqlReadRepository[Machine], quebec_machine: Machine
+    ) -> None:
+        """Without a scope, a delete removes the row of the id, as it always did."""
+        writes = SqlWriteRepository(SqlReadRepository(session, Machine))
+
+        deleted = await writes.delete_one(str(quebec_machine.id))
+
+        assert deleted == str(quebec_machine.id)
+        assert await quebec_reads.get_by_id(str(quebec_machine.id)) is None
 
     @staticmethod
     async def test__an_unscoped_writer__replaces_a_row_of_any_scope(
