@@ -114,7 +114,7 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
         Raises:
             RecordNotFoundError: When the scope holds no row of an id; nothing is written.
             DuplicateRecordError: When a row's or a child's merge key is held out of the scope.
-        """  # noqa: DOC502 - raised by the helper that checks the ids
+        """  # noqa: DOC502 - raised by the helpers that check ids and merge keys
         await self._refuse_missing([self._id_of(record) for record in records])
         return await self._merged(records)
 
@@ -129,7 +129,7 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
         Raises:
             DuplicateRecordError: When a row's or a child's merge key is held out of the scope.
-        """  # noqa: DOC502 - raised by the helper that checks the ids
+        """  # noqa: DOC502 - raised by the helpers that check ids and merge keys
         return await self._merged(records)
 
     async def delete_many(self, ids: list[str]) -> list[str]:
@@ -143,7 +143,7 @@ class SqlWriteRepository[T: SQLModel](AbstractWriteRepository[T]):
 
         Raises:
             RecordNotFoundError: When the scope holds no row of an id; nothing is deleted.
-        """  # noqa: DOC502 - raised by the helper that checks the ids
+        """  # noqa: DOC502 - raised by the helpers that check ids and merge keys
         await self._refuse_missing(ids)
 
         async with self._atomically():
