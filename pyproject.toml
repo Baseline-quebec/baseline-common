@@ -38,7 +38,7 @@ test = [
   "archunitpython>=1.8.1",
   "codespell>=2.4.0",
   "commitizen>=4.18.0",
-  "coverage[toml]>=7.6.0",
+  "coverage[toml]>=7.10.0",
   "detect-secrets>=1.5.0",
   "mongomock>=4.3.0",
   "mypy>=1.14.0",
@@ -129,6 +129,8 @@ skip_covered = true
 branch = true
 command_line = "--module pytest"
 data_file = "reports/.coverage"
+# Measure the spawned processes too, such as the ones `framework/process/` starts.
+patch = ["subprocess"]
 source = ["src"]
 
 [tool.coverage.html]  # https://coverage.readthedocs.io/en/latest/cmd.html#html-reporting-coverage-html

@@ -338,7 +338,7 @@ test = [
     { name = "archunitpython", specifier = ">=1.8.1" },
     { name = "codespell", specifier = ">=2.4.0" },
     { name = "commitizen", specifier = ">=4.18.0" },
-    { name = "coverage", extras = ["toml"], specifier = ">=7.6.0" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.10.0" },
     { name = "detect-secrets", specifier = ">=1.5.0" },
     { name = "mongomock", specifier = ">=4.3.0" },
     { name = "mypy", specifier = ">=1.14.0" },
