@@ -19,7 +19,7 @@ from tests.framework.process.workers import answer_or_die, hold, host
 
 
 @pytest.fixture
-def pool() -> Iterator[SpawnedProcessPool[bool, int]]:
+def pool() -> Iterator[SpawnedProcessPool]:
     """A pool of one process, whose worker answers with its process's id or dies.
 
     Yields:
@@ -90,7 +90,7 @@ class TestSpawnedProcessPool:
         return False
 
     async def test__a_job__runs_in_a_spawned_process_while_the_event_loop_runs(
-        self, pool: SpawnedProcessPool[bool, int]
+        self, pool: SpawnedProcessPool
     ) -> None:
         """The worker runs away from the test's process, and the loop ticks meanwhile."""
         running = asyncio.ensure_future(pool.run(False))  # noqa: FBT003 - the job is a flag
@@ -102,9 +102,7 @@ class TestSpawnedProcessPool:
         assert waiting
         assert process_id != os.getpid()
 
-    async def test__two_jobs__run_in_two_fresh_processes(
-        self, pool: SpawnedProcessPool[bool, int]
-    ) -> None:
+    async def test__two_jobs__run_in_two_fresh_processes(self, pool: SpawnedProcessPool) -> None:
         """A process runs one job only: the next one starts in its replacement."""
         first = await pool.run(False)  # noqa: FBT003 - the job is a flag
 
@@ -113,7 +111,7 @@ class TestSpawnedProcessPool:
         assert first != second
 
     async def test__a_dead_process__raises_and_the_next_job_gets_a_new_pool(
-        self, pool: SpawnedProcessPool[bool, int]
+        self, pool: SpawnedProcessPool
     ) -> None:
         """A process killed mid-job breaks its job only: the next one runs in a fresh pool."""
         with pytest.raises(SpawnedProcessDiedError, match="died before answering"):

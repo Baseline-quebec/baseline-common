@@ -8,6 +8,7 @@ from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from multiprocessing.connection import wait
+from typing import Any
 
 from loguru import logger
 
@@ -16,10 +17,10 @@ class SpawnedProcessDiedError(RuntimeError):
     """The process running a job died before answering."""
 
 
-class SpawnedProcessPool[J, R]:
+class SpawnedProcessPool:
     """Hand each job to a spawned process, replaced after it, while the caller only waits."""
 
-    def __init__(self, processes: int, worker: Callable[[J], R]) -> None:
+    def __init__(self, processes: int, worker: Callable[[Any], object]) -> None:
         """Keep the settings and the work; the first process starts with the first job.
 
         Args:
@@ -45,7 +46,7 @@ class SpawnedProcessPool[J, R]:
             max_tasks_per_child=1,
         )
 
-    async def run(self, job: J) -> R:
+    async def run(self, job: object) -> object:
         """Run the job in a process of the pool, the caller's event loop free meanwhile.
 
         Args:
