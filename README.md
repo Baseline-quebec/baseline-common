@@ -52,6 +52,7 @@ iac/                             infrastructure as code (vide pour l'instant)
 src/baseline_common/            de la couche la plus basse à la plus haute
 ├── framework/                   briques génériques, une librairie par tranche
 │   ├── multidigraph/            graphe orienté multiple typé
+│   ├── process/                 chaque tâche dans un processus lancé pour elle (spawn)
 │   └── repository/              lire ou écrire des enregistrements
 │       ├── http/                une API HTTP distante (Zoho, Fidelio) ; client/, son client HTTP
 │       ├── nosql/mongo/         MongoDB
@@ -207,6 +208,7 @@ Les classes à connaître, couche par couche.
 | Module | Ce qu'il fait | Classes clés |
 |---|---|---|
 | `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
+| `process/` | Exécuter chaque tâche dans un processus neuf, lancé par `spawn`, sans bloquer la boucle d'événements de l'appelant. Le processus est remplacé après chaque tâche ; s'il meurt, la tâche lève `SpawnedProcessDiedError` et la suivante part dans un nouveau pool. Un processus du pool s'arrête avec celui qui l'a lancé, et `close` arrête aussi une tâche en cours. La fonction exécutée doit pouvoir s'importer par son nom ; le nombre de processus se passe au constructeur, le projet le lit de ses propres réglages. Extra : `process`. | `SpawnedProcessPool`, `SpawnedProcessDiedError` |
 | `repository/` | Les contrats de lecture, d'écriture et des deux réunis, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `AbstractRepository`, `InMemoryRepository` |
 | `repository/http/` | Une API HTTP distante ; un dialecte par fournisseur. | `ReadGateway`, `WriteGateway`, `Gateway`, `ZohoCoqlDialect`, `FidelioViewDialect` |
 | `repository/nosql/mongo/` | MongoDB. | `MongoReadRepository`, `MongoWriteRepository`, `MongoRepository` |
