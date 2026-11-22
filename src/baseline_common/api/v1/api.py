@@ -5,10 +5,11 @@ from dishka.integrations.fastapi import FastapiProvider, setup_dishka
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
-from baseline_common.api.v1.error_handling import ExceptionHandlerMiddleware, FrenchValidationError
+from baseline_common.api.v1.error_handling import RecordErrorMiddleware
 from baseline_common.api.v1.lifespan import lifespan as lifespan_v1
 from baseline_common.api.v1.routers import record_matching
 from baseline_common.assembly.service_provider import ServiceProvider
+from baseline_common.framework.api.error_handling import FrenchValidationError
 
 
 def init_container() -> AsyncContainer:
@@ -33,7 +34,7 @@ def init_app(container: AsyncContainer) -> FastAPI:
 
     app.include_router(record_matching.router)
     app.add_exception_handler(RequestValidationError, FrenchValidationError.handle)
-    app.add_middleware(ExceptionHandlerMiddleware)
+    app.add_middleware(RecordErrorMiddleware)
 
     setup_dishka(container=container, app=app)
     return app

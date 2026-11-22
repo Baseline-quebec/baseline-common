@@ -654,10 +654,10 @@ class TestForbiddenImports:
         assert_passes(rule)
 
     def test__only_the_api__knows_http(self, source: str, root: str) -> None:
-        """Routes and requests stay in `api/`: no other layer imports FastAPI or Starlette."""
+        """Routes and requests stay in `api/`, and `framework/api/` that it imports: no other layer."""
         rule = (
             project_files(source)
-            .in_path(re.compile(f"{root}(?!api/)"))
+            .in_path(re.compile(f"{root}(?!api/|framework/api/)"))
             .should_not()
             .depend_on_external_modules()
             .matching(self.HTTP_SERVERS)
