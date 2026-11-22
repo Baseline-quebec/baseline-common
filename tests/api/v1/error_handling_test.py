@@ -1,12 +1,10 @@
-import json
-
 import pytest
 from fastapi import FastAPI, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
-from starlette.requests import Request
 
-from baseline_common.api.v1.error_handling import ExceptionHandlerMiddleware, FrenchValidationError
+from baseline_common.api.v1.error_handling import RecordErrorMiddleware
+from baseline_common.framework.api.error_handling import FrenchValidationError
 from baseline_common.framework.repository.abstract_repository import (
     DuplicateRecordError,
     RecordNotFoundError,
@@ -14,7 +12,7 @@ from baseline_common.framework.repository.abstract_repository import (
 from tests.api.v1.probe_router import ProbeRouter
 
 
-class TestExceptionHandlerMiddleware:
+class TestRecordErrorMiddleware:
     @staticmethod
     def probe_client(failure: Exception) -> TestClient:
         """A client of an app whose ``/fail`` raises the failure behind the middleware.
@@ -27,7 +25,7 @@ class TestExceptionHandlerMiddleware:
         """
         app = FastAPI()
         app.include_router(ProbeRouter(failure))
-        app.add_middleware(ExceptionHandlerMiddleware)
+        app.add_middleware(RecordErrorMiddleware)
         return TestClient(app)
 
     @pytest.mark.parametrize(
@@ -115,30 +113,3 @@ class TestFrenchValidationError:
             "Champ requis manquant.",
             "Champ requis manquant.",
         ]
-
-    def test__a_known_location__is_named_by_its_french_label(self) -> None:
-        """A location with a French label reads as its label, not as its path."""
-        error = FrenchValidationError([
-            {"loc": ("body", "file"), "type": "missing", "msg": "Field required"}
-        ])
-
-        response = error.response
-
-        assert json.loads(bytes(response.body))["message"] == "Champ requis manquant. (fichier)"
-
-    def test__an_unknown_type__keeps_the_message_pydantic_gave(self) -> None:
-        """A type with no French message falls back on Pydantic's own."""
-        error = FrenchValidationError([
-            {"loc": ("query", "day"), "type": "date_parsing", "msg": "Bad date"}
-        ])
-
-        response = error.response
-
-        assert json.loads(bytes(response.body))["message"] == "Bad date (query → day)"
-
-    def test__another_exception__is_raised_again(self) -> None:
-        """The handler only answers validation errors; anything else goes on up."""
-        request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
-
-        with pytest.raises(KeyError):
-            FrenchValidationError.handle(request, KeyError("x"))

@@ -51,6 +51,7 @@ docker/                          l'image des essais sur SQL Server (pilote ODBC 
 iac/                             infrastructure as code (vide pour l'instant)
 src/baseline_common/            de la couche la plus basse à la plus haute
 ├── framework/                   briques génériques, une librairie par tranche
+│   ├── api/                     l'enveloppe d'erreurs française qu'importe toute API
 │   ├── multidigraph/            graphe orienté multiple typé
 │   ├── process/                 chaque tâche dans un processus lancé pour elle (spawn)
 │   └── repository/              lire ou écrire des enregistrements
@@ -189,7 +190,7 @@ est sous « Règles d'architecture ».
     version et répond à `/health`), `settings.py` (`Settings` et `get_settings()`, les réglages de l'API seulement ; chaque usage
     appelle `get_settings()`, jamais une variable `settings` du module),
     `v1/api.py` (`init_container()`, `init_app(container)`, puis `container` et `app` au niveau du
-    module), `v1/lifespan.py`, `v1/error_handling.py` et un fichier par routeur dans
+    module), `v1/lifespan.py`, `v1/error_handling.py` (qui étend `framework/api/`) et un fichier par routeur dans
     `v1/routers/`, chacun avec son `router = APIRouter(...)` et ses routes décorées.
   - **Une route reçoit son service par Dishka** (`DishkaRoute`, `FromDishka[...]`) et lui
     délègue. L'API n'utilise de Dishka que son intégration FastAPI et la construction de son
@@ -207,6 +208,7 @@ Les classes à connaître, couche par couche.
 
 | Module | Ce qu'il fait | Classes clés |
 |---|---|---|
+| `api/` | L'enveloppe d'erreurs française qu'importe toute API, plutôt que de la recopier : `ExceptionHandlerMiddleware` répond à une exception levée par la classe la plus proche de sa MRO dans `ERRORS` (une API l'étend par sous-classe, en y ajoutant ses exceptions, et surcharge `respond` pour un cas qui demande plus qu'une réponse fixe) ; `FrenchValidationError` répond en français à une requête que FastAPI refuse. L'exemple d'API d'ici l'importe comme un projet le ferait. Extra : `api`. | `ExceptionHandlerMiddleware`, `ErrorResponse`, `FrenchValidationError` |
 | `multidigraph/` | Construire un graphe typé à partir d'enregistrements. | `MultiDiGraph`, `GraphBuilder` |
 | `process/` | Exécuter chaque tâche dans un processus neuf, lancé par `spawn`, sans bloquer la boucle d'événements de l'appelant. Le processus est remplacé après chaque tâche ; s'il meurt, la tâche lève `SpawnedProcessDiedError` et la suivante part dans un nouveau pool. Un processus du pool s'arrête avec celui qui l'a lancé, et `close` arrête aussi une tâche en cours. La fonction exécutée doit pouvoir s'importer par son nom ; le nombre de processus se passe au constructeur, le projet le lit de ses propres réglages. Extra : `process`. | `SpawnedProcessPool`, `SpawnedProcessDiedError` |
 | `repository/` | Les contrats de lecture, d'écriture et des deux réunis, et leur substitut en mémoire pour les essais. | `AbstractReadRepository`, `AbstractWriteRepository`, `AbstractRepository`, `InMemoryRepository` |
@@ -304,7 +306,8 @@ l'essai ne change que ce bloc.
   ce soit), et seulement dans son `init_container()` sans argument : ni au niveau du module, ni
   dans une autre fonction (`build(*overrides)`).
 - Seule l'API importe FastAPI ou Starlette : aucun fichier hors de `api/`, `cli/` compris, ne le
-  fait ; `assembly/` ne lit donc pas la requête.
+  fait ; `assembly/` ne lit donc pas la requête. Seule exception : `framework/api/`, ce que l'API
+  importe.
 - Les modules de `framework/` ne s'importent pas entre eux, `from <paquet>.framework import
   <module>` compris.
 - Aucun import d'un paquet entier, le sien ou un autre de Baseline (`from baseline_common import
