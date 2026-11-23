@@ -73,7 +73,8 @@ class SpawnedProcessPool:
         for process in list(self._executor._processes.values()):  # noqa: SLF001
             process.terminate()
 
-        self._executor.shutdown(wait=False, cancel_futures=True)
+        # Waiting lets the pool's thread end before the pool lets go of its processes.
+        self._executor.shutdown(wait=True, cancel_futures=True)
 
     @staticmethod
     def watch_parent() -> None:

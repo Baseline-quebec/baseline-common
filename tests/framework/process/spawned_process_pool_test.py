@@ -3,6 +3,7 @@
 import asyncio
 import multiprocessing
 import os
+import threading
 import time
 from collections.abc import Callable, Iterator
 from functools import partial
@@ -131,6 +132,16 @@ class TestSpawnedProcessPool:
 
         # The pool's own thread reaps the process: the test can only see that it is gone.
         await asyncio.to_thread(self.until, partial(self.has_ended, process_id))
+
+    async def test__closing__returns_once_the_pool_s_thread_has_ended(self) -> None:
+        """Its thread still replacing the answered process would find the pool already gone."""
+        before = set(threading.enumerate())
+        pool = SpawnedProcessPool(1, answer_or_die)
+        await pool.run(False)  # noqa: FBT003 - the job is a flag
+
+        pool.close()
+
+        assert set(threading.enumerate()) <= before
 
     def test__the_parent_s_death__ends_its_pool_process(self, started: Path) -> None:
         """A pool process watches the process that spawned it, and ends when it dies."""
