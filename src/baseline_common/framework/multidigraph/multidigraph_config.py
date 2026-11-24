@@ -45,6 +45,24 @@ class MultiDiGraphConfig(MultiDiGraph[NodeConfig, EdgeConfig]):
 
         return v
 
+    @staticmethod
+    def _refuse_repeated(edge: EdgeConfig, others: list[EdgeConfig]) -> None:
+        """Refuse a second relation between two node types, whatever its name.
+
+        Args:
+            edge: The relation about to enter the schema.
+            others: The relations already going from its source type to its destination type.
+
+        Raises:
+            ValueError: If there is one, since a pair of node types then names no single relation.
+        """
+        if others:
+            error_msg = (
+                f"Edge relations must be unique: {others[0].relation} and {edge.relation} both "
+                f"go from {edge.src_node.id_} to {edge.dst_node.id_}."
+            )
+            raise ValueError(error_msg)
+
     def get_node_config(self, node_class: type[Node]) -> NodeConfig:
         """Find the node type describing a node class.
 
@@ -78,7 +96,7 @@ class MultiDiGraphConfig(MultiDiGraph[NodeConfig, EdgeConfig]):
         Raises:
             ValueError: If no relation joins the two classes in that direction.
         """
-        # Unambiguous: the graph holds one edge per (source, destination) pair.
+        # Unambiguous: the schema holds one relation per (source, destination) pair of types.
         edge_config = next(
             (
                 edge

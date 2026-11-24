@@ -77,6 +77,32 @@ class TestGraphBuilder:
         assert second.nodes == customers
         assert second.edges == []
 
+    def test__when_one_product_is_purchased_twice__returns_two_edges(
+        self, builder: GraphBuilder
+    ) -> None:
+        """A customer buying a product twice gives two ``purchased`` edges on the same pair."""
+        customer = Customer(id_="c1", age=25, loyalty=1.0)
+        product = Product(id_="p1", price=100.0, weight=1.0, embedding=[0.1, 0.2])
+        purchases = [
+            Purchased(src_node=customer, dst_node=product, quantity=quantity)
+            for quantity in [1, 2]
+        ]
+
+        graph = builder.build([customer, product], purchases)
+
+        assert [edge.quantity for edge in graph.edges] == [1, 2]
+
+    def test__when_one_purchase_is_given_twice__raises_value_error(
+        self, builder: GraphBuilder
+    ) -> None:
+        """The same record twice is one edge too many."""
+        customer = Customer(id_="c1", age=25, loyalty=1.0)
+        product = Product(id_="p1", price=100.0, weight=1.0, embedding=[0.1, 0.2])
+        purchase = Purchased(src_node=customer, dst_node=product, quantity=1)
+
+        with pytest.raises(ValueError, match="The edge c1 -> p1 is given twice"):
+            builder.build([customer, product], [purchase, purchase])
+
     def test__when_nothing_is_built__returns_an_empty_graph(self, builder: GraphBuilder) -> None:
         """No records, no nodes, no edges."""
         graph: MultiDiGraph[Node, Edge[Node]] = builder.build([], [])

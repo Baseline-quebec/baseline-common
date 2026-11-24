@@ -293,7 +293,7 @@ class TestMultiDiGraph:
         edge1: Edge[Node] = Edge(src_node=node1, dst_node=node2)
         edge2: Edge[Node] = Edge(src_node=node1, dst_node=node2)
 
-        with pytest.raises(ValueError, match="Edge relations must be unique"):
+        with pytest.raises(ValueError, match="The edge 1 -> 2 is given twice"):
             MultiDiGraph(nodes=[node1, node2], edges=[edge1, edge2])
 
     def test__when_a_field_is_named_as_a_networkx_argument__raises_validation_error(self) -> None:
@@ -671,6 +671,105 @@ class TestEdgeIndex:
         }
         assert len(multidigraph_fixture.edges) == n_edges_before
         assert indexed == {id(edge) for edge in multidigraph_fixture.edges}
+
+
+class TestParallelEdges:
+    """Edges that differ may join the same two nodes; the same edge twice may not."""
+
+    @pytest.fixture
+    def places(self) -> list[Node]:
+        """Two places."""
+        return [Node(id_="start"), Node(id_="end")]
+
+    @pytest.fixture
+    def tracks(self, places: list[Node]) -> list[Track]:
+        """A paved track and a gravel one, both from the first place to the second."""
+        start, end = places
+        return [
+            Track(src_node=start, dst_node=end, grade=grade, year=None)
+            for grade in ["paved", "gravel"]
+        ]
+
+    @pytest.fixture
+    def graph(self, places: list[Node], tracks: list[Track]) -> MultiDiGraph[Node, Track]:
+        """The two places, joined by both tracks."""
+        return MultiDiGraph[Node, Track](nodes=places, edges=tracks)
+
+    def test__when_two_different_edges_join_one_pair__returns_both_edges(
+        self, graph: MultiDiGraph[Node, Track], tracks: list[Track]
+    ) -> None:
+        """Both tracks enter the graph, and its networkx projection."""
+        assert graph.edges_between("start", "end") == tracks
+        assert graph.networkx_graph.number_of_edges("start", "end") == len(tracks)
+
+    def test__when_a_second_edge_is_added_on_one_pair__returns_both_edges(
+        self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]], tracks: list[Track]
+    ) -> None:
+        """A second track between two places is added beside the first."""
+        for track in tracks:
+            empty_graph_fixture.add_edge(track)
+
+        assert empty_graph_fixture.edges == tracks
+
+    def test__when_an_edge_the_graph_holds_is_added__raises_value_error(
+        self, graph: MultiDiGraph[Node, Track], tracks: list[Track]
+    ) -> None:
+        """The paved track cannot be added twice, as it cannot be given twice."""
+        with pytest.raises(ValueError, match="The edge start -> end is given twice"):
+            graph.add_edge(tracks[0].model_copy())
+
+        assert graph.edges == tracks
+
+    def test__when_an_edge_was_removed__returns_it_once_added_again(
+        self, graph: MultiDiGraph[Node, Track], tracks: list[Track]
+    ) -> None:
+        """Removing a track frees its place; the other track of the pair stays."""
+        paved, gravel = tracks
+        graph.remove_edge(paved)
+
+        graph.add_edge(paved)
+
+        assert graph.edges == [gravel, paved]
+
+    def test__when_the_only_edge_of_a_pair_was_removed__returns_it_once_added_again(
+        self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]], tracks: list[Track]
+    ) -> None:
+        """A pair left without an edge takes the edge back."""
+        paved = tracks[0]
+        empty_graph_fixture.add_edge(paved)
+        empty_graph_fixture.remove_edge(paved)
+
+        empty_graph_fixture.add_edge(paved)
+
+        assert empty_graph_fixture.edges == [paved]
+
+    def test__when_a_search_crosses_a_pair_of_two_edges__returns_both_edges(
+        self, graph: MultiDiGraph[Node, Track], tracks: list[Track]
+    ) -> None:
+        """A search returns a graph that still holds both tracks."""
+        found = graph.filter_by(SubgraphQuery(node_ids=["start"], expansion=Expansion.NEIGHBOURS))
+
+        assert found.edges == tracks
+
+    def test__when_a_search_names_an_edge_attribute__returns_the_edge_that_carries_it(
+        self, graph: MultiDiGraph[Node, Track], tracks: list[Track]
+    ) -> None:
+        """Asking for the gravel grade leaves the paved track out."""
+        query = SubgraphQuery(
+            node_ids=["start"], expansion=Expansion.NEIGHBOURS, edge_attrs={"grade": "gravel"}
+        )
+
+        found = graph.filter_by(query)
+
+        assert found.edges == [tracks[1]]
+
+    def test__when_a_dumped_graph_is_read_back__returns_both_edges_of_a_pair(
+        self, graph: MultiDiGraph[Node, Track]
+    ) -> None:
+        """Both tracks survive a dump and a validation."""
+        read_back = MultiDiGraph[Node, Track].model_validate(graph.model_dump())
+
+        assert [track.grade for track in read_back.edges] == ["paved", "gravel"]
 
 
 class TestTraversal:
