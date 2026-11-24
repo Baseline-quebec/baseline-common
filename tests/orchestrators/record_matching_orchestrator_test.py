@@ -24,7 +24,7 @@ def orchestrator() -> RecordMatchingOrchestrator:
 
 
 class TestRecordMatchingOrchestrator:
-    async def test__a_name_held__is_matched_to_its_organization(
+    async def test__when_a_name_is_held__is_matched_to_its_organization(
         self, orchestrator: RecordMatchingOrchestrator
     ) -> None:
         """Every organization held is a candidate: the one whose name it is, is the match."""
@@ -33,7 +33,7 @@ class TestRecordMatchingOrchestrator:
         assert decision.verdict is MatchVerdict.MATCH
         assert decision.record_ids == ["org-1"]
 
-    async def test__a_name_not_held__is_a_new_record(
+    async def test__when_a_name_is_not_held__is_a_new_record(
         self, orchestrator: RecordMatchingOrchestrator
     ) -> None:
         """No organization held has the name: the document names a new one."""

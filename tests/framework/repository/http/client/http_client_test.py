@@ -14,7 +14,7 @@ from tests.framework.repository.http.client.scripted_server import ScriptedServe
 class TestRequest:
     """One request: where it goes, what it carries, and what a failure does."""
 
-    async def test__a_path__is_joined_onto_the_base_urls_own_path(
+    async def test__when_a_path_is_requested__is_joined_onto_the_base_urls_own_path(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """``crm/v8`` + ``/Accounts`` is ``crm/v8/Accounts``, whatever the slashes."""
@@ -28,7 +28,7 @@ class TestRequest:
         assert crm.paths() == ["/crm/v8/Accounts"]
         assert crm.requests[0].url.params["page"] == "2"
 
-    async def test__a_failing_status__raises_by_default(
+    async def test__when_a_status_is_failing__raises_by_default(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """A 4xx is an error the caller must handle, not a body it might forget to check."""
@@ -40,7 +40,7 @@ class TestRequest:
             with pytest.raises(httpx.HTTPStatusError):
                 await client.get("products/unknown")
 
-    async def test__raising__can_be_turned_off_for_one_call(
+    async def test__when_a_call_turns_raising_off__a_failing_status_is_returned(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """A caller that expects a 404 reads it as an answer."""
@@ -60,7 +60,7 @@ class TestRequest:
             (BearerAuth("t0ken"), "Authorization", "Bearer t0ken"),
         ],
     )
-    async def test__every_request__is_signed_and_carries_the_default_headers(
+    async def test__when_a_request_is_sent__is_signed_and_carries_the_default_headers(
         self,
         server: Callable[..., ScriptedServer],
         no_wait: HttpConfig,
@@ -85,7 +85,7 @@ class TestRequest:
         assert sent["Accept"] == "application/json"
 
     @pytest.mark.parametrize("method", ["put", "patch", "delete"])
-    async def test__each_verb__sends_its_method(
+    async def test__when_each_verb_is_called__sends_its_method(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig, method: str
     ) -> None:
         """The shortcuts are ``request`` with their method filled in."""
@@ -102,7 +102,7 @@ class TestRequest:
 class TestLifecycle:
     """The client owns a connection pool, and hands it back when closed."""
 
-    async def test__leaving_the_context__closes_the_client(
+    async def test__when_the_context_is_left__closes_the_client(
         self, server: Callable[..., ScriptedServer]
     ) -> None:
         """``async with`` is the whole lifecycle."""

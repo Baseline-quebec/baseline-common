@@ -23,13 +23,13 @@ from tests.framework.multidigraph.flights import Track, WeightedEdge
 class TestMultiDiGraph:
     """Test cases for the MultiDiGraph class."""
 
-    def test__multidigraph__returns_multidigraph(
+    def test__when_a_multidigraph_is_created__returns_multidigraph(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to create a MultiDiGraph."""
         assert isinstance(multidigraph_fixture, MultiDiGraph)
 
-    def test__add_node__adds_node_to_graph(
+    def test__when_a_node_is_added__adds_node_to_graph(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to add a node to the graph."""
@@ -40,7 +40,7 @@ class TestMultiDiGraph:
         assert len(empty_graph_fixture.nodes) == 1
         assert empty_graph_fixture.get_node_by_id(node_id) == a_node
 
-    def test__add_edge__adds_edge_to_graph(
+    def test__when_an_edge_is_added__adds_edge_to_graph(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to add an edge to the graph."""
@@ -52,7 +52,7 @@ class TestMultiDiGraph:
         assert len(empty_graph_fixture.edges) == expected_num_edges
         assert empty_graph_fixture.edges[0] == a_edge
 
-    def test__add_bidirectional_edge__adds_edges_to_graph(
+    def test__when_a_bidirectional_edge_is_added__adds_edges_to_graph(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to add a bidirectional edge to the graph."""
@@ -63,7 +63,7 @@ class TestMultiDiGraph:
         expected_num_edges = 2
         assert len(empty_graph_fixture.edges) == expected_num_edges
 
-    def test__get_node_by_id__returns_node(
+    def test__when_a_node_is_looked_up_by_id__returns_node(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to get a node by its id."""
@@ -74,14 +74,14 @@ class TestMultiDiGraph:
 
         assert result == a_node
 
-    def test__get_node_by_id__raises_error_when_not_found(
+    def test__when_a_node_id_is_not_found__raises_error(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test that getting a non-existent node raises ValueError."""
         with pytest.raises(ValueError, match="Node with id nonexistent not found"):
             empty_graph_fixture.get_node_by_id("nonexistent")
 
-    def test__to_networkx_graph__returns_multidigraph(
+    def test__when_a_graph_is_projected_to_networkx__returns_multidigraph(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to create a NetworkX graph from a MultiDiGraph."""
@@ -95,7 +95,7 @@ class TestMultiDiGraph:
             (e[0], e[1]) for e in result_graph.edges()
         }
 
-    def test__get_strongly_connected_components__returns_components(
+    def test__when_a_graph_is_not_strongly_connected__returns_components(
         self, unstrongly_connected_multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to get the strongly connected components of a multidigraph."""
@@ -108,7 +108,7 @@ class TestMultiDiGraph:
         assert set(components[2]) == {"ac1"}
         assert unstrongly_connected_multidigraph_fixture.get_is_strongly_connected() is False
 
-    def test__get_is_strongly_connected__returns_true_when_connected(
+    def test__when_a_graph_is_strongly_connected__returns_true(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test that is_strongly_connected returns True for a connected graph."""
@@ -122,7 +122,7 @@ class TestMultiDiGraph:
         empty_graph_fixture.add_bidirectional_edge(Edge(src_node=node_2, dst_node=node_3))
         assert empty_graph_fixture.get_is_strongly_connected() is True
 
-    def test__relabel_nodes__returns_new_node_ids(
+    def test__when_nodes_are_relabeled__returns_new_node_ids(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to relabel the nodes in the MultiDiGraph."""
@@ -133,7 +133,7 @@ class TestMultiDiGraph:
         new_node_ids = {node.id_ for node in relabeled_multidigraph.nodes}
         assert new_node_ids != init_node_ids
 
-    def test__from_networkx_graph__returns_multidigraph(
+    def test__when_built_from_a_networkx_graph__returns_multidigraph(
         self, networkx_multidigraph_fixture: "nx.MultiDiGraph[str]"
     ) -> None:
         """Test the ability to create a MultiDiGraph from a NetworkX graph."""
@@ -143,7 +143,7 @@ class TestMultiDiGraph:
 
         assert isinstance(result_multidigraph, MultiDiGraph)
 
-    def test__get_strongly_connected_components_data__returns_data(self) -> None:
+    def test__when_connected_components_are_given__returns_data(self) -> None:
         """Test getting component data from connected components."""
         connected_components = [["1", "2", "3"], ["4", "5"]]
 
@@ -158,7 +158,7 @@ class TestMultiDiGraph:
         assert components_node_idx[0] == [0, 1, 2]
         assert components_node_idx[1] == [3, 4]
 
-    def test__group_nodes_by__returns_nodes_grouped_by_attribute(
+    def test__when_nodes_carry_an_attribute__returns_nodes_grouped_by_attribute(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test grouping nodes by an attribute."""
@@ -175,7 +175,7 @@ class TestMultiDiGraph:
         assert len(result["A"]) == n_nodes_per_group
         assert len(result["B"]) == n_nodes_per_group
 
-    def test__group_nodes_by__returns_single_group_when_all_same(
+    def test__when_all_nodes_have_the_same_value__returns_single_group(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test grouping nodes when all have the same attribute value."""
@@ -189,7 +189,7 @@ class TestMultiDiGraph:
         assert len(result) == 1
         assert len(result["Node"]) == n_nodes
 
-    def test__group_nodes_by__raises_error_when_attribute_absent_from_all_nodes(
+    def test__when_attribute_is_absent_from_all_nodes__raises_error(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test that group_nodes_by raises when no indexed node carries the attr."""
@@ -201,7 +201,7 @@ class TestMultiDiGraph:
         ):
             empty_graph_fixture.group_nodes_by("unknown_attr")
 
-    def test__group_nodes_by__groups_only_nodes_carrying_the_attribute(
+    def test__when_some_nodes_lack_the_attribute__groups_only_nodes_carrying_the_attribute(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test that grouping by a partially-present attr includes only carriers."""
@@ -213,7 +213,7 @@ class TestMultiDiGraph:
 
         assert result == {"A": [node_with_attr]}
 
-    def test__group_nodes_by__groups_by_node_type(
+    def test__when_nodes_are_grouped_by_the_computed_type__groups_by_node_type(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test grouping nodes by the computed node_type field."""
@@ -227,7 +227,7 @@ class TestMultiDiGraph:
         assert "Node" in result
         assert len(result["Node"]) == n_nodes
 
-    def test__filter_nodes_by__returns_filtered_nodes(
+    def test__when_nodes_are_filtered_by_a_value__returns_filtered_nodes(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test filtering nodes by an attribute value."""
@@ -241,7 +241,7 @@ class TestMultiDiGraph:
         assert len(result) == n_filtered_nodes
         assert all(node.model_dump().get("category") == "A" for node in result)
 
-    def test__filter_nodes_by__returns_empty_when_no_match(
+    def test__when_no_node_matches_the_filter__returns_empty(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test filtering nodes returns empty list when no nodes match."""
@@ -252,7 +252,7 @@ class TestMultiDiGraph:
 
         assert len(result) == 0
 
-    def test__remove_node__removes_node_from_graph(
+    def test__when_a_node_is_removed__removes_node_from_graph(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to remove a node from the graph."""
@@ -264,7 +264,7 @@ class TestMultiDiGraph:
 
         assert len(empty_graph_fixture.nodes) == 0
 
-    def test__remove_edge__removes_edge_from_graph(
+    def test__when_an_edge_is_removed__removes_edge_from_graph(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test the ability to remove an edge from the graph."""
@@ -278,7 +278,7 @@ class TestMultiDiGraph:
 
         assert len(empty_graph_fixture.edges) == 0
 
-    def test__validate_unique_nodes__raises_error_on_duplicate(self) -> None:
+    def test__when_nodes_are_duplicated__raises_error(self) -> None:
         """Test that creating a MultiDiGraph with duplicate nodes raises ValueError."""
         node1 = Node(id_="1")
         node2 = Node(id_="1")
@@ -286,7 +286,7 @@ class TestMultiDiGraph:
         with pytest.raises(ValueError, match="Node types must be unique"):
             MultiDiGraph(nodes=[node1, node2])
 
-    def test__validate_unique_edges__raises_error_on_duplicate(self) -> None:
+    def test__when_edges_are_duplicated__raises_error(self) -> None:
         """Test that creating a MultiDiGraph with duplicate edges raises ValueError."""
         node1 = Node(id_="1")
         node2 = Node(id_="2")
@@ -296,14 +296,14 @@ class TestMultiDiGraph:
         with pytest.raises(ValueError, match="Edge relations must be unique"):
             MultiDiGraph(nodes=[node1, node2], edges=[edge1, edge2])
 
-    def test__a_field_networkx_takes_as_its_own_argument__is_refused(self) -> None:
+    def test__when_a_field_is_named_like_a_networkx_argument__is_refused(self) -> None:
         """A node field named after an argument of `add_node` cannot be projected to networkx."""
         node = Node(id_="1", node_for_adding="a")
 
         with pytest.raises(ValidationError, match="clashes with an argument of networkx"):
             MultiDiGraph(nodes=[node])
 
-    def test__merge_multidigraph__merges_two_graphs(
+    def test__when_two_graphs_are_disjoint__merges_two_graphs(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test merging two MultiDiGraphs together."""
@@ -326,7 +326,7 @@ class TestMultiDiGraph:
         assert all(edge in result.edges for edge in [bidirectional_edge, other_edge])
         assert all(node in result.nodes for node in [node1, node2, other_node, node4])
 
-    def test__merge_multidigraph__merges_nodes_and_edges(
+    def test__when_another_graph_links_to_a_held_node__merges_nodes_and_edges(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test merging nodes and edges from another graph."""
@@ -348,7 +348,7 @@ class TestMultiDiGraph:
         assert len(result.nodes) == n_merged_nodes
         assert len(result.edges) == n_merged_edges
 
-    def test__merge_multidigraph__raises_error_on_duplicate_nodes(
+    def test__when_merged_graphs_share_a_node__raises_error(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test that merging graphs with duplicate nodes raises ValueError."""
@@ -360,7 +360,7 @@ class TestMultiDiGraph:
         with pytest.raises(ValueError, match="Duplicate nodes found"):
             empty_graph_fixture.merge_multidigraph(other_graph)
 
-    def test__remove_unconnected_components__keeps_largest_component(
+    def test__when_unconnected_components_are_removed__keeps_largest_component(
         self, unstrongly_connected_multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Test removing unconnected components keeps the largest one."""
@@ -378,7 +378,7 @@ class TestMultiDiGraph:
 class TestRepr:
     """The repr is a structural one-line summary, not a full field dump."""
 
-    def test__repr__summarizes_structure(
+    def test__when_repr_is_called__summarizes_structure(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """The summary reports counts, undirected dedup and connectivity."""
@@ -391,7 +391,7 @@ class TestRepr:
         assert "strongly_connected=False" in summary
         assert "components=2" in summary
 
-    def test__repr__on_empty_graph_does_not_raise(
+    def test__when_repr_is_called_on_an_empty_graph__does_not_raise(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """The null graph summarizes as zero components instead of raising."""
@@ -401,7 +401,7 @@ class TestRepr:
         assert "components=0" in summary
         assert "strongly_connected=False" in summary
 
-    def test__str__delegates_to_repr(
+    def test__when_str_is_called__delegates_to_repr(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """`print(graph)` shows the summary, not the pydantic field dump."""
@@ -411,7 +411,7 @@ class TestRepr:
 class TestAddBidirectionalEdgeClass:
     """The reversed copy keeps the concrete edge class (regression)."""
 
-    def test__add_bidirectional_edge__preserves_edge_subclass(self) -> None:
+    def test__when_a_typed_bidirectional_edge_is_added__preserves_edge_subclass(self) -> None:
         """A typed edge's reverse is the same class, not a base Edge."""
         a, b = Node(id_="a"), Node(id_="b")
         graph: MultiDiGraph[Node, WeightedEdge] = MultiDiGraph(nodes=[a, b], edges=[])
@@ -425,7 +425,7 @@ class TestAddBidirectionalEdgeClass:
 class TestNodeIndex:
     """The private inverted index keeps node lookups O(1) and always in sync."""
 
-    def test__filter_nodes_by__reads_from_the_index(
+    def test__when_nodes_are_filtered__reads_from_the_index(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Filtering returns every node the index holds for that value."""
@@ -441,7 +441,7 @@ class TestNodeIndex:
         assert len(result) == n_filtered
         assert set(result) == {node_a1, node_a2}
 
-    def test__filter_nodes_by__returns_a_copy_callers_cannot_corrupt(
+    def test__when_nodes_are_filtered__returns_a_copy_callers_cannot_corrupt(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Mutating the returned list must not affect the underlying index."""
@@ -452,7 +452,7 @@ class TestNodeIndex:
 
         assert len(empty_graph_fixture.filter_nodes_by("category", "A")) == 1
 
-    def test__filter_nodes_by__is_in_sync_after_add_node(
+    def test__when_a_node_is_added__filter_nodes_by_is_in_sync(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """A node added after construction is immediately filterable."""
@@ -463,7 +463,7 @@ class TestNodeIndex:
 
         assert empty_graph_fixture.filter_nodes_by("category", "A") == [new_node]
 
-    def test__filter_nodes_by__is_in_sync_after_remove_node(
+    def test__when_a_node_is_removed__filter_nodes_by_is_in_sync(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """A removed node disappears from the index buckets."""
@@ -475,7 +475,7 @@ class TestNodeIndex:
 
         assert empty_graph_fixture.filter_nodes_by("category", "A") == []
 
-    def test__filter_nodes_by__on_fixture_indexes_construction_nodes(
+    def test__when_nodes_are_given_at_construction__are_indexed(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Nodes provided at construction time are indexed by the validator."""
@@ -485,19 +485,19 @@ class TestNodeIndex:
         n_flights = 3
         assert len(flights) == n_flights
 
-    def test__filter_nodes_by__unknown_attr_returns_empty(
+    def test__when_the_filtered_attr_is_unknown__returns_empty(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """An attribute never seen on any node yields an empty result."""
         assert multidigraph_fixture.filter_nodes_by("does_not_exist", "whatever") == []
 
-    def test__filter_nodes_by__unknown_value_returns_empty(
+    def test__when_the_filtered_value_is_unknown__returns_empty(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """A known attribute with an unseen value yields an empty result."""
         assert multidigraph_fixture.filter_nodes_by("feature_type_str", "Spaceship") == []
 
-    def test__filter_nodes_by__indexes_non_string_values(
+    def test__when_node_values_are_float_or_bool__indexes_non_string_values(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Float and bool attribute values are indexed by their raw value."""
@@ -508,7 +508,7 @@ class TestNodeIndex:
         assert empty_graph_fixture.filter_nodes_by("x", 0.15) == [node]
         assert empty_graph_fixture.filter_nodes_by("active", True) == [node]  # noqa: FBT003
 
-    def test__merge_multidigraph__keeps_the_index_in_sync(
+    def test__when_a_graph_is_merged__keeps_the_index_in_sync(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Nodes merged in from another graph become filterable and findable."""
@@ -521,7 +521,7 @@ class TestNodeIndex:
         assert empty_graph_fixture.filter_nodes_by("category", "B") == [merged_node]
         assert empty_graph_fixture.get_node_by_id("b") == merged_node
 
-    def test__relabel_nodes__rebuilds_the_index(
+    def test__when_nodes_are_relabeled__rebuilds_the_index(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """After relabelling, old ids are gone and the new ids are indexed."""
@@ -536,7 +536,7 @@ class TestNodeIndex:
         for node in multidigraph_fixture.nodes:
             assert multidigraph_fixture.get_node_by_id(node.id_) is node
 
-    def test__get_node_by_id__reads_from_the_index(
+    def test__when_a_node_is_looked_up_by_id__reads_from_the_index(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """A node is retrievable by id through the index bucket."""
@@ -545,7 +545,7 @@ class TestNodeIndex:
 
         assert empty_graph_fixture.get_node_by_id("1") == node
 
-    def test__get_node_by_id__raises_on_missing_id(
+    def test__when_a_node_id_is_missing__raises(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Looking up an unknown id raises ValueError."""
@@ -556,7 +556,7 @@ class TestNodeIndex:
 class TestSerialization:
     """The private index must never leak into the serialized model."""
 
-    def test__model_dump__exposes_only_declared_fields(
+    def test__when_a_graph_is_dumped__exposes_only_declared_fields(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """model_dump keys are exactly the declared fields (no index leak)."""
@@ -568,7 +568,7 @@ class TestSerialization:
 class TestEdgeIndex:
     """The incidence index keeps ``edges_of``/``edges_between`` in sync with the edge list."""
 
-    def test__edges_of__indexes_construction_edges(self) -> None:
+    def test__when_edges_are_given_at_construction__are_indexed(self) -> None:
         """Edges passed at construction are queryable from both endpoints."""
         node1, node2, node3 = Node(id_="1"), Node(id_="2"), Node(id_="3")
         edge12: Edge[Node] = Edge(src_node=node1, dst_node=node2)
@@ -581,7 +581,7 @@ class TestEdgeIndex:
         assert graph.edges_of("2") == [edge12, edge23]
         assert graph.edges_of("3") == [edge23]
 
-    def test__edges_of__is_in_sync_after_add_and_remove_edge(
+    def test__when_an_edge_is_added_then_removed__edges_of_is_in_sync(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """add_edge indexes the edge; remove_edge drops it from both endpoints."""
@@ -596,13 +596,13 @@ class TestEdgeIndex:
         assert empty_graph_fixture.edges_of("1") == []
         assert empty_graph_fixture.edges_of("2") == []
 
-    def test__edges_of__unknown_node_returns_empty(
+    def test__when_a_node_is_unknown__edges_of_returns_empty(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """A node with no incident edge yields an empty list, not an error."""
         assert empty_graph_fixture.edges_of("ghost") == []
 
-    def test__edges_of__returns_a_copy_callers_cannot_corrupt(
+    def test__when_edges_of_a_node_are_read__returns_a_copy_callers_cannot_corrupt(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Mutating the returned list does not corrupt the index."""
@@ -614,7 +614,7 @@ class TestEdgeIndex:
 
         assert empty_graph_fixture.edges_of("1") == [edge]
 
-    def test__edges_between__returns_both_directions_only_for_the_pair(
+    def test__when_edges_between_a_pair_are_read__returns_both_directions_only_for_the_pair(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Both directions of the pair are returned; edges to other nodes are not."""
@@ -631,7 +631,7 @@ class TestEdgeIndex:
         assert empty_graph_fixture.edges_between("2", "1") == [forward, backward]
         assert empty_graph_fixture.edges_between("2", "3") == []
 
-    def test__add_bidirectional_edge__indexes_both_directions(
+    def test__when_a_bidirectional_edge_is_added__indexes_both_directions(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """The forward edge and its generated reverse are both indexed."""
@@ -642,7 +642,7 @@ class TestEdgeIndex:
         n_directions = 2
         assert len(empty_graph_fixture.edges_between("1", "2")) == n_directions
 
-    def test__merge_multidigraph__keeps_the_edge_index_in_sync(
+    def test__when_a_graph_is_merged__keeps_the_edge_index_in_sync(
         self, empty_graph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """Edges brought in by a merge are queryable through the index."""
@@ -656,7 +656,7 @@ class TestEdgeIndex:
 
         assert empty_graph_fixture.edges_of("1") == [edge]
 
-    def test__relabel_nodes__rebuilds_the_edge_index(
+    def test__when_nodes_are_relabeled__rebuilds_the_edge_index(
         self, multidigraph_fixture: MultiDiGraph[Node, Edge[Any]]
     ) -> None:
         """After relabelling, every edge is reachable from its new endpoint ids."""
@@ -676,7 +676,7 @@ class TestEdgeIndex:
 class TestTraversal:
     """Test cases for the traversal queries."""
 
-    def test__components_following__groups_the_undirected_projection(self) -> None:
+    def test__when_components_follow_no_policy__groups_the_undirected_projection(self) -> None:
         """With no policy, components are plain connectivity, isolated nodes alone."""
         graph: MultiDiGraph[Node, Edge[Any]] = MultiDiGraph()
         first, second, alone = Node(id_="a"), Node(id_="b"), Node(id_="c")
@@ -690,7 +690,7 @@ class TestTraversal:
 
         assert {frozenset(c) for c in components} == {frozenset({"a", "b"}), frozenset({"c"})}
 
-    def test__components_following__follows_only_accepted_edges(self) -> None:
+    def test__when_components_follow_a_predicate__follows_only_accepted_edges(self) -> None:
         """The predicate is the traversal policy: a refused edge joins nothing."""
         graph: MultiDiGraph[Node, WeightedEdge] = MultiDiGraph()
         first, second, third = Node(id_="a"), Node(id_="b"), Node(id_="c")
@@ -705,7 +705,7 @@ class TestTraversal:
 
         assert {frozenset(c) for c in components} == {frozenset({"a", "b"}), frozenset({"c"})}
 
-    def test__components_following__never_enters_an_excluded_node(self) -> None:
+    def test__when_components_exclude_a_node__never_enters_an_excluded_node(self) -> None:
         """What meets only through an excluded node stays apart."""
         graph: MultiDiGraph[Node, Edge[Any]] = MultiDiGraph()
         first, hub, second = Node(id_="a"), Node(id_="hub"), Node(id_="b")
@@ -720,7 +720,7 @@ class TestTraversal:
 
         assert {frozenset(c) for c in components} == {frozenset({"a"}), frozenset({"b"})}
 
-    def test__subgraph__matched_keeps_only_the_matches_and_their_edges(
+    def test__when_the_expansion_is_matched__keeps_only_the_matches_and_their_edges(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """MATCHED never grows: the matched nodes, and the edges among them."""
@@ -731,7 +731,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b"}
         assert len(result.edges) == 1
 
-    def test__subgraph__neighbours_stop_at_one_hop(
+    def test__when_the_expansion_is_neighbours__stops_at_one_hop(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """NEIGHBOURS answers « what does this touch », never the hop after."""
@@ -741,7 +741,7 @@ class TestTraversal:
 
         assert {node.id_ for node in result.nodes} == {"a", "b"}
 
-    def test__subgraph__component_grows_under_the_policy_plus_one_hop(
+    def test__when_the_expansion_is_component__grows_under_the_policy_plus_one_hop(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """COMPONENT expands along accepted edges; the refused frontier enters as a leaf."""
@@ -753,7 +753,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b", "c"}
         assert len(result.edges) == 2
 
-    def test__follow_edge_attrs__shape_the_expansion_the_way_a_callable_would(
+    def test__when_following_edge_attrs__shape_the_expansion_the_way_a_callable_would(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """The query states the policy a caller would have passed in code, and it serializes."""
@@ -765,7 +765,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b", "c"}
         assert len(result.edges) == 2
 
-    def test__several_values_on_one_attribute__are_ored(
+    def test__when_one_attribute_has_several_values__are_ored(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """Any of the stated values lets the expansion through, so the whole line comes back."""
@@ -775,7 +775,7 @@ class TestTraversal:
 
         assert {node.id_ for node in result.nodes} == {"a", "b", "c", "d"}
 
-    def test__a_stated_policy__narrows_the_callers_own_and_never_widens_it(
+    def test__when_a_policy_is_stated__narrows_the_callers_own_and_never_widens_it(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """Both must allow an edge: what the caller refuses, the query cannot re-open."""
@@ -788,7 +788,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b"}
         assert len(result.edges) == 1
 
-    def test__an_edge_the_policy_refuses__is_still_returned_as_a_leaf(
+    def test__when_the_policy_refuses_an_edge__is_still_returned_as_a_leaf(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """A policy bounds how far the answer GROWS, never what it shows at the frontier."""
@@ -804,14 +804,14 @@ class TestTraversal:
 
     @pytest.mark.parametrize("expansion", [Expansion.MATCHED, Expansion.NEIGHBOURS])
     @pytest.mark.parametrize("field", ["follow_edge_attrs", "avoid_edge_attrs"])
-    def test__a_policy_on_an_expansion_that_never_traverses__is_refused(
+    def test__when_a_policy_is_on_an_expansion_that_never_traverses__is_refused(
         self, expansion: Expansion, field: str
     ) -> None:
         """Stating a policy no hop will ever consult is a mistake, not a silent no-op."""
         with pytest.raises(ValidationError, match="never walks through an edge"):
             SubgraphQuery(node_ids=["a"], expansion=expansion, **{field: {"grade": ["main"]}})
 
-    def test__avoid_edge_attrs__refuse_the_hop_the_positive_form_would_have_to_enumerate(
+    def test__when_avoiding_edge_attrs__refuse_the_hop_the_positive_form_would_have_to_enumerate(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """Naming the one kind to refuse says what listing every other kind would."""
@@ -823,7 +823,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b", "c"}
         assert len(result.edges) == 2
 
-    def test__a_value_named_on_both_sides__is_refused(
+    def test__when_a_value_is_named_on_both_sides__is_refused(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """The negative wins: admitting and refusing the same value is not a contradiction."""
@@ -838,7 +838,7 @@ class TestTraversal:
         # « main » alone survives both, so the walk stops where the branch begins
         assert {node.id_ for node in result.nodes} == {"a", "b", "c"}
 
-    def test__drop_edge_attrs__take_the_edge_out_of_the_answer_it_was_walked_through(
+    def test__when_dropping_edge_attrs__take_the_edge_out_of_the_answer_it_was_walked_through(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """Dropping prunes what came back; what lay beyond the dropped edge still came back."""
@@ -854,7 +854,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b", "c", "d"}
         assert {edge.grade for edge in result.edges} == {"main"}
 
-    def test__drop_node_attrs__take_the_node_out_without_detaching_what_lay_beyond(
+    def test__when_dropping_node_attrs__take_the_node_out_without_detaching_what_lay_beyond(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """A dropped node was still walked through, so the far side of it survives."""
@@ -870,7 +870,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b"}
         assert len(result.edges) == 1  # only a—b has both endpoints left
 
-    def test__subgraph__an_excluded_node_enters_as_a_leaf_never_traversed(
+    def test__when_a_node_is_excluded__enters_as_a_leaf_never_traversed(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """An excluded node is attached where it touches, but joins nothing through it."""
@@ -879,7 +879,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b"}
         assert len(result.edges) == 1
 
-    def test__subgraph__criteria_combine_as_and(
+    def test__when_several_criteria_are_stated__combine_as_and(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """Each stated criterion narrows the match."""
@@ -892,7 +892,7 @@ class TestTraversal:
         # Region alone matches a, b and the island; the substring keeps b only
         assert {node.id_ for node in result.nodes} == {"b"}
 
-    def test__subgraph__keep_node_attrs_prune_the_answer_not_the_expansion(
+    def test__when_keeping_node_attrs__prune_the_answer_not_the_expansion(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """The answer keeps only matching nodes; edges follow the survivors."""
@@ -904,7 +904,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b"}
         assert len(result.edges) == 1
 
-    def test__subgraph__edge_attrs_prune_the_answer_not_the_expansion(
+    def test__when_edge_attrs_are_stated__prune_the_answer_not_the_expansion(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """The edge filter thins what is shown, never how far the search reached."""
@@ -915,7 +915,7 @@ class TestTraversal:
         assert {node.id_ for node in result.nodes} == {"a", "b", "c", "d"}
         assert {edge.src_node.id_ for edge in result.edges} == {"b", "c"}
 
-    def test__subgraph__edge_bounds_drop_the_outside_and_the_unvalued(
+    def test__when_edge_bounds_are_stated__drop_the_outside_and_the_unvalued(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """A window keeps the edges inside it; an unvalued edge cannot prove it is."""
@@ -926,7 +926,7 @@ class TestTraversal:
         # 2020 sits outside, the undated track cannot prove itself inside
         assert [edge.src_node.id_ for edge in result.edges] == ["b"]
 
-    def test__subgraph__matching_nothing_returns_the_empty_graph(
+    def test__when_a_query_matches_nothing__returns_the_empty_graph(
         self, line_graph_fixture: MultiDiGraph[Node, Track]
     ) -> None:
         """No match is an empty answer, not an error."""
@@ -935,7 +935,7 @@ class TestTraversal:
         assert result.nodes == []
         assert result.edges == []
 
-    def test__neighbours_of__returns_the_other_endpoint_of_each_edge(self) -> None:
+    def test__when_neighbours_are_read__returns_the_other_endpoint_of_each_edge(self) -> None:
         """Neighbourhood reads both edge directions through the index."""
         graph: MultiDiGraph[Node, Edge[Any]] = MultiDiGraph()
         centre, out, into = Node(id_="a"), Node(id_="b"), Node(id_="c")
@@ -970,7 +970,7 @@ class TestPlot:
     @pytest.mark.parametrize(
         "layout", ["spring", "random", "circular", "planar", "shell", "spectral"]
     )
-    def test__each_layout__saves_the_figure(
+    def test__when_each_layout_is_plotted__saves_the_figure(
         self,
         line_graph_fixture: MultiDiGraph[Node, Track],
         tmp_path: Path,
@@ -983,7 +983,7 @@ class TestPlot:
 
         assert path.stat().st_size > 0
 
-    def test__node_features__are_written_under_the_node_id(
+    def test__when_node_features_are_shown__are_written_under_the_node_id(
         self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
     ) -> None:
         """A node's label is its id, then one line per attribute it holds."""
@@ -993,7 +993,7 @@ class TestPlot:
 
         assert "a\nregion: north" in labels
 
-    def test__an_edge_attribute__labels_each_edge(
+    def test__when_an_edge_attribute_is_asked_for__labels_each_edge(
         self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
     ) -> None:
         """Each edge is labelled by the attribute asked for."""
@@ -1003,7 +1003,7 @@ class TestPlot:
 
         assert {"main", "branch"} <= labels
 
-    def test__a_highlighted_kind__is_drawn_bold(
+    def test__when_a_kind_is_highlighted__is_drawn_bold(
         self, line_graph_fixture: MultiDiGraph[Node, Track], tmp_path: Path
     ) -> None:
         """Only the edges of the kind highlighted stand out of the gray, wider than the rest."""
