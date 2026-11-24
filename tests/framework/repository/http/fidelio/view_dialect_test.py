@@ -92,7 +92,9 @@ class TestView:
         body: dict[str, object] = json.loads(request.content)
         return body
 
-    async def test__filters__become_one_condition_on_the_columns(self, view_of: ViewOf) -> None:
+    async def test__when_two_filters_are_given__become_one_condition_on_the_columns(
+        self, view_of: ViewOf
+    ) -> None:
         """Two conditions: an ``AND``, each naming the column; the environment and view beside."""
         sent: list[httpx.Request] = []
 
@@ -122,7 +124,9 @@ class TestView:
             Decimal("97000.25"),
         )
 
-    async def test__one_condition__is_bare_and_a_text_search_a_like(self, view_of: ViewOf) -> None:
+    async def test__when_one_condition_is_given__is_bare_and_a_text_search_a_like(
+        self, view_of: ViewOf
+    ) -> None:
         """A single term needs no brackets; an ``OR`` keeps its own; a quote is doubled."""
         sent: list[httpx.Request] = []
 
@@ -144,7 +148,7 @@ class TestView:
             "(code_client LIKE '%CLI%' OR code_client <> 'O''Brien')"
         )
 
-    async def test__no_filter__sends_no_condition(self, view_of: ViewOf) -> None:
+    async def test__when_no_filter_is_given__sends_no_condition(self, view_of: ViewOf) -> None:
         """The whole view: the environment and its name alone."""
         sent: list[httpx.Request] = []
 
@@ -159,7 +163,7 @@ class TestView:
             "viewName": "ADV_Ventes_Clients",
         }
 
-    async def test__every_row__comes_in_one_answer_and_the_limit_is_kept(
+    async def test__when_a_limit_is_given__every_row_comes_in_one_answer_and_the_limit_is_kept(
         self, view_of: ViewOf
     ) -> None:
         """Three rows in one answer: one request, the first two kept for a limit of 2."""
@@ -176,7 +180,7 @@ class TestView:
         assert [row.client_number for row in rows] == ["A", "B"]
         assert len(sent) == 1
 
-    async def test__a_sort_or_an_offset__is_refused(self, view_of: ViewOf) -> None:
+    async def test__when_a_sort_or_an_offset_is_asked__is_refused(self, view_of: ViewOf) -> None:
         """The view neither sorts nor skips: asking is a programming error, not a quiet misread."""
         view = view_of(lambda _: httpx.Response(200, json={"changes": []}))
 
@@ -186,13 +190,13 @@ class TestView:
         with pytest.raises(ValueError, match="neither sorts nor skips"):
             await view.get_by_filters(offset=1)
 
-    async def test__an_empty_answer__is_no_row(self, view_of: ViewOf) -> None:
+    async def test__when_an_answer_is_empty__is_no_row(self, view_of: ViewOf) -> None:
         """A view answering nothing at all is read as no row, not as an error."""
         rows = await view_of(lambda _: httpx.Response(200)).get_by_filters()
 
         assert rows == []
 
-    async def test__a_refusal_in_text__is_raised_with_the_view_and_fidelio_s_words(
+    async def test__when_a_refusal_comes_in_text__is_raised_with_the_view_and_fidelio_s_words(
         self, view_of: ViewOf
     ) -> None:
         """Fidelio refuses a bad credential or an unknown view with a 200 and a sentence."""
@@ -201,7 +205,7 @@ class TestView:
         with pytest.raises(UnreadableAnswerError, match="view ADV_Ventes_Clients: You"):
             await view.get_by_filters()
 
-    async def test__a_row_that_does_not_fit__names_the_view_and_the_field(
+    async def test__when_a_row_does_not_fit__names_the_view_and_the_field(
         self, view_of: ViewOf
     ) -> None:
         """A row without its client is Fidelio's fault, not the caller's: the field is named."""

@@ -28,7 +28,9 @@ def account() -> dict[str, Any]:
 
 
 class TestCrmOrganization:
-    def test__an_account__is_read_in_the_domain_s_fields(self, account: dict[str, Any]) -> None:
+    def test__when_a_crm_account_is_parsed__is_read_in_the_domain_s_fields(
+        self, account: dict[str, Any]
+    ) -> None:
         """The id is read as text, the name from its nested path, the address as one line."""
         candidate = CrmOrganization.model_validate(account)
 
@@ -36,7 +38,7 @@ class TestCrmOrganization:
         assert candidate.name == "Atelier Dupuis inc."
         assert candidate.address == "12 rue des Forges, Trois-Rivières QC G9A 1A1"
 
-    def test__an_address_without_locality__is_its_street_line(
+    def test__when_an_address_has_no_locality__is_its_street_line(
         self, account: dict[str, Any]
     ) -> None:
         """A missing part is left out, with the comma that would precede it."""
@@ -47,7 +49,7 @@ class TestCrmOrganization:
         assert candidate.address == "12 rue des Forges B"
 
     @pytest.mark.parametrize("address", [None, {}, {"Street": None, "City": ""}])
-    def test__an_empty_address__is_none(
+    def test__when_an_address_is_empty__is_none(
         self, account: dict[str, Any], address: dict[str, str | None] | None
     ) -> None:
         """An address with no part filled is no address."""
@@ -57,7 +59,7 @@ class TestCrmOrganization:
 
         assert candidate.address is None
 
-    def test__a_crm_organization__is_a_candidate_the_service_matches(
+    def test__when_a_crm_organization_is_a_candidate__the_service_matches_it(
         self, account: dict[str, Any]
     ) -> None:
         """The service reads the adapter's organizations without knowing the CRM."""

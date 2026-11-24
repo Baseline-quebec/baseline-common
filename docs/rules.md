@@ -224,13 +224,13 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     - Entre dépôts, le sens est celui des « Règles d'architecture » du `README.md` : un dépôt
       spécialisé lit `framework/` ou `models/` de baseline-common, son `framework/` seulement
       `framework/` (`framework/ml/graph/` de baseline-ml lit `framework/multidigraph/`).
-21. **Un essai se nomme `test__<sujet>__<résultat>`.**
-    - Le sujet dit ce que l'essai met en place, le résultat ce qu'il vérifie :
-      `test__a_blank_name__is_refused`.
+21. **Un essai se nomme `test__when_<condition>__<résultat>`.**
+    - La condition dit ce que l'essai met en place, le résultat ce qu'il vérifie :
+      `test__when_a_name_is_blank__is_refused`.
     - Une classe d'essais se nomme `Test<Classe>` quand elle regroupe les essais d'une classe
       (`TestRecordMatchingService`), ou `Test<Thème>` quand elle regroupe ceux d'un thème
       (`TestLayers` dans l'essai d'architecture). Les deux sont permis.
-    - Ce format prime sur `test__when_<condition>__<result>` du guide du développeur.
+    - C'est le format du guide du développeur.
     - Pas d'essai BDD (pytest-bdd, Gherkin) dans baseline-common : un framework n'a pas de user
       story. Un projet client qui en a les écrit dans ses `tests/features/`.
 
