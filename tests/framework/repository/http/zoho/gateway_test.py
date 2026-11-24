@@ -32,13 +32,13 @@ class TestGateway:
         config = ZohoWriteConfig(path="Accounts")
         return Gateway(client, ZohoAccount, dialect, config, primary_key="zoho_id")
 
-    def test__when_the_gateway_is_built__fulfills_both_contracts(self) -> None:
+    def test__when_the_gateway_is_built__returns_an_abstract_repository(self) -> None:
         """One object is passed where a caller reads and writes."""
         gateway = self.gateway(ScriptedServer())
 
         assert isinstance(gateway, AbstractRepository)
 
-    async def test__when_one_gateway_is_asked_both__reads_then_writes(
+    async def test__when_one_gateway_is_asked_both__returns_the_record_read_and_the_id_written(
         self, account: ZohoAccount
     ) -> None:
         """A read goes through COQL, a write to the module, on the same client."""

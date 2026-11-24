@@ -46,19 +46,19 @@ class TestExceptionHandlerMiddleware:
         response = middleware(FastAPI()).respond(error)
         return [response.status_code, json.loads(bytes(response.body))]
 
-    def test__when_a_feature_is_not_built__is_answered_501(self) -> None:
+    def test__when_a_feature_is_not_built__returns_a_501_in_french(self) -> None:
         """The one exception every API shares answers its own status, in French."""
         answer = self.answer(ExceptionHandlerMiddleware, NotImplementedError())
 
         assert answer == [501, {"error": "Cette fonctionnalité n'est pas encore disponible."}]
 
-    def test__when_an_exception_is_unknown__is_answered_500_without_its_cause(self) -> None:
+    def test__when_an_exception_is_unknown__returns_a_500_without_its_cause(self) -> None:
         """Anything else answers 500; its message, maybe data, stays out of the answer."""
         answer = self.answer(ExceptionHandlerMiddleware, KeyError("client 42"))
 
         assert answer == [500, {"error": "Erreur interne du serveur."}]
 
-    def test__when_a_subclass_adds_an_exception__answers_its_own_and_the_framework_s(self) -> None:
+    def test__when_a_subclass_adds_an_exception__returns_its_own_and_the_framework_s(self) -> None:
         """An API adds rows to ``ERRORS``; the framework's stay."""
         assert self.answer(ClosingMiddleware, ClosedError()) == [
             503,
@@ -66,13 +66,13 @@ class TestExceptionHandlerMiddleware:
         ]
         assert self.answer(ClosingMiddleware, NotImplementedError())[0] == 501
 
-    def test__when_an_exception_is_narrower__is_answered_as_the_one_it_derives_from(self) -> None:
+    def test__when_an_exception_is_narrower__returns_the_status_of_its_parent(self) -> None:
         """The nearest known class on an exception's MRO answers it."""
         assert self.answer(ClosingMiddleware, ClosedSoonError())[0] == 503
 
 
 class TestFrenchValidationError:
-    def test__when_a_location_is_known__is_named_by_its_french_label(self) -> None:
+    def test__when_a_location_is_known__returns_its_french_label(self) -> None:
         """A location with a French label reads as its label, not as its path."""
         error = FrenchValidationError([
             {"loc": ("body", "file"), "type": "missing", "msg": "Field required"}
@@ -82,7 +82,7 @@ class TestFrenchValidationError:
 
         assert json.loads(bytes(response.body))["message"] == "Champ requis manquant. (fichier)"
 
-    def test__when_a_type_is_unknown__keeps_the_message_pydantic_gave(self) -> None:
+    def test__when_a_type_is_unknown__returns_the_message_pydantic_gave(self) -> None:
         """A type with no French message falls back on Pydantic's own."""
         error = FrenchValidationError([
             {"loc": ("query", "day"), "type": "date_parsing", "msg": "Bad date"}
@@ -92,7 +92,7 @@ class TestFrenchValidationError:
 
         assert json.loads(bytes(response.body))["message"] == "Bad date (query → day)"
 
-    def test__when_another_exception_is_handled__is_raised_again(self) -> None:
+    def test__when_another_exception_is_handled__raises_key_error(self) -> None:
         """The handler only answers validation errors; anything else goes on up."""
         request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
 

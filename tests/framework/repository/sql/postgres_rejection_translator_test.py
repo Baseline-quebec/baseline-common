@@ -29,7 +29,7 @@ class TestIsRefusal:
 
     @staticmethod
     @pytest.mark.parametrize("sqlstate", ["23505", "22001"], ids=["unique", "too-long"])
-    def test__when_an_error_is_of_integrity_or_data__is_refused(sqlstate: str) -> None:
+    def test__when_an_error_is_of_integrity_or_data__returns_true(sqlstate: str) -> None:
         """A key taken twice, a value too long for its column."""
         assert PostgresRejectionTranslator.is_refusal(TestIsRefusal.error(sqlstate))
 
@@ -37,6 +37,6 @@ class TestIsRefusal:
     @pytest.mark.parametrize(
         "sqlstate", ["40P01", "57P01", ""], ids=["deadlock", "shutdown", "none"]
     )
-    def test__when_the_database_fails__is_no_refusal(sqlstate: str) -> None:
+    def test__when_the_database_fails__returns_false(sqlstate: str) -> None:
         """A deadlock or a server shutting down stays an error of the database."""
         assert not PostgresRejectionTranslator.is_refusal(TestIsRefusal.error(sqlstate))

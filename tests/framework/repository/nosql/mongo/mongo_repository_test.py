@@ -31,14 +31,14 @@ class TestRepository:
     """The same object writes records and reads them back."""
 
     @staticmethod
-    def test__when_the_repository_is_built__fulfills_both_contracts(
+    def test__when_the_repository_is_built__returns_an_abstract_repository(
         machines: MongoRepository[Machine],
     ) -> None:
         """It is taken wherever a repository that reads and writes is."""
         assert isinstance(machines, AbstractRepository)
 
     @staticmethod
-    async def test__when_records_are_written__reads_them_back(
+    async def test__when_records_are_written__returns_what_was_written(
         machines: MongoRepository[Machine], fleet: list[Machine]
     ) -> None:
         """Inserted, filtered, updated and deleted through one object."""

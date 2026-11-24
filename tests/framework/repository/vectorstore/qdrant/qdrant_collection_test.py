@@ -53,7 +53,7 @@ class TestPayloadIndexes:
     """Each filterable field gets the index its annotation calls for."""
 
     @staticmethod
-    def test__when_fields_have_different_types__each_gets_its_index(
+    def test__when_fields_have_different_types__returns_the_index_of_each_type(
         absent: AsyncMock, config: QdrantConfig
     ) -> None:
         """Text and lists by keyword, numbers by range, a datetime by instant."""
@@ -71,7 +71,7 @@ class TestPayloadIndexes:
         }
 
     @staticmethod
-    def test__when_a_field_is_a_boolean__is_not_indexed_as_a_number(
+    def test__when_a_field_is_a_boolean__returns_a_boolean_index(
         absent: AsyncMock, config: QdrantConfig
     ) -> None:
         """A bool subclasses int; an optional field indexes as its type; a label is not indexed."""
@@ -85,7 +85,7 @@ class TestPayloadIndexes:
         }
 
     @staticmethod
-    def test__when_a_datetime_is_optional__indexes_by_instant(
+    def test__when_a_datetime_is_optional__returns_a_datetime_index(
         absent: AsyncMock, config: QdrantConfig
     ) -> None:
         """X | None indexes as X."""
@@ -107,7 +107,7 @@ class TestCreation:
     """A collection is created once, with its vectors, compression and indexes."""
 
     @staticmethod
-    async def test__when_a_collection_is_new__gets_its_vectors_and_indexes(
+    async def test__when_a_collection_is_new__returns_the_vectors_and_indexes_created(
         absent: AsyncMock,
     ) -> None:
         """A dense and a sparse vector, scalar compression, one index per filterable field."""
@@ -129,7 +129,7 @@ class TestCreation:
         } == collection.payload_indexes
 
     @staticmethod
-    async def test__when_a_collection_exists__is_left_as_it_is(
+    async def test__when_a_collection_exists__returns_no_creation(
         present: AsyncMock, config: QdrantConfig
     ) -> None:
         """Unless it is to be recreated."""
@@ -141,7 +141,7 @@ class TestCreation:
         present.create_payload_index.assert_not_awaited()
 
     @staticmethod
-    async def test__when_a_recreation_is_asked__deletes_the_collection_first(
+    async def test__when_a_recreation_is_asked__returns_a_deletion_then_a_creation(
         present: AsyncMock, config: QdrantConfig
     ) -> None:
         """The existing collection is deleted, then created again."""
@@ -154,7 +154,7 @@ class TestCreation:
         present.create_collection.assert_awaited_once()
 
     @staticmethod
-    async def test__when_a_collection_exists__gets_the_indexes_it_lacks(
+    async def test__when_a_collection_exists__returns_a_creation_of_each_index_it_lacks(
         present: AsyncMock, config: QdrantConfig
     ) -> None:
         """One created before a field became filterable."""
@@ -165,7 +165,9 @@ class TestCreation:
         assert present.create_payload_index.await_count == len(collection.payload_indexes)
 
     @staticmethod
-    def test__when_compression_is_binary__keeps_the_vectors_in_memory(absent: AsyncMock) -> None:
+    def test__when_compression_is_binary__returns_in_memory_vectors_and_a_rescore(
+        absent: AsyncMock,
+    ) -> None:
         """The reader then rescores with its oversampling."""
         config = QdrantConfig(
             top_k=3,
@@ -184,7 +186,7 @@ class TestCreation:
         )
 
     @staticmethod
-    def test__when_there_is_no_compression__has_nothing_to_rescore(
+    def test__when_there_is_no_compression__returns_no_quantization_nor_search_params(
         absent: AsyncMock, config: QdrantConfig
     ) -> None:
         """Neither compression nor search parameters."""
@@ -209,7 +211,7 @@ class TestConnection:
         return client_class
 
     @staticmethod
-    def test__when_a_connection_has_no_certificate__verifies_as_https_says(
+    def test__when_a_connection_has_no_certificate__returns_a_client_verifying_as_https_says(
         created: MagicMock,
     ) -> None:
         """No certificate is written; the key is sent in clear to the client."""
@@ -225,7 +227,7 @@ class TestConnection:
         assert not os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"]
 
     @staticmethod
-    def test__when_a_certificate_is_given__is_verified_against_by_http_and_grpc(
+    def test__when_a_certificate_is_given__returns_its_path_for_http_and_grpc(
         created: MagicMock,
     ) -> None:
         """The gRPC channel reads the certificate's path from its environment variable."""

@@ -67,7 +67,7 @@ class TestFilters:
     """Every filter becomes a Qdrant condition that keeps the same documents."""
 
     @staticmethod
-    async def test__when_an_equality_is_given__keeps_the_matching_documents(
+    async def test__when_an_equality_is_given__returns_the_matching_documents(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The three lathes."""
@@ -76,7 +76,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-2", "m-5"]
 
     @staticmethod
-    async def test__when_a_difference_is_given__keeps_the_others(
+    async def test__when_a_difference_is_given__returns_the_others(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The press and the mill."""
@@ -87,7 +87,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-3", "m-4"]
 
     @staticmethod
-    async def test__when_equalities_are_on_one_field__match_any_of_the_values(
+    async def test__when_equalities_are_on_one_field__returns_one_match_on_any_of_the_values(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """One match on any value, not a disjunction of matches."""
@@ -109,7 +109,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-2", "m-5"]
 
     @staticmethod
-    async def test__when_either_of_two_fields_is_asked__keeps_both(
+    async def test__when_either_of_two_fields_is_asked__returns_the_matches_of_either(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The press, and the machine run on two shifts."""
@@ -126,7 +126,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-3"]
 
     @staticmethod
-    async def test__when_an_equality_is_on_a_float__is_a_closed_range(
+    async def test__when_an_equality_is_on_a_float__returns_a_closed_range(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Qdrant matches no float exactly; a range from the value to itself does."""
@@ -142,7 +142,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-3"]
 
     @staticmethod
-    async def test__when_a_number_range_is_given__keeps_the_documents_within(
+    async def test__when_a_number_range_is_given__returns_the_documents_within(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The machines run on two or three shifts."""
@@ -154,7 +154,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-3"]
 
     @staticmethod
-    async def test__when_a_range_is_of_iso_text__compares_datetimes(
+    async def test__when_a_range_is_of_iso_text__returns_the_documents_dated_within(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The machines serviced in the last ten days of September."""
@@ -166,7 +166,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-2", "m-3"]
 
     @staticmethod
-    async def test__when_an_equality_is_on_a_list__matches_any_element(
+    async def test__when_an_equality_is_on_a_list__returns_documents_holding_the_element(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Both machines tagged north."""
@@ -175,7 +175,7 @@ class TestFilters:
         assert sorted(machine.id_ for machine in found) == ["m-1", "m-2"]
 
     @staticmethod
-    async def test__when_a_substring_is_asked__is_refused(
+    async def test__when_a_substring_is_asked__raises_value_error(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Qdrant matches words, not substrings: a text filter would keep other documents."""
@@ -187,7 +187,7 @@ class TestReads:
     """Documents are read by id, by page, and sorted on an indexed field."""
 
     @staticmethod
-    async def test__when_an_id_is_held__reads_its_document(
+    async def test__when_an_id_is_held__returns_its_document(
         stocked: QdrantReadRepository[Machine], fleet: list[Machine]
     ) -> None:
         """The machine as inserted, its service date included."""
@@ -196,14 +196,14 @@ class TestReads:
         assert found == fleet[2]
 
     @staticmethod
-    async def test__when_an_id_is_unknown__reads_none(
+    async def test__when_an_id_is_unknown__returns_none(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """No machine m-9."""
         assert await stocked.get_by_id("m-9") is None
 
     @staticmethod
-    async def test__when_no_collection_exists__reads_nothing(
+    async def test__when_no_collection_exists__returns_nothing_from_every_read(
         machine_reads: QdrantReadRepository[Machine],
     ) -> None:
         """Before the first write, every read is empty."""
@@ -214,7 +214,7 @@ class TestReads:
         assert await machine_reads.count_values("kind") == []
 
     @staticmethod
-    async def test__when_a_sort_is_given__orders_the_pages(
+    async def test__when_a_sort_is_given__returns_the_pages_in_its_order(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """By shifts: the offset skips the fewest, the descending order starts at the most."""
@@ -227,7 +227,7 @@ class TestReads:
         assert [machine.id_ for machine in descending] == ["m-4", "m-3"]
 
     @staticmethod
-    async def test__when_no_limit_is_given__reads_every_match_past_the_offset(
+    async def test__when_no_limit_is_given__returns_every_match_past_the_offset(
         stocked: QdrantReadRepository[Machine], fleet: list[Machine]
     ) -> None:
         """Five machines; three skipped leave two."""
@@ -240,7 +240,9 @@ class TestReads:
         assert len(rest) == len(fleet) - skipped
 
     @staticmethod
-    async def test__when_a_sort_has_no_range_index__is_refused(embedder: Embedder) -> None:
+    async def test__when_a_sort_has_no_range_index__raises_order_not_indexed_error(
+        embedder: Embedder,
+    ) -> None:
         """The server refuses to sort on a field no range index covers."""
         client = AsyncMock(spec=AsyncQdrantClient)
         client.collection_exists.return_value = True
@@ -258,7 +260,7 @@ class TestReads:
             await reads.get_by_filters(sort_by="name")
 
     @staticmethod
-    async def test__when_a_count_is_asked__counts_every_match(
+    async def test__when_a_count_is_asked__returns_the_number_of_matches(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Three lathes."""
@@ -273,7 +275,7 @@ class TestScroll:
     """A scroll reads a page of the fields a projection declares, and the next page's cursor."""
 
     @staticmethod
-    async def test__when_a_projection_is_scrolled__reads_only_its_fields(
+    async def test__when_a_projection_is_scrolled__returns_only_its_fields(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """extra="allow" would keep any other field the store sent back."""
@@ -283,7 +285,7 @@ class TestScroll:
         assert page.rows[0].model_extra == {}
 
     @staticmethod
-    async def test__when_the_cursor_is_followed__pages_through_every_match(
+    async def test__when_the_cursor_is_followed__returns_every_match_page_by_page(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Three pages of two."""
@@ -301,7 +303,7 @@ class TestScroll:
         assert sorted(seen) == ["m-1", "m-2", "m-3", "m-4", "m-5"]
 
     @staticmethod
-    async def test__when_a_payload_does_not_fit__fails_loudly(
+    async def test__when_a_payload_does_not_fit__raises_validation_error(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """A row is never dropped in silence."""
@@ -314,7 +316,7 @@ class TestScroll:
             await stocked.scroll(Numbered)
 
     @staticmethod
-    async def test__when_a_field_has_an_alias__is_read_by_its_field_name(
+    async def test__when_a_field_has_an_alias__returns_the_value_under_its_field_name(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Payloads are written by field name; an alias is not the stored key."""
@@ -330,7 +332,7 @@ class TestScroll:
         assert [row.kind for row in page.rows] == ["press"]
 
     @staticmethod
-    async def test__when_no_collection_exists__scrolls_an_empty_page(
+    async def test__when_no_collection_exists__returns_an_empty_page(
         machine_reads: QdrantReadRepository[Machine],
     ) -> None:
         """No rows, and no next page."""
@@ -344,7 +346,7 @@ class TestCountValues:
     """Each value of a field is counted exactly, most common first."""
 
     @staticmethod
-    async def test__when_a_field_is_counted__every_value_is_counted(
+    async def test__when_a_field_is_counted__returns_the_count_of_every_value(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Three lathes, then a press and a mill in no set order."""
@@ -357,7 +359,7 @@ class TestCountValues:
         ]
 
     @staticmethod
-    async def test__when_filters_are_given__restrict_the_documents_counted(
+    async def test__when_filters_are_given__returns_the_counts_among_the_matches(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """The machines of the second workshop."""
@@ -371,7 +373,7 @@ class TestCountValues:
         ]
 
     @staticmethod
-    async def test__when_a_field_is_a_list__counts_each_element(
+    async def test__when_a_field_is_a_list__returns_the_count_of_each_element(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Two machines tagged north, two tagged south."""
@@ -383,7 +385,7 @@ class TestCountValues:
         ]
 
     @staticmethod
-    async def test__when_a_limit_is_given__stops_at_the_most_common(
+    async def test__when_a_limit_is_given__returns_the_most_common_only(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Only the lathes."""
@@ -392,7 +394,9 @@ class TestCountValues:
         assert counts == [ValueCount(value="lathe", count=3)]
 
     @staticmethod
-    async def test__when_no_document_holds_a_value__is_left_out(embedder: Embedder) -> None:
+    async def test__when_no_document_holds_a_value__returns_the_counts_without_it(
+        embedder: Embedder,
+    ) -> None:
         """The server's payload index keeps a deleted value, counted 0."""
         client = AsyncMock(spec=AsyncQdrantClient)
         client.collection_exists.return_value = True
@@ -408,7 +412,9 @@ class TestCountValues:
         assert counts == [ValueCount(value="lathe", count=3)]
 
     @staticmethod
-    async def test__when_a_field_has_no_index__is_refused(embedder: Embedder) -> None:
+    async def test__when_a_field_has_no_index__raises_values_not_indexed_error(
+        embedder: Embedder,
+    ) -> None:
         """The server refuses a facet on a field no keyword index covers."""
         client = AsyncMock(spec=AsyncQdrantClient)
         client.collection_exists.return_value = True
@@ -430,7 +436,7 @@ class TestLatestPerValue:
     """Each value of a field gets the matching document with the greatest order."""
 
     @staticmethod
-    async def test__when_workshops_are_grouped__each_gets_its_latest_service(
+    async def test__when_workshops_are_grouped__returns_the_latest_service_of_each(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """A machine without a service date is not a candidate."""
@@ -480,7 +486,7 @@ class TestHybridSearch:
         return cast("dict[str, Any]", client.query_points.call_args.kwargs)
 
     @staticmethod
-    async def test__when_a_search_is_made__the_top_k_ranks_the_matches(
+    async def test__when_a_search_is_made__returns_the_top_k_matches_ranked(
         stocked: QdrantReadRepository[Machine],
     ) -> None:
         """Three lathes at most, ranked from 0, among the lathes."""
@@ -492,7 +498,7 @@ class TestHybridSearch:
         assert {retrieved.content.id_ for retrieved in found} == {"m-1", "m-2", "m-5"}
 
     @staticmethod
-    async def test__when_only_a_dense_floor_is_set__stays_off_the_sparse_branch(
+    async def test__when_only_a_dense_floor_is_set__returns_a_sparse_branch_without_floor(
         embedder: Embedder,
     ) -> None:
         """Cosine is bounded, BM25 is not: the dense floor would filter nothing there."""
@@ -503,7 +509,7 @@ class TestHybridSearch:
         assert [prefetch.score_threshold for prefetch in query["prefetch"]] == [0.25, None]
 
     @staticmethod
-    async def test__when_both_floors_are_set__each_branch_takes_its_own_floor(
+    async def test__when_both_floors_are_set__returns_each_branch_with_its_own_floor(
         embedder: Embedder,
     ) -> None:
         """A collection that calibrated BM25 filters both branches."""
@@ -516,7 +522,7 @@ class TestHybridSearch:
         assert [prefetch.score_threshold for prefetch in query["prefetch"]] == [0.25, 3.0]
 
     @staticmethod
-    async def test__when_a_dense_floor_is_set__the_fused_query_is_never_cut(
+    async def test__when_a_dense_floor_is_set__returns_a_fused_query_without_floor(
         embedder: Embedder,
     ) -> None:
         """RRF scores are rank sums: a floor on them would cut by position."""
@@ -527,7 +533,7 @@ class TestHybridSearch:
         assert query.get("score_threshold") is None
 
     @staticmethod
-    async def test__when_vectors_are_compressed__the_dense_branch_rescores_like_the_fused_query(
+    async def test__when_vectors_are_compressed__returns_the_search_params_on_the_dense_branch(
         embedder: Embedder,
     ) -> None:
         """The floor sees the full-precision scores it was calibrated on, not compressed ones."""
@@ -564,7 +570,7 @@ class TestHierarchicalSearch:
         return reads
 
     @staticmethod
-    async def test__when_parents_are_found__bound_the_children(
+    async def test__when_parents_are_found__returns_the_children_within_them(
         workshops: QdrantReadRepository[Workshop], stocked: QdrantReadRepository[Machine]
     ) -> None:
         """The north hall, and its two lathes."""
@@ -582,7 +588,7 @@ class TestHierarchicalSearch:
         assert sorted(child.content.id_ for child in result.children) == ["m-1", "m-2"]
 
     @staticmethod
-    async def test__when_no_parent_is_found__searches_the_children_alone(
+    async def test__when_no_parent_is_found__returns_the_children_found_alone(
         workshops: QdrantReadRepository[Workshop], stocked: QdrantReadRepository[Machine]
     ) -> None:
         """No workshop has a kind; the press has, and the filter then applies to it."""
@@ -600,7 +606,7 @@ class TestHierarchicalSearch:
         assert [child.content.id_ for child in result.children] == ["m-3"]
 
     @staticmethod
-    def test__when_only_children_are_found__the_prompt_gives_each_level_its_section(
+    def test__when_only_children_are_found__returns_a_prompt_with_their_section_only(
         fleet: list[Machine],
     ) -> None:
         """A level without results has no section."""
@@ -615,7 +621,7 @@ class TestHierarchicalSearch:
         assert not HierarchicalSearchResult().has_results
 
     @staticmethod
-    def test__when_a_limit_is_below_one__is_refused() -> None:
+    def test__when_a_limit_is_below_one__raises_validation_error() -> None:
         """A limit of 0 would empty the result."""
         with pytest.raises(ValidationError):
             HierarchicalQuery(

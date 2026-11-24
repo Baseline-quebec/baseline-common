@@ -17,7 +17,7 @@ from tests.framework.repository.http.client.zoho_double import ZohoDouble
 class TestGrant:
     """The first request buys a token; the next ones reuse it until it is about to expire."""
 
-    async def test__when_the_first_request_is_sent__the_refresh_token_is_traded_in_a_form_body(
+    async def test__when_the_first_request_is_sent__returns_a_grant_request_with_a_form_body(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """The secrets travel in the body, never in a URL a log or an error could print."""
@@ -37,7 +37,9 @@ class TestGrant:
         }
         assert double.signatures() == [double.signed("a1")]
 
-    async def test__when_a_token_is_live__is_reused(self, zoho: Callable[..., ZohoDouble]) -> None:
+    async def test__when_a_token_is_live__returns_one_grant_for_two_requests(
+        self, zoho: Callable[..., ZohoDouble]
+    ) -> None:
         """One grant serves every request until its expiry nears."""
         double = zoho(ZohoDouble.grant("a1"))
 
@@ -49,7 +51,7 @@ class TestGrant:
         assert len(double.accounts.requests) == 1
         assert double.signatures() == [double.signed("a1")] * 2
 
-    async def test__when_a_token_is_about_to_expire__is_refreshed_first(
+    async def test__when_a_token_is_about_to_expire__returns_a_request_signed_by_a_new_one(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """Inside the margin, the token is renewed before the request rather than after a 401."""
@@ -62,7 +64,7 @@ class TestGrant:
 
         assert double.signatures() == [double.signed("a1"), double.signed("a2")]
 
-    async def test__when_requests_are_concurrent__share_one_grant(
+    async def test__when_requests_are_concurrent__returns_one_grant_for_them_all(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """Ten requests in flight buy one token, not ten."""
@@ -78,7 +80,7 @@ class TestGrant:
 class TestRevocation:
     """A token the server stops accepting early is refreshed once, and the request replayed."""
 
-    async def test__when_a_token_is_rejected__is_refreshed_and_the_request_replayed(
+    async def test__when_a_token_is_rejected__returns_the_answer_to_the_replayed_request(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """The caller never sees the 401."""
@@ -91,7 +93,7 @@ class TestRevocation:
         assert response.status_code == 200
         assert double.signatures() == [double.signed("a1"), double.signed("a2")]
 
-    async def test__when_a_second_401_is_answered__reaches_the_caller(
+    async def test__when_a_second_401_is_answered__raises_http_status_error(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """One replay only: a token refused twice is a permission problem, not an expiry."""
@@ -108,7 +110,7 @@ class TestRevocation:
 class TestRefusedGrant:
     """A refused grant is an error naming the reason, never the secrets."""
 
-    async def test__when_an_error_body_comes_with_a_200__is_a_refusal(
+    async def test__when_an_error_body_comes_with_a_200__raises_token_refresh_error(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """Zoho refuses a bad refresh token with a 200: the body decides, not the status."""
@@ -122,7 +124,7 @@ class TestRefusedGrant:
         assert ZohoDouble.REFRESH_TOKEN not in str(refused.value)
         assert not double.crm
 
-    async def test__when_an_answer_is_not_json__is_a_refusal(
+    async def test__when_an_answer_is_not_json__raises_token_refresh_error(
         self, zoho: Callable[..., ZohoDouble]
     ) -> None:
         """An outage page instead of a token says so, rather than crashing on the parse."""
@@ -136,7 +138,7 @@ class TestRefusedGrant:
 class TestSyncClient:
     """The auth guards its cache with an asyncio lock, so a sync client is refused outright."""
 
-    def test__when_a_client_is_sync__is_refused(self) -> None:
+    def test__when_a_client_is_sync__raises_not_implemented_error(self) -> None:
         """Rather than silently sending the request unsigned."""
         auth = OAuthRefreshTokenAuth(
             ZohoDouble.TOKEN_URL,

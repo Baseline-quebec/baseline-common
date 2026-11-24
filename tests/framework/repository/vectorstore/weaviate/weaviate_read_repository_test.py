@@ -26,7 +26,7 @@ class TestTenant:
     """A tenant scopes every read; an empty one reads the collection itself."""
 
     @staticmethod
-    def test__when_a_tenant_is_given__scopes_the_collection(
+    def test__when_a_tenant_is_given__returns_the_collection_of_that_tenant(
         weaviate_double: WeaviateDouble, embedder: Embedder
     ) -> None:
         """The collection is read through its tenant."""
@@ -39,7 +39,7 @@ class TestTenant:
 
     @staticmethod
     @pytest.mark.usefixtures("machine_reads")
-    def test__when_no_tenant_is_given__reads_the_collection_itself(
+    def test__when_no_tenant_is_given__returns_the_collection_itself(
         weaviate_double: WeaviateDouble,
     ) -> None:
         """A collection without tenants is never scoped."""
@@ -50,7 +50,7 @@ class TestGetById:
     """A document by its id_, or None."""
 
     @staticmethod
-    async def test__when_a_document_is_held__is_read_as_the_model(
+    async def test__when_a_document_is_held__returns_it_as_the_model(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """Its properties validate into the document type."""
@@ -64,14 +64,14 @@ class TestGetById:
         )
 
     @staticmethod
-    async def test__when_no_document_is_held__is_none(
+    async def test__when_no_document_is_held__returns_none(
         machine_reads: WeaviateReadRepository[Machine],
     ) -> None:
         """An empty answer is no document."""
         assert await machine_reads.get_by_id("m-9") is None
 
     @staticmethod
-    async def test__when_a_tenant_is_not_yet_created__is_none(
+    async def test__when_a_tenant_is_not_yet_created__returns_none(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """A tenant appears on its first write: before it, nothing is held."""
@@ -82,7 +82,7 @@ class TestGetById:
         assert await machine_reads.get_by_id("m-1") is None
 
     @staticmethod
-    async def test__when_any_other_query_error_occurs__is_raised(
+    async def test__when_any_other_query_error_occurs__raises_weaviate_query_error(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """Only a missing tenant means no document."""
@@ -116,7 +116,7 @@ class TestGetByFilters:
         return [kind, [TestGetByFilters.spelled(operand) for operand in operands]]
 
     @staticmethod
-    async def test__when_filters_are_given__are_all_of_their_weaviate_counterparts(
+    async def test__when_filters_are_given__returns_a_fetch_of_all_their_weaviate_counterparts(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """An equality, a comparison, a text search and an or, all of which must hold."""
@@ -156,7 +156,7 @@ class TestGetByFilters:
         assert fetch.kwargs["sort"] is None
 
     @staticmethod
-    async def test__when_no_filter_is_given__fetches_without_a_where(
+    async def test__when_no_filter_is_given__returns_a_fetch_without_a_where(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """Every document, up to the default limit."""
@@ -171,7 +171,7 @@ class TestGetByFilters:
         ("order", "expected"),
         [(SortOrder.ASC, ["hours", True]), (SortOrder.DESC, ["hours", False])],
     )
-    async def test__when_a_sort_is_given__is_on_the_property_in_its_order(
+    async def test__when_a_sort_is_given__returns_a_fetch_on_the_property_in_its_order(
         weaviate_double: WeaviateDouble,
         machine_reads: WeaviateReadRepository[Machine],
         order: SortOrder,
@@ -186,7 +186,7 @@ class TestGetByFilters:
         assert [sort.prop, sort.ascending] == expected
 
     @staticmethod
-    async def test__when_the_vector_is_stored__is_read_into_the_vector_field(
+    async def test__when_the_vector_is_stored__returns_it_in_the_vector_field(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """Weaviate nests it under its name; the document holds it in its own field."""
@@ -199,7 +199,7 @@ class TestGetByFilters:
         assert found.vector == [0.5, 0.5, 0.5, 0.5]
 
     @staticmethod
-    async def test__when_the_vector_is_left_out__the_field_stays_unset(
+    async def test__when_the_vector_is_left_out__returns_the_field_unset(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """A read that leaves vectors out does not ask for them."""
@@ -241,7 +241,7 @@ class TestHybridSearch:
         )
 
     @staticmethod
-    async def test__when_hits_are_found__come_back_ranked_with_their_scores(
+    async def test__when_hits_are_found__returns_them_ranked_with_their_scores(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """Rank follows Weaviate's order; the score is Weaviate's own."""
@@ -260,7 +260,7 @@ class TestHybridSearch:
         ]
 
     @staticmethod
-    async def test__when_a_search_is_made__embeds_the_prefixed_meaning_and_uses_the_config(
+    async def test__when_a_search_is_made__returns_a_query_of_the_prefixed_meaning_and_the_config(
         weaviate_double: WeaviateDouble,
         machine_reads: WeaviateReadRepository[Machine],
         embedder: Embedder,
@@ -282,7 +282,7 @@ class TestHybridSearch:
         ])
 
     @staticmethod
-    async def test__when_a_weight_is_zero__is_kept_not_replaced_by_the_config(
+    async def test__when_a_weight_is_zero__returns_a_query_with_that_weight(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """A zero weight asks for keywords alone; it is not a missing weight."""
@@ -293,7 +293,7 @@ class TestHybridSearch:
         assert (hybrid.kwargs["limit"], hybrid.kwargs["alpha"]) == (1, 0.0)
 
     @staticmethod
-    async def test__when_a_hit_has_no_score__is_refused(
+    async def test__when_a_hit_has_no_score__raises_value_error(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """A rank without a score would mislead whoever reads it."""
@@ -305,7 +305,7 @@ class TestHybridSearch:
             await machine_reads.hybrid_search("a lathe", "lathe")
 
     @staticmethod
-    async def test__when_a_collection_is_missing__finds_nothing(
+    async def test__when_a_collection_is_missing__returns_nothing(
         weaviate_double: WeaviateDouble, machine_reads: WeaviateReadRepository[Machine]
     ) -> None:
         """No collection, no search sent."""

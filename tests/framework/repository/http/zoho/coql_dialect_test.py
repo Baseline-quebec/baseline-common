@@ -33,7 +33,7 @@ class TestQuery:
         """
         return str(json.loads(request.content)["select_query"])
 
-    async def test__when_three_filters_are_given__are_compiled_in_bracketed_pairs_on_zoho_fields(
+    async def test__when_three_filters_are_given__returns_bracketed_pairs_on_zoho_fields(
         self, reads_of: ReadsOf
     ) -> None:
         """Three conditions: COQL wants every pair of terms in brackets."""
@@ -65,7 +65,9 @@ class TestQuery:
         ("value", "literal"),
         [(-53.214831, "(-53.214831)"), (-3, "(-3)"), (47.694201, "47.694201"), (0, "0")],
     )
-    def test__when_a_number_is_negative__is_bracketed(self, value: float, literal: str) -> None:
+    def test__when_a_number_is_negative__returns_it_bracketed(
+        self, value: float, literal: str
+    ) -> None:
         """COQL refuses a bare negative, e.g. a Canadian longitude."""
         dialect = ZohoCoqlDialect("Accounts")
         bound = ComparisonFilter(operator=">=", field="Longitude", value=value)
@@ -75,7 +77,7 @@ class TestQuery:
         assert request.json_body is not None
         assert request.json_body["select_query"].endswith(f"Longitude >= {literal} limit 0, 1")
 
-    async def test__when_no_filter_is_given__still_gives_a_where_clause(
+    async def test__when_no_filter_is_given__returns_a_query_with_a_where_clause(
         self, reads_of: ReadsOf
     ) -> None:
         """Every record of the module."""
@@ -87,7 +89,7 @@ class TestQuery:
         assert found == []
         assert "where id is not null limit 0, 100" in self.sent_query(crm.requests[0])
 
-    async def test__when_the_model_lacks_a_field__is_refused_naming_it(
+    async def test__when_the_model_lacks_a_field__raises_unmapped_field_error(
         self, reads_of: ReadsOf
     ) -> None:
         """Nothing is sent."""
@@ -103,7 +105,7 @@ class TestQuery:
 class TestPaging:
     """Pages follow one another until Zoho says no more records follow."""
 
-    async def test__when_no_limit_is_given__every_page_is_fetched(self, reads_of: ReadsOf) -> None:
+    async def test__when_no_limit_is_given__returns_every_page(self, reads_of: ReadsOf) -> None:
         """The second page starts after the records already read."""
         first = {"id": "z-1", "Account_Name": "A", "Status": "Actif"}
         second = {"id": "z-2", "Account_Name": "B", "Status": "Actif"}
@@ -123,7 +125,7 @@ class TestPaging:
 class TestGetById:
     """A record read back as the model, from its aliases."""
 
-    async def test__when_a_record_is_found__is_read_as_the_model(
+    async def test__when_a_record_is_found__returns_it_as_the_model(
         self, reads_of: ReadsOf, account: ZohoAccount
     ) -> None:
         """Zoho's fields become the model's."""
@@ -136,7 +138,7 @@ class TestGetById:
         assert "where id = 'z-1' limit 0, 1" in TestQuery.sent_query(crm.requests[0])
         assert found == account
 
-    async def test__when_no_record_is_found__is_none(self, reads_of: ReadsOf) -> None:
+    async def test__when_no_record_is_found__returns_none(self, reads_of: ReadsOf) -> None:
         """Zoho answers an empty 204."""
         reads = reads_of(ScriptedServer(httpx.Response(204)))
 
