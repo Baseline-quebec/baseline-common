@@ -53,6 +53,8 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
     """Per attribute, the nodes by value; a list or a dict value is left out."""
     _edge_index: dict[str, list[EdgeT]] = PrivateAttr(default_factory=dict)
     """Per node id, the edges that touch it."""
+    _pair_index: dict[tuple[str, str], list[EdgeT]] = PrivateAttr(default_factory=dict)
+    """Per (source id, destination id), the edges that go from the one to the other."""
 
     @field_validator("nodes")
     @classmethod
@@ -79,27 +81,37 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
     @field_validator("edges")
     @classmethod
     def validate_unique_edges(cls, v: list[EdgeT]) -> list[EdgeT]:
-        """Validate that every edge relation is unique.
+        """Validate that no edge is given twice, as ``_refuse_repeated`` reads it.
 
         Args:
             v: Edges to validate.
 
         Returns:
             The validated edge list, unchanged when uniqueness holds.
-
-        Raises:
-            ValueError: If two edges share the same ``(src_node, dst_node)`` pair.
         """
-        edge_relations = [(edge.src_node.id_, edge.dst_node.id_) for edge in v]
+        joining: dict[tuple[str, str], list[EdgeT]] = defaultdict(list)
 
-        if len(edge_relations) != len(set(edge_relations)):
-            edge_relations_str = [
-                f"{src_node} -> {dst_node}" for src_node, dst_node in edge_relations
-            ]
-            error_msg = f"Edge relations must be unique. {', '.join(edge_relations_str)}"
-            raise ValueError(error_msg)
+        for edge in v:
+            others = joining[edge.src_node.id_, edge.dst_node.id_]
+            cls._refuse_repeated(edge, others)
+            others.append(edge)
 
         return v
+
+    @staticmethod
+    def _refuse_repeated(edge: EdgeT, others: list[EdgeT]) -> None:
+        """Refuse an edge equal to one already going from its source to its destination.
+
+        Args:
+            edge: The edge about to enter the graph.
+            others: The edges already going from its source to its destination.
+
+        Raises:
+            ValueError: If one of them equals it; edges that differ may share the two nodes.
+        """
+        if edge in others:
+            error_msg = f"The edge {edge.src_node.id_} -> {edge.dst_node.id_} is given twice."
+            raise ValueError(error_msg)
 
     @model_validator(mode="after")
     def validate_networkx_graph(self) -> Self:
@@ -168,7 +180,7 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
                     del self._node_index[attr]
 
     def _index_edge(self, edge: EdgeT) -> None:
-        """Add a single edge to the incidence index, under both endpoints.
+        """Add a single edge to the incidence index, under both endpoints, and to its pair.
 
         Args:
             edge: The edge to index.
@@ -176,8 +188,10 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
         for node_id in {edge.src_node.id_, edge.dst_node.id_}:
             self._edge_index.setdefault(node_id, []).append(edge)
 
+        self._pair_index.setdefault((edge.src_node.id_, edge.dst_node.id_), []).append(edge)
+
     def _deindex_edge(self, edge: EdgeT) -> None:
-        """Remove a single edge from both endpoint buckets, dropping empty ones.
+        """Remove a single edge from both endpoint buckets and its pair, dropping empty ones.
 
         Args:
             edge: The edge to remove from the index.
@@ -193,14 +207,21 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
             if not bucket:
                 del self._edge_index[node_id]
 
+        pair = (edge.src_node.id_, edge.dst_node.id_)
+        self._pair_index[pair].remove(edge)
+
+        if not self._pair_index[pair]:
+            del self._pair_index[pair]
+
     def _rebuild_index(self) -> None:
-        """Clear both indexes and re-index every current node and edge."""
+        """Clear every index and re-index every current node and edge."""
         self._node_index.clear()
 
         for node in self.nodes:
             self._index_node(node, self._node_index)
 
         self._edge_index.clear()
+        self._pair_index.clear()
 
         for edge in self.edges:
             self._index_edge(edge)
@@ -274,11 +295,14 @@ class MultiDiGraph[NodeT: Node, EdgeT: Edge[Any]](BaseModel):
         self._deindex_node(node)
 
     def add_edge(self, edge: EdgeT) -> None:
-        """Add an edge to the MultiDiGraph.
+        """Add an edge to the MultiDiGraph, unless ``_refuse_repeated`` refuses it.
 
         Args:
             edge: The edge to add.
         """
+        self._refuse_repeated(
+            edge, self._pair_index.get((edge.src_node.id_, edge.dst_node.id_), [])
+        )
         self.edges.append(edge)
         self._index_edge(edge)
 

@@ -56,6 +56,20 @@ class TestMultiDiGraphConfig:
         with pytest.raises(ValidationError, match="Edge relations must be unique"):
             MultiDiGraphConfig(nodes=[customer_config, product_config], edges=edges)
 
+    def test__a_second_relation_added_later__is_refused(
+        self,
+        store_config: MultiDiGraphConfig,
+        customer_config: NodeConfig,
+        product_config: NodeConfig,
+    ) -> None:
+        """``add_edge`` holds the schema to one relation per pair of node types too."""
+        viewed = EdgeConfig(src_node=customer_config, relation="viewed", dst_node=product_config)
+
+        with pytest.raises(
+            ValueError, match="purchased and viewed both go from customer to product"
+        ):
+            store_config.add_edge(viewed)
+
     def test__the_schema__is_a_graph_of_node_types(self, store_config: MultiDiGraphConfig) -> None:
         """The schema projects to networkx like any graph: one node per node type."""
         graph = store_config.networkx_graph
