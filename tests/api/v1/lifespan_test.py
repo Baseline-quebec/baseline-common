@@ -6,7 +6,7 @@ from baseline_common.api.v1.lifespan import lifespan
 
 
 class TestLifespan:
-    async def test__the_container__is_closed_when_the_app_stops(
+    async def test__when_the_app_stops__the_container_is_closed(
         self, mocker: MockerFixture
     ) -> None:
         """Closing the container runs its providers' finalizers, once the app has served."""

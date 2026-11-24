@@ -18,7 +18,7 @@ class TestGetById:
     """A row is found by its id, only within the reader's scope."""
 
     @staticmethod
-    async def test__a_row__is_read_back_with_its_scope(
+    async def test__when_a_row_is_inserted__is_read_back_with_its_scope(
         machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
     ) -> None:
         """The scope's site is set on insert, and the row comes back by its id."""
@@ -30,7 +30,7 @@ class TestGetById:
         assert (found.serial, found.site) == ("S-1", "Montréal")
 
     @staticmethod
-    async def test__another_scope__sees_none_of_the_rows(
+    async def test__when_a_reader_has_another_scope__sees_none_of_the_rows(
         machine_writes: SqlWriteRepository[Machine], quebec_reads: SqlReadRepository[Machine]
     ) -> None:
         """A reader of another site finds neither the row nor any match."""
@@ -44,7 +44,7 @@ class TestGetByFilters:
     """Filters compile to SQL; text compares regardless of case, as the contract says."""
 
     @staticmethod
-    async def test__logical_and_comparison_filters__sort_and_page(
+    async def test__when_logical_and_comparison_filters_are_given__sort_and_page(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
@@ -66,7 +66,7 @@ class TestGetByFilters:
         assert [machine.serial for machine in found] == ["S-2"]
 
     @staticmethod
-    async def test__a_text_filter__finds_a_part_of_the_text(
+    async def test__when_a_text_filter_is_given__finds_a_part_of_the_text(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
@@ -79,7 +79,7 @@ class TestGetByFilters:
         assert [machine.serial for machine in found] == ["S-3"]
 
     @staticmethod
-    async def test__pages_without_a_sort__are_in_a_stable_order(
+    async def test__when_pages_have_no_sort__are_in_a_stable_order(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
@@ -96,7 +96,7 @@ class TestGetByFilters:
         ]
 
     @staticmethod
-    async def test__a_read_without_a_limit__returns_every_row(
+    async def test__when_a_read_has_no_limit__returns_every_row(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
@@ -109,7 +109,7 @@ class TestGetByFilters:
         assert sorted(machine.serial for machine in found) == ["S-1", "S-2", "S-3"]
 
     @staticmethod
-    async def test__a_table_without_an_id_column__pages_in_primary_key_order(
+    async def test__when_a_table_has_no_id_column__pages_in_primary_key_order(
         session: AsyncSession,
     ) -> None:
         """The shifts of a machine, keyed by machine and rank, read a page at a time."""

@@ -35,7 +35,7 @@ class TestInsert:
     """An insert adds new rows and refuses an id already held."""
 
     @staticmethod
-    async def test__many__are_inserted_in_order(
+    async def test__when_many_rows_are_given__are_inserted_in_order(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         fleet: list[Machine],
@@ -47,7 +47,7 @@ class TestInsert:
         assert len(await machine_reads.get_by_filters()) == len(fleet)
 
     @staticmethod
-    async def test__an_id_held_or_given_twice__is_a_duplicate(
+    async def test__when_an_id_is_held_or_given_twice__is_a_duplicate(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """Refused before any write, as the contract says."""
@@ -62,7 +62,7 @@ class TestInsert:
             await machine_writes.insert_many([twin, Machine(id=twin.id, serial="S-4")])
 
     @staticmethod
-    async def test__a_primary_key_the_database_refuses__is_a_duplicate(
+    async def test__when_the_database_refuses_a_primary_key__is_a_duplicate(
         session: AsyncSession, machine_writes: SqlWriteRepository[Machine]
     ) -> None:
         """Rows keyed by serial pass the check of held ids; the database refuses the taken id."""
@@ -79,7 +79,7 @@ class TestRejection:
     """A row the database refuses raises ``RecordRejectedError``, and only its call is undone."""
 
     @staticmethod
-    async def test__a_unique_value_taken__names_its_constraint_column_and_value(
+    async def test__when_a_unique_value_is_taken__names_its_constraint_column_and_value(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """The serial S-1 taken twice."""
@@ -94,7 +94,7 @@ class TestRejection:
         assert refused.value.other_table is None
 
     @staticmethod
-    async def test__a_unique_index__names_itself_its_column_and_value(
+    async def test__when_a_unique_index_is_broken__names_itself_its_column_and_value(
         session: AsyncSession,
     ) -> None:
         """The code T-1 taken twice, held unique by an index rather than a constraint."""
@@ -109,7 +109,7 @@ class TestRejection:
         assert (refused.value.columns, refused.value.values) == (["code"], ["T-1"])
 
     @staticmethod
-    async def test__a_check__names_its_constraint(
+    async def test__when_a_check_is_broken__names_its_constraint(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """A negative size breaks the check."""
@@ -122,7 +122,7 @@ class TestRejection:
         assert (refused.value.columns, refused.value.other_table) == ([], None)
 
     @staticmethod
-    async def test__a_missing_value__names_its_column(
+    async def test__when_a_value_is_missing__names_its_column(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """A machine without a serial, which the column requires."""
@@ -133,7 +133,7 @@ class TestRejection:
         assert (refused.value.table, refused.value.columns) == ("machine", ["serial"])
 
     @staticmethod
-    async def test__a_value_no_constraint_names__is_invalid(
+    async def test__when_no_constraint_names_a_value__is_invalid(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """A serial longer than its column holds."""
@@ -143,7 +143,7 @@ class TestRejection:
         assert refused.value.reason is RejectionReason.INVALID_VALUE
 
     @staticmethod
-    async def test__references__are_checked_both_ways(
+    async def test__when_references_are_broken__are_checked_both_ways(
         machine_writes: SqlWriteRepository[Machine], part_writes: SqlWriteRepository[Part]
     ) -> None:
         """A part of an unknown machine is refused; a machine with a part cannot be deleted."""
@@ -167,7 +167,7 @@ class TestRejection:
         assert used.value.columns == ["id"]
 
     @staticmethod
-    async def test__a_refused_call__leaves_the_earlier_ones(
+    async def test__when_a_call_is_refused__leaves_the_earlier_ones(
         machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
     ) -> None:
         """The second call is refused whole; the first one stays."""
@@ -183,7 +183,7 @@ class TestManyRows:
     """More ids than a statement takes: SQL Server allows 2100 parameters in one."""
 
     @staticmethod
-    async def test__thousands_of_rows__are_inserted_updated_and_deleted(
+    async def test__when_rows_are_in_the_thousands__are_inserted_updated_and_deleted(
         machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
     ) -> None:
         """2200 machines, each call whole."""
@@ -206,7 +206,7 @@ class TestOtherErrors:
     """Only a refused row becomes ``RecordRejectedError``; any other database error stays itself."""
 
     @staticmethod
-    async def test__a_missing_table__is_no_refusal(session: AsyncSession) -> None:
+    async def test__when_a_table_is_missing__is_no_refusal(session: AsyncSession) -> None:
         """The tools' table dropped: the insert fails as SQLAlchemy raised it."""
         tool_writes = SqlWriteRepository(SqlReadRepository(session, Tool))
         await session.execute(text("DROP TABLE tool"))
@@ -219,7 +219,7 @@ class TestUpdateAndUpsert:
     """An update replaces a held row; an upsert inserts or replaces."""
 
     @staticmethod
-    async def test__an_upsert__replaces_and_keeps_what_the_database_filled(
+    async def test__when_a_row_is_upserted__replaces_and_keeps_what_the_database_filled(
         machine_reads: SqlReadRepository[Machine], machine_writes: SqlWriteRepository[Machine]
     ) -> None:
         """The new name is kept; the creation time the server set survives the replacement."""
@@ -234,7 +234,7 @@ class TestUpdateAndUpsert:
         assert (stored.name, stored.created_at) == ("mill", created)
 
     @staticmethod
-    async def test__a_row_not_held__cannot_be_updated_or_deleted(
+    async def test__when_a_row_is_not_held__cannot_be_updated_or_deleted(
         machine_writes: SqlWriteRepository[Machine],
     ) -> None:
         """Refused before any write, as the contract says."""
@@ -264,7 +264,7 @@ class TestScope:
     """A scoped write changes the rows of its scope and never moves or deletes another one's."""
 
     @staticmethod
-    async def test__an_id_held_in_another_scope__is_refused_and_its_row_is_kept(
+    async def test__when_an_id_is_held_in_another_scope__is_refused_and_its_row_is_kept(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         quebec_reads: SqlReadRepository[Machine],
@@ -295,7 +295,7 @@ class TestScope:
         assert await machine_reads.get_by_filters() == []
 
     @staticmethod
-    async def test__an_id_held_in_the_scope__is_replaced(
+    async def test__when_an_id_is_held_in_the_scope__is_replaced(
         machine_reads: SqlReadRepository[Machine],
         machine_writes: SqlWriteRepository[Machine],
         quebec_reads: SqlReadRepository[Machine],
@@ -320,7 +320,7 @@ class TestScope:
         assert (kept.site, kept.name) == ("Québec", "lathe")
 
     @staticmethod
-    async def test__a_repository_id_other_than_the_primary_key__moves_no_row(
+    async def test__when_a_repository_id_is_not_the_primary_key__moves_no_row(
         session: AsyncSession, quebec_reads: SqlReadRepository[Machine], quebec_machine: Machine
     ) -> None:
         """Merge matches the primary key, not the serial the repository names rows by."""
@@ -336,7 +336,7 @@ class TestScope:
         assert (kept.site, kept.serial) == ("Québec", "S-9")
 
     @staticmethod
-    async def test__a_primary_key_holding_the_scope__is_the_scope_s_own(
+    async def test__when_a_primary_key_holds_the_scope__is_the_scope_s_own(
         session: AsyncSession,
     ) -> None:
         """The scope's serial takes the given one's place in the key, so nothing moves."""
@@ -350,7 +350,7 @@ class TestScope:
         assert [shift.rank for shift in await second.get_by_filters()] == [1]
 
     @staticmethod
-    async def test__an_owned_child_held_in_another_scope__is_refused_and_kept(
+    async def test__when_an_owned_child_is_held_in_another_scope__is_refused_and_kept(
         session: AsyncSession,
     ) -> None:
         """A Montréal hall cannot take a Québec hall's bench; it still rewrites its own."""
@@ -388,7 +388,7 @@ class TestScope:
         assert (renamed.hall_id, renamed.name) == (montreal_hall.id, "press")
 
     @staticmethod
-    async def test__a_grandchild_held_in_another_scope__is_refused_and_kept(
+    async def test__when_a_grandchild_is_held_in_another_scope__is_refused_and_kept(
         session: AsyncSession,
     ) -> None:
         """A clamp is in the scope of its bench's hall; Montréal still rewrites its own clamp."""
@@ -426,7 +426,7 @@ class TestScope:
         assert (renamed.bench_id, renamed.name) == (bench.id, "press")
 
     @staticmethod
-    async def test__an_owned_row_of_the_same_table__is_held_in_its_own_scope(
+    async def test__when_an_owned_row_is_of_the_same_table__is_held_in_its_own_scope(
         session: AsyncSession,
     ) -> None:
         """A Montréal rack cannot take the rack stacked on a Québec one."""
@@ -444,7 +444,7 @@ class TestScope:
         assert kept.base_id == base.id
 
     @staticmethod
-    async def test__an_id_held_in_another_scope__is_not_found_and_nothing_is_deleted(
+    async def test__when_an_id_is_held_in_another_scope__is_not_found_and_nothing_is_deleted(
         machine_writes: SqlWriteRepository[Machine],
         quebec_reads: SqlReadRepository[Machine],
         quebec_machine: Machine,
@@ -463,7 +463,7 @@ class TestScope:
         assert await machine_writes.delete_one(str(machine.id)) == str(machine.id)
 
     @staticmethod
-    async def test__an_unscoped_writer__deletes_a_row_of_any_scope(
+    async def test__when_a_writer_is_unscoped__deletes_a_row_of_any_scope(
         session: AsyncSession, quebec_reads: SqlReadRepository[Machine], quebec_machine: Machine
     ) -> None:
         """Without a scope, a delete removes the row of the id, as it always did."""
@@ -475,7 +475,7 @@ class TestScope:
         assert await quebec_reads.get_by_id(str(quebec_machine.id)) is None
 
     @staticmethod
-    async def test__an_unscoped_writer__replaces_a_row_of_any_scope(
+    async def test__when_a_writer_is_unscoped__replaces_a_row_of_any_scope(
         session: AsyncSession, quebec_machine: Machine
     ) -> None:
         """Without a scope, an upsert or an update replaces the row of the id, as it always did."""

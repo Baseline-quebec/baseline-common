@@ -54,7 +54,9 @@ class TestConstruction:
     """The primary key is checked once, when the reader is made."""
 
     @staticmethod
-    def test__a_primary_key_not_a_field__is_refused(stored: Collection[dict[str, Any]]) -> None:
+    def test__when_a_primary_key_is_not_a_field__is_refused(
+        stored: Collection[dict[str, Any]],
+    ) -> None:
         """No document could be named."""
         collection = cast("Any", AsyncMongomock(stored))
 
@@ -62,7 +64,9 @@ class TestConstruction:
             MongoReadRepository(Machine, collection, primary_key="serial")
 
     @staticmethod
-    def test__a_primary_key_not_text__is_refused(stored: Collection[dict[str, Any]]) -> None:
+    def test__when_a_primary_key_is_not_text__is_refused(
+        stored: Collection[dict[str, Any]],
+    ) -> None:
         """get_by_id names a record by text."""
         collection = cast("Any", AsyncMongomock(stored))
 
@@ -74,7 +78,7 @@ class TestGetById:
     """A read by id goes to the _id index."""
 
     @staticmethod
-    async def test__an_id__finds_its_record(
+    async def test__when_an_id_is_held__finds_its_record(
         stocked: MongoReadRepository[Machine], fleet: list[Machine]
     ) -> None:
         """The record, as inserted."""
@@ -83,7 +87,9 @@ class TestGetById:
         assert found == fleet[2]
 
     @staticmethod
-    async def test__an_id_not_held__finds_none(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_an_id_is_not_held__finds_none(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """None, not an error."""
         found = await stocked.get_by_id("m-9")
 
@@ -91,7 +97,7 @@ class TestGetById:
 
     @staticmethod
     @pytest.mark.usefixtures("stocked")
-    async def test__the_id__is_stored_as_the_document_id(
+    async def test__when_a_record_is_held__the_id_is_stored_as_the_document_id(
         stored: Collection[dict[str, Any]],
     ) -> None:
         """Once, as _id, not again as id_."""
@@ -105,7 +111,7 @@ class TestFilters:
     """Every filter becomes a MongoDB query that keeps the same records."""
 
     @staticmethod
-    async def test__an_equality__keeps_the_matching_records(
+    async def test__when_an_equality_is_given__keeps_the_matching_records(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """The three lathes."""
@@ -114,14 +120,18 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-1", "m-2", "m-5"]
 
     @staticmethod
-    async def test__a_text_equality__keeps_its_case(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_an_equality_is_on_text__keeps_its_case(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """Unlike the in-memory repository: case-insensitive, no index would serve it."""
         found = await stocked.get_by_filters([EqualityFilter(field="kind", value="LATHE")])
 
         assert found == []
 
     @staticmethod
-    async def test__a_difference__keeps_the_others(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_difference_is_given__keeps_the_others(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """The press and the mill."""
         found = await stocked.get_by_filters([
             ComparisonFilter(operator="!=", field="kind", value="lathe")
@@ -130,7 +140,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-3", "m-4"]
 
     @staticmethod
-    async def test__a_difference__keeps_a_record_without_the_field(
+    async def test__when_a_record_lacks_the_field__a_difference_keeps_it(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """The mill was never serviced; as in memory, a missing value only differs."""
@@ -141,7 +151,9 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-2", "m-3", "m-4", "m-5"]
 
     @staticmethod
-    async def test__a_bound__compares_numbers(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_bound_is_on_a_number__compares_numbers(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """At least 7.25 hours."""
         found = await stocked.get_by_filters([
             ComparisonFilter(operator=">=", field="hours", value=7.25)
@@ -150,7 +162,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-1", "m-3", "m-4"]
 
     @staticmethod
-    async def test__a_bound_on_a_datetime__compares_its_iso_text(
+    async def test__when_a_bound_is_on_a_datetime__compares_its_iso_text(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """Serviced after the 10th, written as a filter writes a date."""
@@ -161,14 +173,16 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-2", "m-3"]
 
     @staticmethod
-    async def test__a_nested_path__is_followed(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_path_is_nested__is_followed(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """The machines of Montréal."""
         found = await stocked.get_by_filters([EqualityFilter(field="site.city", value="Montréal")])
 
         assert [machine.id_ for machine in found] == ["m-1", "m-2"]
 
     @staticmethod
-    async def test__an_equality_on_a_list__matches_an_element(
+    async def test__when_an_equality_is_on_a_list__matches_an_element(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """MongoDB matches any element of an array."""
@@ -177,7 +191,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-1", "m-3"]
 
     @staticmethod
-    async def test__the_primary_key__is_read_from_the_id(
+    async def test__when_a_filter_is_on_the_primary_key__is_read_from_the_id(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """id_ is stored as _id."""
@@ -188,7 +202,9 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-4", "m-5"]
 
     @staticmethod
-    async def test__an_either_or__keeps_any_match(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_an_either_or_is_given__keeps_any_match(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """The press or the mill."""
         found = await stocked.get_by_filters([
             LogicalFilter(
@@ -203,7 +219,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-3", "m-4"]
 
     @staticmethod
-    async def test__a_conjunction__keeps_every_match(
+    async def test__when_a_conjunction_is_given__keeps_every_match(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """A lathe of Montréal on two shifts."""
@@ -220,7 +236,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-1"]
 
     @staticmethod
-    async def test__empty_operands__hold_for_all_or_for_none(
+    async def test__when_operands_are_empty__hold_for_all_or_for_none(
         stocked: MongoReadRepository[Machine], fleet: list[Machine]
     ) -> None:
         """As all() and any() of nothing; MongoDB refuses an empty $and or $or."""
@@ -231,7 +247,7 @@ class TestFilters:
         assert none == []
 
     @staticmethod
-    async def test__a_text_filter__matches_a_part_regardless_of_case(
+    async def test__when_a_text_filter_is_given__matches_a_part_regardless_of_case(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """Its hyphen is a character, not a regex range."""
@@ -240,7 +256,7 @@ class TestFilters:
         assert [machine.id_ for machine in found] == ["m-3"]
 
     @staticmethod
-    async def test__a_text_filter__escapes_the_regex(
+    async def test__when_a_text_filter_has_a_dot__escapes_the_regex(
         stocked: MongoReadRepository[Machine],
     ) -> None:
         """A dot matches only a dot."""
@@ -249,13 +265,17 @@ class TestFilters:
         assert found == []
 
     @staticmethod
-    async def test__an_unknown_filter__is_refused(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_filter_is_unknown__is_refused(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """Never ignored, which would return too much."""
         with pytest.raises(ValueError, match="Prefix"):
             await stocked.get_by_filters([Prefix(field="name", value="Lathe")])
 
     @staticmethod
-    async def test__a_count__counts_the_matches(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_count_is_asked__counts_the_matches(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """Three lathes, five machines."""
         lathes = await stocked.count_by_filters([EqualityFilter(field="kind", value="lathe")])
         machines = await stocked.count_by_filters([])
@@ -267,42 +287,54 @@ class TestSortAndPage:
     """Results are sorted, ties broken by id, and paged."""
 
     @staticmethod
-    async def test__no_sort__follows_the_id(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_no_sort_is_given__follows_the_id(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """Every machine, by id."""
         found = await stocked.get_by_filters()
 
         assert [machine.id_ for machine in found] == ["m-1", "m-2", "m-3", "m-4", "m-5"]
 
     @staticmethod
-    async def test__a_sort__breaks_ties_by_id(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_sort_has_ties__breaks_ties_by_id(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """Most hours first; m-1 and m-3 tie at 12.5."""
         found = await stocked.get_by_filters(sort_by="hours", sort_order=SortOrder.DESC)
 
         assert [machine.id_ for machine in found] == ["m-1", "m-3", "m-4", "m-2", "m-5"]
 
     @staticmethod
-    async def test__a_missing_value__sorts_lowest(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_value_is_missing__sorts_lowest(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """The mill, never serviced, first in ascending order."""
         found = await stocked.get_by_filters(sort_by="serviced")
 
         assert [machine.id_ for machine in found] == ["m-4", "m-1", "m-5", "m-2", "m-3"]
 
     @staticmethod
-    async def test__a_page__skips_then_limits(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_page_is_asked__skips_then_limits(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """The second page of two."""
         found = await stocked.get_by_filters(sort_by="shifts", limit=2, offset=2)
 
         assert [machine.id_ for machine in found] == ["m-1", "m-3"]
 
     @staticmethod
-    async def test__no_limit__returns_every_match(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_no_limit_is_given__returns_every_match(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """After the offset."""
         found = await stocked.get_by_filters(limit=None, offset=1)
 
         assert len(found) == 4
 
     @staticmethod
-    async def test__a_zero_limit__returns_nothing(stocked: MongoReadRepository[Machine]) -> None:
+    async def test__when_a_limit_is_zero__returns_nothing(
+        stocked: MongoReadRepository[Machine],
+    ) -> None:
         """MongoDB reads a zero limit as none."""
         found = await stocked.get_by_filters(limit=0)
 

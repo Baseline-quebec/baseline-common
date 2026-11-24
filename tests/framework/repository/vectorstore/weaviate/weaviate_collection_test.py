@@ -20,7 +20,9 @@ class TestProperties:
     """Each field becomes a property of its data type; the vector field is left out."""
 
     @staticmethod
-    def test__each_type__gets_its_data_type(weaviate_double: WeaviateDouble) -> None:
+    def test__when_fields_have_different_types__each_gets_its_data_type(
+        weaviate_double: WeaviateDouble,
+    ) -> None:
         """An optional field maps as the type it wraps."""
         properties = WeaviateCollection(Machine, weaviate_double.client).properties
 
@@ -37,7 +39,9 @@ class TestProperties:
         }
 
     @staticmethod
-    def test__indexes__follow_the_field_s_properties(weaviate_double: WeaviateDouble) -> None:
+    def test__when_fields_declare_properties__indexes_follow_the_field_s_properties(
+        weaviate_double: WeaviateDouble,
+    ) -> None:
         """Searchable and filterable as declared; a field without them is neither."""
         properties = WeaviateCollection(Machine, weaviate_double.client).properties
 
@@ -47,7 +51,7 @@ class TestProperties:
         assert indexes["hours"] == (False, False)
 
     @staticmethod
-    def test__an_unsupported_type__is_refused(weaviate_double: WeaviateDouble) -> None:
+    def test__when_a_type_is_unsupported__is_refused(weaviate_double: WeaviateDouble) -> None:
         """A field Weaviate cannot store is named when the schema is read."""
 
         class Gauge(VectorDocument):
@@ -65,7 +69,7 @@ class TestCreation:
     """A collection is created once, with multi-tenancy, and recreated on demand."""
 
     @staticmethod
-    async def test__a_new_collection__gets_its_properties_and_tenants(
+    async def test__when_a_collection_is_new__gets_its_properties_and_tenants(
         weaviate_double: WeaviateDouble,
     ) -> None:
         """Tenants are created on their first write."""
@@ -83,7 +87,7 @@ class TestCreation:
         )
 
     @staticmethod
-    async def test__an_existing_collection__is_left_as_it_is(
+    async def test__when_a_collection_exists__is_left_as_it_is(
         weaviate_double: WeaviateDouble,
     ) -> None:
         """No create, no delete."""
@@ -93,7 +97,7 @@ class TestCreation:
         weaviate_double.client.collections.delete.assert_not_awaited()
 
     @staticmethod
-    async def test__a_recreation__deletes_the_collection_first(
+    async def test__when_a_recreation_is_asked__deletes_the_collection_first(
         weaviate_double: WeaviateDouble,
     ) -> None:
         """The collection is deleted, then created again."""
@@ -124,7 +128,9 @@ class TestSchemaCheck:
         return AsyncMock(return_value=SimpleNamespace(properties=properties))
 
     @staticmethod
-    async def test__the_same_properties__have_not_changed(weaviate_double: WeaviateDouble) -> None:
+    async def test__when_the_properties_are_the_same__have_not_changed(
+        weaviate_double: WeaviateDouble,
+    ) -> None:
         """Every field is a property, and nothing more."""
         names = [
             item.name for item in WeaviateCollection(Machine, weaviate_double.client).properties
@@ -134,14 +140,16 @@ class TestSchemaCheck:
         assert not await WeaviateCollection(Machine, weaviate_double.client).schema_has_changed()
 
     @staticmethod
-    async def test__a_field_added__has_changed(weaviate_double: WeaviateDouble) -> None:
+    async def test__when_a_field_is_added__has_changed(weaviate_double: WeaviateDouble) -> None:
         """The collection lacks a property the document type now has."""
         weaviate_double.collection.config.get = TestSchemaCheck.configured("id_", "name")
 
         assert await WeaviateCollection(Machine, weaviate_double.client).schema_has_changed()
 
     @staticmethod
-    async def test__a_missing_collection__has_not_changed(weaviate_double: WeaviateDouble) -> None:
+    async def test__when_a_collection_is_missing__has_not_changed(
+        weaviate_double: WeaviateDouble,
+    ) -> None:
         """Nothing to compare: the next creation builds it from the fields."""
         weaviate_double.client.collections.exists.return_value = False
 
@@ -152,7 +160,9 @@ class TestDeletion:
     """A deletion drops the collection by its name."""
 
     @staticmethod
-    async def test__the_collection__is_deleted_by_name(weaviate_double: WeaviateDouble) -> None:
+    async def test__when_the_collection_is_deleted__is_deleted_by_name(
+        weaviate_double: WeaviateDouble,
+    ) -> None:
         """The document type names it."""
         await WeaviateCollection(Machine, weaviate_double.client).delete_collection()
 

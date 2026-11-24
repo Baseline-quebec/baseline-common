@@ -26,7 +26,7 @@ class TestInsert:
     """An insert adds new records and refuses an id already held."""
 
     @staticmethod
-    async def test__many__are_inserted_in_order(
+    async def test__when_many_records_are_given__are_inserted_in_order(
         machine_reads: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -38,7 +38,7 @@ class TestInsert:
         assert await machine_reads.get_by_filters() == fleet
 
     @staticmethod
-    async def test__a_record_without_id__is_given_an_object_id(
+    async def test__when_a_record_has_no_id__is_given_an_object_id(
         machine_reads: MongoReadRepository[Machine], machine_writes: MongoWriteRepository[Machine]
     ) -> None:
         """Text of 24 hex digits, the record read back under it."""
@@ -50,14 +50,16 @@ class TestInsert:
         )
 
     @staticmethod
-    async def test__nothing__writes_nothing(machine_writes: MongoWriteRepository[Machine]) -> None:
+    async def test__when_nothing_is_inserted__writes_nothing(
+        machine_writes: MongoWriteRepository[Machine],
+    ) -> None:
         """An empty insert, which pymongo refuses, is never sent."""
         inserted = await machine_writes.insert_many([])
 
         assert inserted == []
 
     @staticmethod
-    async def test__an_id_held__is_refused_before_any_write(
+    async def test__when_an_id_is_held__is_refused_before_any_write(
         machine_reads: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -71,7 +73,7 @@ class TestInsert:
         assert await machine_reads.count_by_filters([]) == 1
 
     @staticmethod
-    async def test__an_id_given_twice__is_refused_before_any_write(
+    async def test__when_an_id_is_given_twice__is_refused_before_any_write(
         machine_reads: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -83,7 +85,7 @@ class TestInsert:
         assert await machine_reads.count_by_filters([]) == 0
 
     @staticmethod
-    async def test__an_id_taken_since_the_check__is_refused_by_the_index(
+    async def test__when_an_id_is_taken_since_the_check__is_refused_by_the_index(
         machine_writes: MongoWriteRepository[Machine],
         stored: Collection[dict[str, Any]],
         fleet: list[Machine],
@@ -101,7 +103,9 @@ class TestInsert:
 
     @staticmethod
     @pytest.mark.usefixtures("stocked")
-    async def test__a_datetime__is_stored_as_iso_text(stored: Collection[dict[str, Any]]) -> None:
+    async def test__when_a_record_has_a_datetime__is_stored_as_iso_text(
+        stored: Collection[dict[str, Any]],
+    ) -> None:
         """As a filter writes it, so the two compare."""
         document = stored.find_one({"_id": "m-1"})
 
@@ -113,7 +117,7 @@ class TestUpdate:
     """An update replaces records held, and never inserts."""
 
     @staticmethod
-    async def test__an_update__replaces_the_record(
+    async def test__when_a_record_is_updated__replaces_the_record(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -128,7 +132,7 @@ class TestUpdate:
         assert found.hours == pytest.approx(20.0)
 
     @staticmethod
-    async def test__a_record_not_held__is_refused_before_any_write(
+    async def test__when_a_record_is_not_held__is_refused_before_any_write(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -144,7 +148,7 @@ class TestUpdate:
         assert await stocked.get_by_id("m-9") is None
 
     @staticmethod
-    async def test__nothing__updates_nothing(
+    async def test__when_nothing_is_updated__updates_nothing(
         machine_writes: MongoWriteRepository[Machine],
     ) -> None:
         """An empty bulk, which pymongo refuses, is never sent."""
@@ -157,7 +161,7 @@ class TestUpsert:
     """An upsert inserts or replaces."""
 
     @staticmethod
-    async def test__an_upsert__inserts_or_replaces(
+    async def test__when_records_are_upserted__inserts_or_replaces(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -174,7 +178,7 @@ class TestUpsert:
         assert await stocked.count_by_filters([]) == len(fleet) + 1
 
     @staticmethod
-    async def test__a_record_without_id__is_inserted(
+    async def test__when_a_record_has_no_id__is_inserted(
         machine_reads: MongoReadRepository[Machine], machine_writes: MongoWriteRepository[Machine]
     ) -> None:
         """Under a fresh id."""
@@ -190,7 +194,7 @@ class TestDelete:
     """A delete removes records by id or by filters, and refuses what would surprise."""
 
     @staticmethod
-    async def test__an_id__deletes_its_record(
+    async def test__when_an_id_is_held__deletes_its_record(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -204,7 +208,7 @@ class TestDelete:
 
     @staticmethod
     @pytest.mark.usefixtures("stocked")
-    async def test__an_id_not_held__is_refused(
+    async def test__when_an_id_is_not_held__is_refused(
         machine_writes: MongoWriteRepository[Machine],
     ) -> None:
         """Not a silent no-op."""
@@ -212,7 +216,7 @@ class TestDelete:
             await machine_writes.delete_one("m-9")
 
     @staticmethod
-    async def test__ids__delete_none_when_one_is_not_held(
+    async def test__when_one_of_the_ids_is_not_held__deletes_none(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -224,7 +228,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet)
 
     @staticmethod
-    async def test__ids__delete_their_records_in_one_call(
+    async def test__when_ids_are_held__delete_their_records_in_one_call(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -236,7 +240,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet) - 2
 
     @staticmethod
-    async def test__filters__delete_every_match(
+    async def test__when_filters_are_given__delete_every_match(
         stocked: MongoReadRepository[Machine], machine_writes: MongoWriteRepository[Machine]
     ) -> None:
         """The three lathes; the press and the mill stay."""
@@ -250,7 +254,7 @@ class TestDelete:
         assert [machine.id_ for machine in remaining] == ["m-3", "m-4"]
 
     @staticmethod
-    async def test__no_filter__is_refused(
+    async def test__when_no_filter_is_given__is_refused(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],
@@ -262,7 +266,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet)
 
     @staticmethod
-    async def test__all__are_deleted_and_counted(
+    async def test__when_delete_all_is_called__all_are_deleted_and_counted(
         stocked: MongoReadRepository[Machine],
         machine_writes: MongoWriteRepository[Machine],
         fleet: list[Machine],

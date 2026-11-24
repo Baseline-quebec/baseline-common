@@ -21,7 +21,7 @@ class TestInsert:
     """An insert embeds each document and stores it under a UUID derived from its id_."""
 
     @staticmethod
-    async def test__many__are_inserted_in_order(
+    async def test__when_many_documents_are_given__are_inserted_in_order(
         weaviate_double: WeaviateDouble,
         machine_reads: WeaviateReadRepository[Machine],
         machine_writes: WeaviateWriteRepository[Machine],
@@ -35,7 +35,7 @@ class TestInsert:
         assert await machine_reads.get_by_id("m-2") == fleet[1]
 
     @staticmethod
-    async def test__the_vector__is_sent_beside_the_properties(
+    async def test__when_a_document_is_inserted__the_vector_is_sent_beside_the_properties(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -58,7 +58,7 @@ class TestInsert:
         assert held.uuid == uuid.uuid5(uuid.NAMESPACE_DNS, "m-2")
 
     @staticmethod
-    async def test__an_id_held__is_refused_naming_it(
+    async def test__when_an_id_is_held__is_refused_naming_it(
         machine_writes: WeaviateWriteRepository[Machine], fleet: list[Machine]
     ) -> None:
         """Weaviate refuses a UUID it holds; the insert says so instead of logging it."""
@@ -72,7 +72,7 @@ class TestUpdate:
     """An update replaces documents held, re-embedding only a changed text."""
 
     @staticmethod
-    async def test__a_changed_text__is_embedded_again(
+    async def test__when_a_text_is_changed__is_embedded_again(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -90,7 +90,7 @@ class TestUpdate:
         assert weaviate_double.by_id("m-1").properties["name"] == "Lathe Z"
 
     @staticmethod
-    async def test__an_unchanged_text__keeps_the_stored_vector(
+    async def test__when_a_text_is_unchanged__keeps_the_stored_vector(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -108,7 +108,7 @@ class TestUpdate:
         assert (held.properties["hours"], held.vector["default"]) == (40.0, stored)
 
     @staticmethod
-    async def test__a_missing_id__is_refused_before_any_write(
+    async def test__when_an_id_is_missing__is_refused_before_any_write(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -128,7 +128,7 @@ class TestUpsert:
     """An upsert inserts what is new and replaces what is held."""
 
     @staticmethod
-    async def test__new_and_held__are_both_written(
+    async def test__when_new_and_held_are_upserted__are_both_written(
         machine_reads: WeaviateReadRepository[Machine],
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -144,7 +144,7 @@ class TestUpsert:
         assert await machine_reads.get_by_id("m-2") == fleet[1]
 
     @staticmethod
-    async def test__an_id_given_twice__keeps_the_last(
+    async def test__when_an_id_is_given_twice__keeps_the_last(
         machine_reads: WeaviateReadRepository[Machine],
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -162,7 +162,7 @@ class TestDelete:
     """A delete removes documents by the UUIDs their id_ values derive."""
 
     @staticmethod
-    async def test__one__is_deleted_by_its_id(
+    async def test__when_one_id_is_deleted__the_others_stay(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -179,7 +179,7 @@ class TestDelete:
         ]
 
     @staticmethod
-    async def test__many__return_their_ids(
+    async def test__when_many_are_deleted__return_their_ids(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -193,7 +193,7 @@ class TestDelete:
         assert list(weaviate_double.objects) == [str(uuid.uuid5(uuid.NAMESPACE_DNS, "m-2"))]
 
     @staticmethod
-    async def test__a_refused_delete__is_raised_with_its_reason(
+    async def test__when_a_delete_is_refused__is_raised_with_its_reason(
         weaviate_double: WeaviateDouble, machine_writes: WeaviateWriteRepository[Machine]
     ) -> None:
         """Weaviate's refusal comes back as a ValueError that says what was refused."""
@@ -205,7 +205,7 @@ class TestDelete:
             await machine_writes.delete_many(["m-1"])
 
     @staticmethod
-    async def test__a_missing_id__is_refused_naming_its_uuid(
+    async def test__when_an_id_is_missing__is_refused_naming_its_uuid(
         machine_writes: WeaviateWriteRepository[Machine], fleet: list[Machine]
     ) -> None:
         """A document not deleted is an error, not a silent skip."""
@@ -216,7 +216,7 @@ class TestDelete:
             await machine_writes.delete_many(["m-1", "m-9"])
 
     @staticmethod
-    async def test__all__empties_the_collection(
+    async def test__when_delete_all_is_called__empties_the_collection(
         weaviate_double: WeaviateDouble,
         machine_writes: WeaviateWriteRepository[Machine],
         fleet: list[Machine],
@@ -230,7 +230,7 @@ class TestDelete:
         assert weaviate_double.objects == {}
 
     @staticmethod
-    async def test__all_of_an_empty_collection__deletes_nothing(
+    async def test__when_the_collection_is_empty__delete_all_deletes_nothing(
         weaviate_double: WeaviateDouble, machine_writes: WeaviateWriteRepository[Machine]
     ) -> None:
         """No delete is sent."""

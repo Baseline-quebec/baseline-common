@@ -39,7 +39,7 @@ class TestWrites:
         data = [{"code": "SUCCESS", "status": "success", "details": {"id": i}} for i in ids]
         return httpx.Response(201, json={"data": data})
 
-    async def test__an_insert__posts_the_record_without_its_id(
+    async def test__when_a_record_is_inserted__posts_the_record_without_its_id(
         self, writes_of: WritesOf, account: ZohoAccount
     ) -> None:
         """Zoho gives the id."""
@@ -59,7 +59,7 @@ class TestWrites:
             }
         ]
 
-    async def test__an_update__puts_the_record_with_its_id(
+    async def test__when_a_record_is_updated__puts_the_record_with_its_id(
         self, writes_of: WritesOf, account: ZohoAccount
     ) -> None:
         """Zoho finds the record to update by its id."""
@@ -73,7 +73,7 @@ class TestWrites:
         assert crm.requests[0].method == "PUT"
         assert (row["id"], row["Status"]) == ("z-1", "Fermé")
 
-    async def test__an_upsert__posts_to_the_upsert_path_with_the_ids_it_has(
+    async def test__when_an_upsert_is_sent__posts_to_the_upsert_path_with_the_ids_it_has(
         self, writes_of: WritesOf, account: ZohoAccount
     ) -> None:
         """A record with an id is updated, one without is inserted: Zoho tells them apart."""
@@ -89,7 +89,7 @@ class TestWrites:
         assert held["id"] == "z-1"
         assert "id" not in added
 
-    async def test__an_upsert__sends_the_fields_it_matches_on(
+    async def test__when_an_upsert_has_match_fields__sends_the_fields_it_matches_on(
         self, writes_of: WritesOf, account: ZohoAccount
     ) -> None:
         """Zoho matches an upsert on the fields named beside the records."""
@@ -102,7 +102,7 @@ class TestWrites:
         assert body["duplicate_check_fields"] == ["Account_Name"]
         assert len(body["data"]) == 1
 
-    async def test__a_refused_record__raises_with_zohos_reason(
+    async def test__when_a_record_is_refused__raises_with_zohos_reason(
         self, writes_of: WritesOf, account: ZohoAccount
     ) -> None:
         """Zoho answers 400 with the reason per record."""
@@ -112,7 +112,7 @@ class TestWrites:
         with pytest.raises(WriteError, match="MANDATORY_NOT_FOUND"):
             await writes.insert_one(account)
 
-    async def test__a_delete__names_the_record_in_the_ids_parameter(
+    async def test__when_a_record_is_deleted__names_the_record_in_the_ids_parameter(
         self, writes_of: WritesOf
     ) -> None:
         """One record, by its id, on the collection's path."""
@@ -125,7 +125,7 @@ class TestWrites:
         assert (crm.requests[0].method, crm.paths()) == ("DELETE", ["/crm/v8/Accounts"])
         assert crm.requests[0].url.params["ids"] == "z-1"
 
-    async def test__a_delete_of_many__sends_a_batch_of_ids_per_call(
+    async def test__when_many_records_are_deleted__sends_a_batch_of_ids_per_call(
         self, writes_of: WritesOf
     ) -> None:
         """Zoho takes at most a batch of ids per delete, comma-separated."""
@@ -137,7 +137,9 @@ class TestWrites:
         assert ids == ["z-1", "z-2", "z-3"]
         assert [r.url.params["ids"] for r in crm.requests] == ["z-1,z-2", "z-3"]
 
-    async def test__a_refused_delete__raises_with_zohos_reason(self, writes_of: WritesOf) -> None:
+    async def test__when_a_delete_is_refused__raises_with_zohos_reason(
+        self, writes_of: WritesOf
+    ) -> None:
         """Zoho answers a status per id; one not held is refused."""
         refusal = {"code": "INVALID_DATA", "status": "error", "details": {"id": "z-9"}}
         writes = writes_of(ScriptedServer(httpx.Response(200, json={"data": [refusal]})))

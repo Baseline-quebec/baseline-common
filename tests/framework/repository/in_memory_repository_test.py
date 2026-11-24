@@ -21,7 +21,7 @@ from tests.framework.repository.equipment import Equipment
 class TestFilters:
     """Every filter holds or not on a record's fields, text regardless of case."""
 
-    async def test__an_equality__keeps_the_matching_records(
+    async def test__when_an_equality_is_given__keeps_the_matching_records(
         self, inventory: list[Equipment]
     ) -> None:
         """The active pieces, the retired one left out."""
@@ -33,7 +33,9 @@ class TestFilters:
 
         assert [piece.id_ for piece in found] == ["m-1", "m-2", "m-4"]
 
-    async def test__text__compares_regardless_of_case(self, inventory: list[Equipment]) -> None:
+    async def test__when_a_filter_is_on_text__compares_regardless_of_case(
+        self, inventory: list[Equipment]
+    ) -> None:
         """A name typed in lower case still matches, on a nested field too."""
         repository = InMemoryRepository(Equipment, inventory)
 
@@ -47,7 +49,7 @@ class TestFilters:
         assert [piece.id_ for piece in by_name] == ["m-2"]
         assert [piece.id_ for piece in by_city] == ["m-4"]
 
-    async def test__a_logical_or__keeps_records_any_operand_holds_for(
+    async def test__when_a_logical_or_is_given__keeps_records_any_operand_holds_for(
         self, inventory: list[Equipment]
     ) -> None:
         """Either brand."""
@@ -64,7 +66,9 @@ class TestFilters:
 
         assert [piece.id_ for piece in found] == ["m-2", "m-3"]
 
-    async def test__a_missing_value__is_only_different(self, inventory: list[Equipment]) -> None:
+    async def test__when_a_value_is_missing__is_only_different(
+        self, inventory: list[Equipment]
+    ) -> None:
         """No bay equals nothing, and differs from anything."""
         repository = InMemoryRepository(Equipment, inventory)
 
@@ -80,7 +84,9 @@ class TestFilters:
 class TestPaging:
     """Sorted, then sliced by offset and limit."""
 
-    async def test__sorted_descending__then_sliced(self, inventory: list[Equipment]) -> None:
+    async def test__when_a_page_is_sorted_descending__is_sorted_then_sliced(
+        self, inventory: list[Equipment]
+    ) -> None:
         """The second and third names, from the last."""
         repository = InMemoryRepository(Equipment, inventory)
 
@@ -90,7 +96,7 @@ class TestPaging:
 
         assert [piece.name for piece in found] == ["PRESS ALPHA", "LATHE DELTA"]
 
-    async def test__missing_values__sort_last(self, inventory: list[Equipment]) -> None:
+    async def test__when_values_are_missing__sort_last(self, inventory: list[Equipment]) -> None:
         """Only the press has a bay."""
         repository = InMemoryRepository(Equipment, inventory)
 
@@ -102,7 +108,9 @@ class TestPaging:
 class TestGetById:
     """A record found by its id field."""
 
-    async def test__the_primary_key__finds_the_record(self, inventory: list[Equipment]) -> None:
+    async def test__when_a_primary_key_is_named__finds_the_record(
+        self, inventory: list[Equipment]
+    ) -> None:
         """A piece's id is the field named as its primary key."""
         repository = InMemoryRepository(Equipment, inventory, primary_key="id_")
 
@@ -113,13 +121,17 @@ class TestGetById:
 class TestWrites:
     """Records inserted, replaced and deleted by their id."""
 
-    def test__the_repository__fulfills_both_contracts(self, press: Equipment) -> None:
+    def test__when_the_repository_is_built__fulfills_both_contracts(
+        self, press: Equipment
+    ) -> None:
         """It is taken wherever a repository that reads and writes is."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
 
         assert isinstance(repository, AbstractRepository)
 
-    async def test__an_inserted_record__is_found(self, press: Equipment, lathe: Equipment) -> None:
+    async def test__when_a_record_is_inserted__is_found(
+        self, press: Equipment, lathe: Equipment
+    ) -> None:
         """Insert returns the id the record is then found by."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
 
@@ -128,7 +140,7 @@ class TestWrites:
         assert id_ == "m-4"
         assert await repository.get_by_id("m-4") == lathe
 
-    async def test__a_held_id__is_not_inserted_twice(self, press: Equipment) -> None:
+    async def test__when_an_id_is_held__is_not_inserted_twice(self, press: Equipment) -> None:
         """Nothing is added when one record of the batch is already held."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
 
@@ -137,7 +149,9 @@ class TestWrites:
 
         assert len(await repository.get_by_filters()) == 1
 
-    async def test__an_update__replaces_the_record_of_the_same_id(self, press: Equipment) -> None:
+    async def test__when_a_record_is_updated__replaces_the_record_of_the_same_id(
+        self, press: Equipment
+    ) -> None:
         """The record, as it now is."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
         closed = press.model_copy(update={"status": "retired"})
@@ -146,7 +160,7 @@ class TestWrites:
 
         assert await repository.get_by_id("m-1") == closed
 
-    async def test__a_record_not_held__cannot_be_updated_nor_deleted(
+    async def test__when_a_record_is_not_held__cannot_be_updated_nor_deleted(
         self, press: Equipment, lathe: Equipment
     ) -> None:
         """Both name the missing id."""
@@ -158,7 +172,7 @@ class TestWrites:
         with pytest.raises(RecordNotFoundError, match="m-4"):
             await repository.delete_one("m-4")
 
-    async def test__a_delete_of_many__removes_none_when_one_is_not_held(
+    async def test__when_one_of_many_deleted_is_not_held__removes_none(
         self, press: Equipment, lathe: Equipment
     ) -> None:
         """The missing id is named, and every record stays."""
@@ -169,7 +183,7 @@ class TestWrites:
 
         assert len(await repository.get_by_filters(limit=None)) == 2
 
-    async def test__a_deleted_record__is_gone(self, press: Equipment) -> None:
+    async def test__when_a_record_is_deleted__is_gone(self, press: Equipment) -> None:
         """Delete returns the id removed."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
 
@@ -178,7 +192,7 @@ class TestWrites:
         assert id_ == "m-1"
         assert await repository.get_by_id("m-1") is None
 
-    async def test__an_upsert__replaces_every_record_of_the_id_and_adds_the_others(
+    async def test__when_many_are_upserted__replaces_every_record_of_the_id_and_adds_the_others(
         self, press: Equipment, lathe: Equipment
     ) -> None:
         """Two held under one id, as a dirty file may; one left, the last given; one added."""
@@ -192,7 +206,7 @@ class TestWrites:
         assert ids == ["m-1", "m-4", "m-1"]
         assert await repository.get_by_filters(limit=None) == [again, lathe]
 
-    async def test__a_record_without_an_id__is_given_one(self, press: Equipment) -> None:
+    async def test__when_a_record_has_no_id__is_given_one(self, press: Equipment) -> None:
         """As a backend would: the id returned finds the record, the id set."""
         repository = InMemoryRepository(Equipment, [press], primary_key="id_")
         draft = press.model_copy(update={"id_": None, "serial": "S-009"})

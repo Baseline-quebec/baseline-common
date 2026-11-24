@@ -17,12 +17,12 @@ class TestTranslate:
     """Any other dialect is read generically, rather than failing on its error."""
 
     @staticmethod
-    def test__another_dialect__is_read_by_the_generic_translator() -> None:
+    def test__when_a_dialect_has_no_translator__is_read_by_the_generic_translator() -> None:
         """SQLite, say."""
         assert SqlWriteRepository.TRANSLATORS[SqlDialect("sqlite")] is GenericRejectionTranslator
 
     @staticmethod
-    def test__a_refusal__is_an_invalid_value_of_the_written_table() -> None:
+    def test__when_a_refusal_is_translated__is_an_invalid_value_of_the_written_table() -> None:
         """Only the table is known."""
         translator = GenericRejectionTranslator(WorkshopTable.metadata.tables["machine"])
 
@@ -32,7 +32,7 @@ class TestTranslate:
         assert (rejection.table, rejection.constraint) == ("machine", None)
 
     @staticmethod
-    def test__only_integrity_and_data_errors__are_refusals() -> None:
+    def test__when_errors_differ_in_class__only_integrity_and_data_errors_are_refusals() -> None:
         """The driver's class decides; a lost connection is no refusal."""
         refused = [
             GenericRejectionTranslator.is_refusal(error_type("INSERT", {}, Exception()))
