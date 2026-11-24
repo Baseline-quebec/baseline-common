@@ -89,7 +89,7 @@ class TestSpawnedProcessPool:
 
         return False
 
-    async def test__when_a_job_is_given__runs_in_a_spawned_process_while_the_event_loop_runs(
+    async def test__when_a_job_is_given__returns_a_spawned_process_id_while_the_loop_runs(
         self, pool: SpawnedProcessPool
     ) -> None:
         """The worker runs away from the test's process, and the loop ticks meanwhile."""
@@ -102,7 +102,7 @@ class TestSpawnedProcessPool:
         assert waiting
         assert process_id != os.getpid()
 
-    async def test__when_two_jobs_are_given__run_in_two_fresh_processes(
+    async def test__when_two_jobs_are_given__returns_two_process_ids(
         self, pool: SpawnedProcessPool
     ) -> None:
         """A process runs one job only: the next one starts in its replacement."""
@@ -112,7 +112,7 @@ class TestSpawnedProcessPool:
 
         assert first != second
 
-    async def test__when_a_process_dies__raises_and_the_next_job_gets_a_new_pool(
+    async def test__when_a_process_dies__raises_spawned_process_died_error(
         self, pool: SpawnedProcessPool
     ) -> None:
         """A process killed mid-job breaks its job only: the next one runs in a fresh pool."""
@@ -121,7 +121,7 @@ class TestSpawnedProcessPool:
 
         assert await pool.run(False) != os.getpid()  # noqa: FBT003 - the job is a flag
 
-    async def test__when_the_pool_closes_during_a_job__terminates_a_busy_process(
+    async def test__when_the_pool_closes_during_a_job__raises_spawned_process_died_error(
         self, started: Path
     ) -> None:
         """A job still running when the pool closes is stopped, and its caller told it died."""
@@ -147,7 +147,7 @@ class TestSpawnedProcessPool:
 
         assert set(threading.enumerate()) <= before
 
-    def test__when_the_parent_dies__ends_its_pool_process(self, started: Path) -> None:
+    def test__when_the_parent_dies__returns_its_pool_process_ended(self, started: Path) -> None:
         """A pool process watches the process that spawned it, and ends when it dies."""
         parent = multiprocessing.get_context("spawn").Process(target=host, args=[started])
         parent.start()
@@ -158,7 +158,7 @@ class TestSpawnedProcessPool:
 
         self.until(partial(self.has_ended, process_id))
 
-    def test__when_a_pool_has_no_process__is_refused(self) -> None:
+    def test__when_a_pool_has_no_process__raises_value_error(self) -> None:
         """A pool needs at least one process to run a job in."""
         with pytest.raises(ValueError, match="max_workers must be greater than 0"):
             SpawnedProcessPool(0, answer_or_die)

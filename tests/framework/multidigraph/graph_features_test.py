@@ -23,7 +23,7 @@ class TestNode:
         assert user1_fixture.age == expected_age
         assert user1_fixture.loyalty_score == expected_loyalty_score
 
-    def test__when_node_subclass_instantiated__feature_type_str_returns_subclass_name(
+    def test__when_node_subclass_instantiated__returns_subclass_name_as_feature_type_str(
         self, user1_fixture: User
     ) -> None:
         """Test that Node returns the correct feature_type_str based on the subclass."""
@@ -33,11 +33,13 @@ class TestNode:
 
         assert result == "User"
 
-    def test__when_the_node_config_is_read__is_frozen(self) -> None:
+    def test__when_the_node_config_is_read__returns_true_for_frozen(self) -> None:
         """Tripwire: the whole node-index invariant rests on nodes being frozen."""
         assert Node.model_config.get("frozen") is True
 
-    def test__when_node_attribute_reassigned__raises(self, user1_fixture: User) -> None:
+    def test__when_node_attribute_reassigned__raises_validation_error(
+        self, user1_fixture: User
+    ) -> None:
         """A frozen node rejects in-place mutation, so indexed values cannot drift."""
         with pytest.raises(ValidationError):
             user1_fixture.id_ = "mutated"  # type: ignore[misc]  # the write a frozen node refuses
@@ -68,7 +70,7 @@ class TestEdge:
         assert edge_fixture.src_node == user1_fixture
         assert edge_fixture.dst_node == flight1_fixture
 
-    def test__when_edge_subclass_instantiated__feature_type_str_returns_subclass_name(
+    def test__when_edge_subclass_instantiated__returns_subclass_name_as_feature_type_str(
         self, edge_fixture: Booked
     ) -> None:
         """Test that Edge returns the correct feature_type_str based on the subclass."""
@@ -78,7 +80,7 @@ class TestEdge:
 
         assert result == "Booked"
 
-    def test__when_edges_of_different_subclasses_share_endpoints__not_equal(
+    def test__when_edges_of_different_subclasses_share_endpoints__returns_not_equal(
         self, edge_fixture: Booked, operated_by_edge_fixture: OperatedBy
     ) -> None:
         """Test that two edges with the same endpoints but different subclasses are not equal."""
@@ -87,11 +89,13 @@ class TestEdge:
 
         assert booked_edge != operated_by_edge  # type: ignore[comparison-overlap]  # the point
 
-    def test__when_the_edge_config_is_read__is_frozen(self) -> None:
+    def test__when_the_edge_config_is_read__returns_true_for_frozen(self) -> None:
         """Tripwire: the edge-incidence-index invariant rests on edges being frozen."""
         assert Edge.model_config.get("frozen") is True
 
-    def test__when_edge_attribute_reassigned__raises(self, edge_fixture: Booked) -> None:
+    def test__when_edge_attribute_reassigned__raises_validation_error(
+        self, edge_fixture: Booked
+    ) -> None:
         """A frozen edge rejects in-place mutation, so indexed endpoints cannot drift."""
         with pytest.raises(ValidationError):
             edge_fixture.src_node = edge_fixture.dst_node  # type: ignore[misc]  # refused: frozen
@@ -100,12 +104,12 @@ class TestEdge:
 class TestSubgraphQuery:
     """Test cases for the query shape."""
 
-    def test__when_a_query_has_no_criterion__is_refused(self) -> None:
+    def test__when_a_query_has_no_criterion__raises_validation_error(self) -> None:
         """A query that would match everything by accident is a bug, not a search."""
         with pytest.raises(ValidationError, match="at least one matching criterion"):
             SubgraphQuery()
 
-    def test__when_a_query_has_a_crossed_window__is_refused(self) -> None:
+    def test__when_a_query_has_a_crossed_window__raises_validation_error(self) -> None:
         """An empty window would silently drop every edge."""
         with pytest.raises(ValidationError, match="Empty window"):
             SubgraphQuery(node_ids=["a"], edge_bounds={"year": (2022, 2020)})

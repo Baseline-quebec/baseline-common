@@ -24,7 +24,7 @@ class TestInsert:
     """An insert embeds new documents and refuses an id already held."""
 
     @staticmethod
-    async def test__when_no_collection_exists__an_insert_creates_the_collection_and_the_document(
+    async def test__when_no_collection_exists__returns_the_inserted_document_by_its_id(
         machine_reads: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -36,7 +36,7 @@ class TestInsert:
         assert await machine_reads.get_by_id("m-1") == fleet[0]
 
     @staticmethod
-    async def test__when_many_documents_are_given__are_inserted_in_order(
+    async def test__when_many_documents_are_given__returns_their_ids_in_order(
         machine_writes: QdrantWriteRepository[Machine], fleet: list[Machine]
     ) -> None:
         """Their ids, as given."""
@@ -45,7 +45,7 @@ class TestInsert:
         assert inserted == ["m-1", "m-2", "m-3", "m-4", "m-5"]
 
     @staticmethod
-    async def test__when_an_id_is_held__is_refused(
+    async def test__when_an_id_is_held__raises_duplicate_record_error(
         machine_writes: QdrantWriteRepository[Machine], fleet: list[Machine]
     ) -> None:
         """An insert never replaces; an upsert does."""
@@ -55,7 +55,7 @@ class TestInsert:
             await machine_writes.insert_many([fleet[1], fleet[0]])
 
     @staticmethod
-    async def test__when_an_id_is_given_twice__is_refused_before_any_write(
+    async def test__when_an_id_is_given_twice__raises_duplicate_record_error(
         machine_reads: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -67,7 +67,7 @@ class TestInsert:
         assert await machine_reads.count_by_filters([]) == 0
 
     @staticmethod
-    async def test__when_an_insert_is_large__embeds_by_batches(
+    async def test__when_an_insert_is_large__returns_an_embedding_call_per_batch(
         machine_writes: QdrantWriteRepository[Machine], embedder: Embedder
     ) -> None:
         """120 machines, three batches of at most 50."""
@@ -79,7 +79,7 @@ class TestInsert:
         assert [len(call.args[0]) for call in embed.call_args_list] == [50, 50, 20]
 
     @staticmethod
-    async def test__when_a_document_has_a_datetime__is_stored_as_iso_text(
+    async def test__when_a_document_has_a_datetime__returns_it_stored_as_iso_text(
         stocked: QdrantReadRepository[Machine], qdrant_client: AsyncQdrantClient
     ) -> None:
         """A datetime payload index reads RFC 3339 text."""
@@ -94,7 +94,7 @@ class TestUpdate:
     """An update replaces the payload, and re-embeds only a changed text to embed."""
 
     @staticmethod
-    async def test__when_a_document_is_updated__replaces_the_document(
+    async def test__when_a_document_is_updated__returns_the_updated_document_by_its_id(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -108,7 +108,7 @@ class TestUpdate:
         assert found.notes == "oiled"
 
     @staticmethod
-    async def test__when_a_text_is_unchanged__is_not_embedded_again(
+    async def test__when_a_text_is_unchanged__returns_no_embedding_call(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         embedder: Embedder,
@@ -125,7 +125,7 @@ class TestUpdate:
         assert await stocked.count_by_filters([EqualityFilter(field="name", value="Lathe Z")]) == 1
 
     @staticmethod
-    async def test__when_a_document_is_not_held__is_refused(
+    async def test__when_a_document_is_not_held__raises_record_not_found_error(
         stocked: QdrantReadRepository[Machine], machine_writes: QdrantWriteRepository[Machine]
     ) -> None:
         """An update never inserts."""
@@ -135,7 +135,7 @@ class TestUpdate:
         assert await stocked.get_by_id("m-9") is None
 
     @staticmethod
-    async def test__when_documents_are_upserted__inserts_or_replaces(
+    async def test__when_documents_are_upserted__returns_the_new_and_the_replaced(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -154,7 +154,7 @@ class TestUpdate:
         assert await stocked.get_by_id("m-1") == renamed
 
     @staticmethod
-    async def test__when_no_collection_exists__an_upsert_creates_the_collection(
+    async def test__when_no_collection_exists__returns_the_upserted_document_by_its_id(
         machine_reads: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -169,7 +169,7 @@ class TestDelete:
     """A delete removes documents by id or by filters, and refuses what would surprise."""
 
     @staticmethod
-    async def test__when_an_id_is_held__deletes_its_document(
+    async def test__when_a_held_id_is_deleted__returns_none_by_its_id(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -182,7 +182,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet) - 1
 
     @staticmethod
-    async def test__when_an_id_is_not_held__is_refused(
+    async def test__when_an_id_is_not_held__raises_record_not_found_error(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -194,7 +194,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet)
 
     @staticmethod
-    async def test__when_filters_match_more_than_one_page__delete_every_match(
+    async def test__when_filters_match_more_than_one_page__returns_the_number_of_matches_deleted(
         machine_reads: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
     ) -> None:
@@ -210,7 +210,7 @@ class TestDelete:
         assert await machine_reads.get_by_id("kept") is not None
 
     @staticmethod
-    async def test__when_no_filter_is_given__is_refused(
+    async def test__when_no_filter_is_given__raises_value_error(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],
@@ -222,7 +222,7 @@ class TestDelete:
         assert await stocked.count_by_filters([]) == len(fleet)
 
     @staticmethod
-    async def test__when_delete_all_is_called__empties_the_collection(
+    async def test__when_delete_all_is_called__returns_the_number_deleted(
         stocked: QdrantReadRepository[Machine],
         machine_writes: QdrantWriteRepository[Machine],
         fleet: list[Machine],

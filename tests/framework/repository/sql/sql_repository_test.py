@@ -25,14 +25,14 @@ class TestRepository:
     """The same object writes rows and reads them back, within its scope."""
 
     @staticmethod
-    def test__when_the_repository_is_built__fulfills_both_contracts(
+    def test__when_the_repository_is_built__returns_an_abstract_repository(
         machines: SqlRepository[Machine],
     ) -> None:
         """It is taken wherever a repository that reads and writes is."""
         assert isinstance(machines, AbstractRepository)
 
     @staticmethod
-    async def test__when_rows_are_written__reads_them_back(
+    async def test__when_rows_are_written__returns_what_was_written(
         machines: SqlRepository[Machine], fleet: list[Machine]
     ) -> None:
         """Inserted in the scope, updated and deleted through one object."""
