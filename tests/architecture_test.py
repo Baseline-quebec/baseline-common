@@ -191,7 +191,9 @@ class TestLayers:
     CONTAINERS: ClassVar[set[str]] = {"make_container", "make_async_container"}
     """What Dishka builds a container with."""
 
-    def test__when_a_file_is_python__lives_in_a_layer(self, source: str, root: str) -> None:
+    def test__when_a_file_is_python__returns_no_file_outside_the_layers(
+        self, source: str, root: str
+    ) -> None:
         """Only the package's own `__init__.py` sits outside the layer folders the rules read."""
         layers = "|".join(self.LAYERS)
         rule = (
@@ -203,7 +205,7 @@ class TestLayers:
 
         assert_passes(rule)
 
-    def test__when_a_folder_is_at_the_package_root__is_a_layer(
+    def test__when_a_folder_is_at_the_package_root__returns_no_folder_outside_the_layers(
         self, source: str, package: str
     ) -> None:
         """Non-Python files such as `py.typed` may sit at the root; a folder there is a layer."""
@@ -212,7 +214,7 @@ class TestLayers:
         assert folders - {*self.LAYERS, "__pycache__"} == set()
 
     @pytest.mark.parametrize("layer", ORDER)
-    def test__when_a_layer_has_layers_above_it__never_imports_them(
+    def test__when_a_layer_has_layers_above_it__returns_no_import_of_them(
         self, source: str, root: str, layer: str
     ) -> None:
         """Dependencies point down only, from the entry points to the framework."""
@@ -249,7 +251,7 @@ class TestLayers:
         return named <= allowed
 
     @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
-    def test__when_an_entry_point_names_another__only_spawns_it(
+    def test__when_an_entry_point_names_another__returns_only_its_spawn_targets(
         self, source: str, package: str, root: str, entry_point: str
     ) -> None:
         """Entry points ignore each other, but for the function one launches in a child process."""
@@ -287,7 +289,7 @@ class TestLayers:
 
         return imported <= {own}
 
-    def test__when_a_file_is_in_a_framework_module__imports_no_other_one(
+    def test__when_a_file_is_in_a_framework_module__returns_no_import_of_another_one(
         self, source: str, package: str, root: str
     ) -> None:
         """A project copies one framework module alone, so it imports no other."""
@@ -331,7 +333,7 @@ class TestLayers:
         return based or Imports.takes_from_dishka(file, cls.DECLARING)
 
     @pytest.mark.parametrize("layer", [layer for layer in LAYERS if layer != "assembly"])
-    def test__when_a_layer_is_not_the_assembly__declares_no_provider(
+    def test__when_a_layer_is_not_the_assembly__returns_no_provider(
         self, source: str, package: str, root: str, layer: str
     ) -> None:
         """Providers live in `assembly/`; an entry point builds its container from them."""
@@ -346,7 +348,7 @@ class TestLayers:
         assert_passes(rule)
 
     @pytest.mark.parametrize("layer", ORDER)
-    def test__when_a_layer_is_below_the_entry_points__builds_no_container(
+    def test__when_a_layer_is_below_the_entry_points__returns_no_container(
         self, source: str, root: str, layer: str
     ) -> None:
         """Only an entry point builds a container, in its `init_container()`."""
@@ -432,7 +434,7 @@ class TestLayers:
         return cls.builds_containers_in_init_container(tree, None, Imports.bindings(tree))
 
     @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
-    def test__when_an_entry_point_builds_a_container__builds_it_in_init_container_only(
+    def test__when_an_entry_point_builds_a_container__returns_none_outside_init_container(
         self, source: str, root: str, entry_point: str
     ) -> None:
         """One function builds the container, the one the app and a test both know."""
@@ -449,7 +451,7 @@ class TestLayers:
         assert_passes(rule)
 
     @pytest.mark.parametrize("entry_point", ThisRepository.ENTRY_POINTS)
-    def test__when_an_entry_point_defines_init_container__it_takes_no_argument(
+    def test__when_an_entry_point_defines_init_container__returns_no_argument(
         self, source: str, root: str, entry_point: str
     ) -> None:
         """No parameter serves the tests only: a test builds its container and passes it."""
@@ -505,7 +507,7 @@ class TestCycles:
 
         return edges
 
-    def test__when_imports_are_followed__the_package_has_no_cycle(self, source: str) -> None:
+    def test__when_imports_are_followed__returns_no_cycle(self, source: str) -> None:
         """No file reaches itself again through its imports, `TYPE_CHECKING` ones included."""
         markers = {
             (edge.source_label, edge.target_label): self.marker(edge)
@@ -569,7 +571,7 @@ class TestForbiddenImports:
 
         return packages.isdisjoint(modules)
 
-    def test__when_a_file_is_in_the_package__imports_no_package_whole(
+    def test__when_a_file_is_in_the_package__returns_no_import_of_a_whole_package(
         self, source: str, package: str, root: str
     ) -> None:
         """`from <package> import api` hides the layer it reaches from the layer rules."""
@@ -584,7 +586,7 @@ class TestForbiddenImports:
 
         assert_passes(rule)
 
-    def test__when_a_file_is_in_the_package__imports_no_client_project(
+    def test__when_a_file_is_in_the_package__returns_no_import_of_a_client_project(
         self, source: str, root: str
     ) -> None:
         """The framework and its examples are generic: no file imports a client project's package."""
@@ -598,7 +600,7 @@ class TestForbiddenImports:
 
         assert_passes(rule)
 
-    def test__when_a_file_is_in_the_package__imports_no_specialised_repository(
+    def test__when_a_file_is_in_the_package__returns_no_import_of_a_specialised_repository(
         self, source: str, root: str
     ) -> None:
         """Dependencies between repositories point to baseline-common, never from it."""
@@ -639,7 +641,7 @@ class TestForbiddenImports:
             if name.startswith(f"{other}.")
         )
 
-    def test__when_another_baseline_package_is_read__is_read_through_its_framework_or_models(
+    def test__when_another_baseline_package_is_read__returns_only_its_framework_or_models(
         self, source: str, package: str, root: str
     ) -> None:
         """A repository reads another's `framework/`, and its `models/` above the framework."""
@@ -655,7 +657,9 @@ class TestForbiddenImports:
 
         assert_passes(rule)
 
-    def test__when_a_layer_is_not_the_api__knows_no_http(self, source: str, root: str) -> None:
+    def test__when_a_layer_is_not_the_api__returns_no_import_of_an_http_server(
+        self, source: str, root: str
+    ) -> None:
         """Routes and requests stay in `api/`, and `framework/api/` that it imports: no other layer."""
         rule = (
             project_files(source)
@@ -705,7 +709,7 @@ class TestNaming:
             isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) for node in body
         )
 
-    def test__when_a_package_has_an_init_file__re_exports_nothing(
+    def test__when_a_package_has_an_init_file__returns_only_its_docstring(
         self, source: str, root: str
     ) -> None:
         """An ``__init__.py`` holds a docstring only: importing a name loads only its own file."""
@@ -719,7 +723,7 @@ class TestNaming:
 
         assert_passes(rule)
 
-    def test__when_a_file_is_named_abstract__defines_the_abstract_class_it_is_named_after(
+    def test__when_a_file_is_named_abstract__returns_the_abstract_class_it_is_named_after(
         self, source: str, root: str
     ) -> None:
         """A file `abstract_<name>.py` holds the ABC `Abstract…<Name>`."""
@@ -785,7 +789,7 @@ class TestRepositories:
 
         return found
 
-    def test__when_a_store_has_repositories__provides_a_read_a_write_and_a_combined_class(
+    def test__when_a_store_has_repositories__returns_a_read_a_write_and_a_combined_class(
         self, source: str, package: str
     ) -> None:
         """Each store has a read class, a write class and a combined class inheriting both."""

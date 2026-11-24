@@ -118,7 +118,7 @@ class TestOverZoho:
         body: dict[str, Any] = json.loads(request.content)
         return body
 
-    async def test__when_the_records_held_are_read__one_coql_query_sorted_on_the_id_is_sent(
+    async def test__when_the_records_held_are_read__returns_one_coql_query_sorted_on_the_id(
         self, batch: list[WorkOrder]
     ) -> None:
         """The held records are read in id order, so the batch reuses their ids in that order."""
@@ -130,7 +130,7 @@ class TestOverZoho:
         assert "from Work_Orders" in query
         assert "order by id asc" in query
 
-    async def test__when_nothing_is_held__the_batch_is_inserted(
+    async def test__when_nothing_is_held__returns_the_batch_as_inserted(
         self, batch: list[WorkOrder]
     ) -> None:
         """Nothing held: Zoho answers an empty 204, and the batch is posted in one call."""
@@ -144,7 +144,7 @@ class TestOverZoho:
         assert [r.method for r in crm.requests] == ["POST", "POST"]
         assert crm.paths() == ["/crm/v8/coql", "/crm/v8/Work_Orders"]
 
-    async def test__when_a_batch_is_larger__rewrites_the_held_ids_and_posts_the_extra(
+    async def test__when_a_batch_is_larger__returns_the_held_ids_updated_and_the_extra_inserted(
         self, batch: list[WorkOrder]
     ) -> None:
         """Two held, three sent: two puts carrying the held ids, one post without an id."""
@@ -162,7 +162,7 @@ class TestOverZoho:
         assert [(row["id"], row["Name"]) for row in put] == [("z-1", "Deburr"), ("z-2", "Drill")]
         assert post == [{"Machine": "CNC-2", "Week": "2026-11-09", "Name": "Polish", "Hours": 1.0}]
 
-    async def test__when_a_batch_is_smaller__deletes_the_records_left_over(
+    async def test__when_a_batch_is_smaller__returns_the_records_left_over_as_deleted(
         self, batch: list[WorkOrder]
     ) -> None:
         """Three held, one sent: one put, then one delete naming every record left over."""
@@ -207,7 +207,7 @@ class TestReplacement:
         """
         return BatchReplacementService(memory)
 
-    async def test__when_the_same_batch_is_sent_twice__leaves_it_once_under_the_same_ids(
+    async def test__when_the_same_batch_is_sent_twice__returns_it_once_under_the_same_ids(
         self, memory: InMemoryRepository[WorkOrder], batch: list[WorkOrder]
     ) -> None:
         """A rerun of an export rewrites its records rather than doubling them; ids are reused."""

@@ -20,7 +20,7 @@ class TestRetries:
     BASE_URL: ClassVar[str] = "https://erp.test"
     """The server every request of these tests goes to."""
 
-    async def test__when_a_server_is_busy__is_asked_again_until_it_answers(
+    async def test__when_a_server_is_busy__returns_the_answer_of_a_later_attempt(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """Two 503 then a 200: the caller only ever sees the 200."""
@@ -32,7 +32,7 @@ class TestRetries:
         assert response.status_code == 200
         assert len(erp.requests) == 3
 
-    async def test__when_a_post_fails__is_never_retried(
+    async def test__when_a_post_fails__returns_the_failure_of_its_only_attempt(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """A POST whose answer was lost may have been applied: a second send could duplicate it."""
@@ -44,7 +44,7 @@ class TestRetries:
         assert response.status_code == 503
         assert len(crm.requests) == 1
 
-    async def test__when_retries_run_out__the_last_answer_stands(
+    async def test__when_retries_run_out__raises_http_status_error(
         self, server: Callable[..., ScriptedServer]
     ) -> None:
         """A server down for good is asked once plus ``retry_total`` times, then reported."""
@@ -57,7 +57,7 @@ class TestRetries:
 
         assert len(erp.requests) == 3
 
-    async def test__when_a_client_error_is_answered__is_not_retried(
+    async def test__when_a_client_error_is_answered__returns_a_single_attempt(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """A 404 will be a 404 again: asking twice only spends the rate limit."""
@@ -68,7 +68,7 @@ class TestRetries:
 
         assert len(erp.requests) == 1
 
-    async def test__when_a_connection_drops_on_an_idempotent_request__is_retried(
+    async def test__when_a_connection_drops_on_an_idempotent_request__returns_the_retried_answer(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """The connection failing is transient; the request itself was fine."""
@@ -80,7 +80,7 @@ class TestRetries:
         assert response.status_code == 200
         assert len(erp.requests) == 2
 
-    async def test__when_a_connection_drops_on_a_post__surfaces(
+    async def test__when_a_connection_drops_on_a_post__raises_connect_error(
         self, server: Callable[..., ScriptedServer], no_wait: HttpConfig
     ) -> None:
         """A non-idempotent request fails loudly rather than being sent a second time."""
@@ -110,21 +110,21 @@ class TestDelay:
             HttpConfig.model_validate(config), httpx.MockTransport(lambda _: httpx.Response(200))
         )
 
-    def test__when_the_server_sends_a_retry_after__is_honoured(self) -> None:
+    def test__when_the_server_sends_a_retry_after__returns_it_as_the_delay(self) -> None:
         """A rate-limited server says when to come back, and is believed."""
         assert self.transport().delay(0, "7") == 7.0
 
-    def test__when_a_retry_after_is_long__is_capped(self) -> None:
+    def test__when_a_retry_after_is_long__returns_the_cap(self) -> None:
         """A server cannot park a worker for an hour."""
         assert self.transport(retry_after_cap=30.0).delay(0, "3600") == 30.0
 
-    def test__when_a_retry_after_is_an_http_date__falls_back_to_the_backoff(self) -> None:
+    def test__when_a_retry_after_is_an_http_date__returns_the_backoff(self) -> None:
         """The date form is not parsed; the exponential schedule takes over."""
         delay = self.transport(retry_backoff=1.0).delay(2, "Wed, 21 Oct 2026 07:28:00 GMT")
 
         assert 4.0 <= delay <= 4.4
 
-    def test__when_the_server_gives_no_hint__the_backoff_doubles_at_every_attempt(self) -> None:
+    def test__when_the_server_gives_no_hint__returns_a_delay_doubling_each_attempt(self) -> None:
         """Without a hint from the server, each attempt waits about twice the last."""
         transport = self.transport(retry_backoff=1.0, respect_retry_after=False)
 

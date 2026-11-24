@@ -37,7 +37,7 @@ class TestTranslate:
         return DBAPIError("INSERT", {}, Exception("23000", prefix + message))
 
     @staticmethod
-    def test__when_a_primary_key_is_unnamed__names_the_columns_of_the_table_primary_key(
+    def test__when_a_primary_key_is_unnamed__returns_the_columns_of_the_table_primary_key(
         translator: SqlServerRejectionTranslator,
     ) -> None:
         """A generated name; only the first message is read."""
@@ -57,7 +57,7 @@ class TestTranslate:
         )
 
     @staticmethod
-    def test__when_a_foreign_key_is_unknown__names_the_referenced_table(
+    def test__when_a_foreign_key_is_unknown__returns_the_referenced_table(
         translator: SqlServerRejectionTranslator,
     ) -> None:
         """The written table and its columns are unknown without the constraint."""
@@ -73,7 +73,7 @@ class TestTranslate:
         assert (rejection.table, rejection.other_table, rejection.columns) == (None, "machine", [])
 
     @staticmethod
-    def test__when_an_error_has_no_number__is_an_invalid_value(
+    def test__when_an_error_has_no_number__returns_an_invalid_value(
         translator: SqlServerRejectionTranslator,
     ) -> None:
         """Nothing is named."""
@@ -87,7 +87,7 @@ class TestIsRefusal:
     """The error's number, or its driver class, tells a refused row from a failure."""
 
     @staticmethod
-    def test__when_a_truncation_is_raised_as_a_syntax_error__is_refused() -> None:
+    def test__when_a_truncation_is_raised_as_a_syntax_error__returns_true() -> None:
         """SQLSTATE 42000, error 2628."""
         error = TestTranslate.refusal(
             "String or binary data would be truncated in table 'tempdb.dbo.machine', column"
@@ -97,7 +97,7 @@ class TestIsRefusal:
         assert SqlServerRejectionTranslator.is_refusal(error)
 
     @staticmethod
-    def test__when_a_deadlock_happens__is_no_refusal() -> None:
+    def test__when_a_deadlock_happens__returns_false() -> None:
         """Error 1205: the whole transaction is gone, the caller must know."""
         message = (
             "[40001] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process"

@@ -5,7 +5,7 @@ from baseline_common.services.record_matching.record_matching_service import Rec
 
 
 class TestServiceProvider:
-    async def test__when_resolved_twice__the_record_matching_service_is_built_once(self) -> None:
+    async def test__when_resolved_twice__returns_the_same_record_matching_service(self) -> None:
         """The provider builds the service once; every resolution gets the same object."""
         container = make_async_container(ServiceProvider())
 

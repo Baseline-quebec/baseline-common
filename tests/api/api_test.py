@@ -7,7 +7,7 @@ from baseline_common.api.settings import get_settings
 
 
 class TestRootApp:
-    def test__when_the_health_probe_is_called__names_the_app_and_its_release(self) -> None:
+    def test__when_the_health_probe_is_called__returns_the_app_and_its_release(self) -> None:
         """The probe the container polls is unversioned, and names the release that runs."""
         with TestClient(app) as client:
             response = client.get("/health")
@@ -19,7 +19,7 @@ class TestRootApp:
             "version": ApiVersion.APP,
         }
 
-    def test__when_the_version_is_asked_for_its_schema__is_mounted_and_serves_it(self) -> None:
+    def test__when_the_version_is_asked_for_its_schema__returns_its_routes(self) -> None:
         """A mount never runs its own lifespan: the root enters it, and the version answers."""
         with TestClient(app) as client:
             response = client.get(f"/{ApiVersion.SCHEMA}/openapi.json")

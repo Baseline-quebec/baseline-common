@@ -224,9 +224,13 @@ d'optimisation sont dans `docs/optimization-engine.md` de baseline-optimization 
     - Entre dépôts, le sens est celui des « Règles d'architecture » du `README.md` : un dépôt
       spécialisé lit `framework/` ou `models/` de baseline-common, son `framework/` seulement
       `framework/` (`framework/ml/graph/` de baseline-ml lit `framework/multidigraph/`).
-21. **Un essai se nomme `test__when_<condition>__<résultat>`.**
-    - La condition dit ce que l'essai met en place, le résultat ce qu'il vérifie :
-      `test__when_a_name_is_blank__is_refused`.
+21. **Un essai se nomme `test__when_<condition>__returns_<résultat>` ou
+    `test__when_<condition>__raises_<erreur>`.**
+    - La condition dit ce que l'essai met en place. La fin dit ce que l'appel rend (`returns_`) ou
+      l'exception qu'il lève (`raises_`), et rien d'autre : ni un état (`is_refused`), ni un autre
+      verbe (`creates_`, `keeps_`).
+    - `test__when_a_name_is_blank__raises_value_error`,
+      `test__when_a_record_is_held__returns_it_by_its_id`.
     - Une classe d'essais se nomme `Test<Classe>` quand elle regroupe les essais d'une classe
       (`TestRecordMatchingService`), ou `Test<Thème>` quand elle regroupe ceux d'un thème
       (`TestLayers` dans l'essai d'architecture). Les deux sont permis.

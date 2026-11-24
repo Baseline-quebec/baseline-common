@@ -16,7 +16,7 @@ def service() -> RecordMatchingService:
 
 
 class TestMatch:
-    def test__when_one_candidate_has_the_same_name__is_a_match(
+    def test__when_one_candidate_has_the_same_name__returns_a_match(
         self, service: RecordMatchingService
     ) -> None:
         """One candidate with the same name once normalized is the match."""
@@ -26,7 +26,7 @@ class TestMatch:
 
         assert decision == MatchDecision(verdict=MatchVerdict.MATCH, record_ids=["7"])
 
-    def test__when_no_candidate_has_the_same_name__is_a_new_record(
+    def test__when_no_candidate_has_the_same_name__returns_a_new_record(
         self, service: RecordMatchingService
     ) -> None:
         """No candidate with the same name makes a new record."""
@@ -36,7 +36,7 @@ class TestMatch:
 
         assert decision == MatchDecision(verdict=MatchVerdict.NEW_RECORD, record_ids=[])
 
-    def test__when_two_candidates_have_the_same_name__is_uncertain(
+    def test__when_two_candidates_have_the_same_name__returns_uncertain_naming_both(
         self, service: RecordMatchingService
     ) -> None:
         """Two candidates with the same name leave it to a person, both named."""
@@ -48,7 +48,7 @@ class TestMatch:
 
 
 class TestNormalize:
-    def test__when_a_name_has_case_accents_parentheses_and_suffixes__are_left_out(
+    def test__when_a_name_has_case_accents_parentheses_and_suffixes__returns_it_without_them(
         self, service: RecordMatchingService
     ) -> None:
         """Case, accents, parentheses and legal suffixes do not count."""
@@ -56,7 +56,7 @@ class TestNormalize:
 
         assert normalized == "societe energie"
 
-    def test__when_custom_suffixes_are_given__replace_the_default_ones(self) -> None:
+    def test__when_custom_suffixes_are_given__returns_the_name_without_those_only(self) -> None:
         """The suffixes given replace the defaults; an empty list keeps every word."""
         name = "Beta Inc Group"
 

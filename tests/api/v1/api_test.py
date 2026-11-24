@@ -6,13 +6,13 @@ from tests.api.v1.probe_router import ProbeRouter
 
 
 class TestInitApp:
-    def test__when_the_schema_is_fetched__documents_every_route(self, client: TestClient) -> None:
+    def test__when_the_schema_is_fetched__returns_every_route(self, client: TestClient) -> None:
         """Every exposed route reaches the schema, and nothing else does."""
         paths = client.get("/openapi.json").json()["paths"]
 
         assert set(paths) == {"/record-matching"}
 
-    def test__when_a_request_fails_validation__is_answered_in_french(
+    def test__when_a_request_fails_validation__returns_a_422_in_french(
         self, client: TestClient
     ) -> None:
         """The app registers the French handler: a body missing a field gets the French envelope."""
@@ -21,7 +21,7 @@ class TestInitApp:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert response.json()["message"] == "Champ requis manquant. (body → name)"
 
-    def test__when_an_exception_is_uncaught__is_answered_by_the_middleware(self) -> None:
+    def test__when_an_exception_is_uncaught__returns_a_json_500(self) -> None:
         """The app registers the middleware: a failing route answers a JSON 500, not a crash."""
         app = init_app(init_container())
         app.include_router(ProbeRouter(RuntimeError("boom")))

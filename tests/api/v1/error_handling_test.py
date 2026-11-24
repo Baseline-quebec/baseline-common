@@ -49,7 +49,7 @@ class TestRecordErrorMiddleware:
             (KeyError("x"), status.HTTP_500_INTERNAL_SERVER_ERROR, "Erreur interne du serveur."),
         ],
     )
-    def test__when_an_exception_is_uncaught__is_answered_in_french_json(
+    def test__when_an_exception_is_uncaught__returns_its_status_and_french_error(
         self, failure: Exception, code: int, error: str
     ) -> None:
         """A known failure answers its own status; anything else answers 500, its cause kept out."""
@@ -60,7 +60,7 @@ class TestRecordErrorMiddleware:
         assert response.status_code == code
         assert response.json() == {"error": error}
 
-    def test__when_a_request_succeeds__passes_through(self) -> None:
+    def test__when_a_request_succeeds__returns_its_response_untouched(self) -> None:
         """The middleware leaves a response that did not fail untouched."""
         client = self.probe_client(RuntimeError("boom"))
 
@@ -83,7 +83,7 @@ def validation_client() -> TestClient:
 
 
 class TestFrenchValidationError:
-    def test__when_one_field_is_invalid__is_summarised_with_its_location(
+    def test__when_one_field_is_invalid__returns_its_message_and_location(
         self, validation_client: TestClient
     ) -> None:
         """One error: the summary is its French message, then where it is."""
@@ -102,7 +102,7 @@ class TestFrenchValidationError:
             ],
         }
 
-    def test__when_several_fields_are_invalid__are_counted_and_listed(
+    def test__when_several_fields_are_invalid__returns_their_count_and_locations(
         self, validation_client: TestClient
     ) -> None:
         """Several errors: the summary counts them and names each location."""
