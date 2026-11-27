@@ -32,14 +32,16 @@ qu'on importe par son chemin complet : `baseline_ml/framework/ml/`, `baseline_ll
 entre eux : avec un seul paquet, la règle tient d'elle-même, et l'essai d'architecture du dépôt la
 garde.
 
-Ils dépendent de baseline-common, jamais l'inverse. Les règles de revue générales
-(`docs/rules.md`) ne vivent qu'ici ; chaque dépôt spécialisé y renvoie.
+Ils dépendent de baseline-common, jamais l'inverse.
+
+Les règles de code vivent dans agents-dev, et nulle part ailleurs : baseline-common, comme chaque
+dépôt spécialisé, y renvoie. Ce dépôt en est l'exemple : un projet entier qui les suit.
 
 ## Documentation
 
 | Document | Contenu |
 |---|---|
-| [`docs/rules.md`](docs/rules.md) | **Les règles de revue du code,** communes à tout le dépôt. Tout code qui entre ici les respecte. |
+| [Règles de code](https://github.com/Baseline-quebec/agents-dev/blob/main/shared/knowledge/regles-code.md) (agents-dev) | **Les règles de revue du code,** communes aux dépôts de Baseline. Tout code qui entre ici les respecte. |
 | [`docs/architecture-services.md`](docs/architecture-services.md) | Les couches et comment un service, un orchestrateur et un repository se construisent. |
 | [`docs/SOURCES.txt`](docs/SOURCES.txt) | La provenance de chaque fichier : dépôt, branche, commit, chemin. |
 
@@ -106,7 +108,7 @@ est sous « Règles d'architecture ».
 - **Service** : les opérations de base d'une entité ou d'une capacité, dont la conversion des
   données externes en données du domaine. Son constructeur reçoit la configuration et les
   dépendances, ses méthodes reçoivent les données, sous l'une des formes que permet la règle 1
-  de `docs/rules.md`. Un service a son dossier `services/<sujet>/`
+  des règles de code. Un service a son dossier `services/<sujet>/`
   dès qu'un second fichier n'appartient qu'à lui (agent, solveur, config, adapters).
 - **Adapter** : lit un enregistrement dans la forme d'un système externe et rend celui du domaine.
   Il est propre à sa source, donc vit dans le dossier du service qui s'en sert,
@@ -181,7 +183,7 @@ est sous « Règles d'architecture ».
     construit son propre conteneur et le passe à `init_app(container)`.
   - **Ce qu'un point d'entrée déclare au niveau du module** (son `init_container()`, son
     `get_settings()`, la fonction qu'il lance dans un processus enfant, ses commandes, ses routes)
-    est l'exception des règles 2 et 8 de `docs/rules.md`.
+    est l'exception des règles 2 et 8 des règles de code.
   - **Seule l'API connaît HTTP côté serveur** : chemins, méthodes, droits par routeur (une
     dépendance FastAPI sur le routeur). Un orchestrateur ou un service ne connaît ni route ni
     méthode HTTP ; une erreur devient une réponse HTTP dans `ExceptionHandlerMiddleware`
@@ -272,8 +274,8 @@ Un module entre s'il remplit **toutes** ces conditions.
   déjà comment envelopper une API HTTP.
 - **Un repository qui se réécrit en quelques lignes** sur un repository existant, comme lire et
   écrire un fichier entier sur `InMemoryRepository`.
-- **Une ABC pour une seule implémentation,** hors du point d'extension de la règle 4 de
-  `docs/rules.md`.
+- **Une ABC pour une seule implémentation,** hors du point d'extension de la règle 4 des
+  règles de code.
 - **Le contenu métier d'un client** : ses services, adapters, orchestrateurs, prompts et `models`. Ce
   n'est pas une connaissance réutilisable.
 
@@ -362,7 +364,7 @@ reste.
    commit, chemin) dans `docs/SOURCES.txt`.
 2. **Ranger** le code dans `framework/<sujet>/` et ses essais dans `tests/framework/<sujet>/`, en suivant les
    conventions de nommage.
-3. **Relire contre `docs/rules.md`** classe par classe. Ce qui ne passe pas est réécrit
+3. **Relire contre les règles de code** classe par classe. Ce qui ne passe pas est réécrit
    ou retiré, jamais seulement déplacé.
 4. **Retirer le couplage au projet d'origine** : noms de client, exemples métier, imports du
    `models` du client (un enregistrement générique partagé va dans `models/`).
