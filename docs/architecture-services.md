@@ -10,12 +10,12 @@ Les data models portent la donnée et ses invariants. La logique métier vit dan
 | **O — Open/Closed** | Ouvert à l'extension (une nouvelle sous-classe d'un contrat), fermé à la modification (le code existant ne change pas). |
 | **L — Liskov Substitution** | Toute sous-classe d'un contrat est interchangeable avec une autre. Pas de surprises. |
 | **I — Interface Segregation** | Contrats minimaux et ciblés par consommateur. Si un consommateur n'utilise que 2 méthodes sur 10, le contrat est trop large — découper, comme `AbstractReadRepository` et `AbstractWriteRepository`. |
-| **D — Dependency Inversion** | Injection par constructeur. On dépend du contrat quand il existe, sinon de la classe concrète : un contrat s'écrit en `ABC` et n'existe que dans les cas de la règle 4 des règles de code (agents-dev). |
+| **D — Dependency Inversion** | Injection par constructeur. On dépend du contrat quand il existe, sinon de la classe concrète : un contrat s'écrit en `ABC` et n'existe qu'avec plusieurs implémentations, ou pour un point d'extension. |
 
 ## Types de classes
 
 - **Data Models** — les enregistrements Pydantic du domaine : des champs, des validateurs d'invariants et des propriétés dérivées simples, sans entrée-sortie ni règle métier lourde. Ceux que plusieurs services ou couches partagent vivent dans `models/` ; celui qu'une seule classe utilise reste dans son fichier (définition complète dans le `README.md`).
-- **Services** — portent la logique métier d'**une entité ou d'une capacité** (ex : `UserService` gère les `User` ; `RecordMatchingService` rapproche un nom écrit d'une organisation connue). Le constructeur reçoit la configuration et les dépendances, les méthodes reçoivent les données (règle 1 des règles de code).
+- **Services** — portent la logique métier d'**une entité ou d'une capacité** (ex : `UserService` gère les `User` ; `RecordMatchingService` rapproche un nom écrit d'une organisation connue). Le constructeur reçoit la configuration et les dépendances, les méthodes reçoivent les données.
 - **Orchestrateurs** — le pipeline d'un processus : ils enchaînent ses étapes, des services, et un repository quand l'étape n'est qu'une lecture ou une écriture. Un orchestrateur par flot métier (ex : `OnboardingOrchestrator` appelle `UserService`, `TeamService`, `NotificationService` ; `RecordMatchingOrchestrator` lit les organisations par un repository, puis appelle `RecordMatchingService`). Une ou deux méthodes publiques ; une de plus demande une raison (une autre entrée exposée à l'API).
 - **Repositories** — lisent ou écrivent les data models, sans règle métier. Un repository par entité, sur les contrats de `framework/repository/`.
 - **Adapters** — lisent un enregistrement dans la forme d'un système externe et rendent celui du domaine. Ils vivent dans le dossier du service, `services/<sujet>/<source>_adapter.py`, et sont optionnels : dans 90 à 95 % des cas, un schéma de source à `AliasPath` suffit (définition complète dans le `README.md`).
@@ -35,12 +35,12 @@ Le noyau contient les **data models** (la donnée et ses invariants), les **serv
 └──────────────────────────────────────┘
 ```
 
-- **Contrats** — une dépendance du noyau passe par une `ABC` au nom précis quand la règle 4 des règles de code le justifie : plusieurs implémentations, ou un point d'extension. Les repositories passent par ceux de `framework/repository/`. Sinon, le noyau reçoit la classe concrète. Pas de classe générique « Port ».
+- **Contrats** — une dépendance du noyau passe par une `ABC` au nom précis quand il a plusieurs implémentations, ou marque un point d'extension. Les repositories passent par ceux de `framework/repository/`. Sinon, le noyau reçoit la classe concrète. Pas de classe générique « Port ».
 - **Implémentations** — classes concrètes que les providers de `assembly/` construisent et injectent (repositories, gateways HTTP, services).
 
 ## Diagramme de classes (template Mermaid)
 
-Le modèle ne dessine aucun contrat de service : une `ABC` de service n'apparaît que si la règle 4 la justifie.
+Le modèle ne dessine aucun contrat de service : une `ABC` de service n'apparaît qu'avec plusieurs implémentations, ou pour un point d'extension.
 
 ```mermaid
 classDiagram
